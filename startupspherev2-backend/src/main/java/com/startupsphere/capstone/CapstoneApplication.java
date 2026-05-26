@@ -16,11 +16,21 @@ public class    CapstoneApplication {
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing()
                 .load();
-        String sendGridApiKey = dotenv.get("SENDGRID_API_KEY", System.getenv("SENDGRID_API_KEY") != null ? System.getenv("SENDGRID_API_KEY") : "");
-        System.setProperty("SENDGRID_API_KEY", sendGridApiKey);
+        setSystemProperty(dotenv, "SENDGRID_API_KEY", "SENDGRID_API_KEY");
+        setSystemProperty(dotenv, "SPRING_DATASOURCE_URL", "spring.datasource.url");
+        setSystemProperty(dotenv, "SPRING_DATASOURCE_USERNAME", "spring.datasource.username");
+        setSystemProperty(dotenv, "SPRING_DATASOURCE_PASSWORD", "spring.datasource.password");
+        setSystemProperty(dotenv, "SECURITY_JWT_SECRET_KEY", "security.jwt.secret-key");
 
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");
+    }
+
+    private static void setSystemProperty(Dotenv dotenv, String dotenvKey, String systemPropertyKey) {
+        String value = dotenv.get(dotenvKey, System.getenv(dotenvKey) != null ? System.getenv(dotenvKey) : null);
+        if (value != null && !value.isBlank()) {
+            System.setProperty(systemPropertyKey, value);
+        }
     }
 
 }
