@@ -17,7 +17,7 @@ public class    CapstoneApplication {
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing()
                 .load();
-        setSystemProperty(dotenv, "SENDGRID_API_KEY", "SENDGRID_API_KEY");
+        setSystemProperty(dotenv, "SENDGRID_API_KEY", "sendgrid.api.key");
         setSystemProperty(dotenv, "SPRING_DATASOURCE_URL", "spring.datasource.url");
         setSystemProperty(dotenv, "SPRING_DATASOURCE_USERNAME", "spring.datasource.username");
         setSystemProperty(dotenv, "SPRING_DATASOURCE_PASSWORD", "spring.datasource.password");

@@ -38,7 +38,7 @@ public class StartupService {
 
     private static final Logger logger = LoggerFactory.getLogger(StartupService.class);
     
-    @Value("${sendgrid.api.key}")
+    @Value("${sendgrid.api.key:}")
     private String sendgridApiKey;
 
     @Value("${sendgrid.from.email:default@startupsphere.com}")
@@ -485,6 +485,11 @@ public class StartupService {
 
         Mail mail = new Mail(from, "Verify Your Email - StartupSphere", to, content);
 
+        if (sendgridApiKey == null || sendgridApiKey.isBlank()) {
+            logger.warn("SendGrid API key not configured; skipping verification email to {}", email);
+            return;
+        }
+
         SendGrid sg = new SendGrid(sendgridApiKey);
         Request request = new Request();
         try {
@@ -589,6 +594,11 @@ public class StartupService {
             "Thank you,\nStartupSphere Team");
 
         Mail mail = new Mail(from, "Reminder: Update Your Startup Information", to, content);
+
+        if (sendgridApiKey == null || sendgridApiKey.isBlank()) {
+            logger.warn("SendGrid API key not configured; skipping reminder email to {}", toEmail);
+            return;
+        }
 
         SendGrid sg = new SendGrid(sendgridApiKey);
         Request request = new Request();
