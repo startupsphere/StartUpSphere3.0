@@ -28,7 +28,10 @@ public class    CapstoneApplication {
     }
 
     private static void setSystemProperty(Dotenv dotenv, String dotenvKey, String systemPropertyKey) {
-        String value = dotenv.get(dotenvKey, System.getenv(dotenvKey) != null ? System.getenv(dotenvKey) : null);
+        String value = dotenv.get(dotenvKey);
+        if (value == null || value.isBlank()) {
+            value = System.getenv(dotenvKey);
+        }
         if (value != null && !value.isBlank()) {
             System.setProperty(systemPropertyKey, value);
         }
