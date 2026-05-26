@@ -4,6 +4,7 @@ import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.entity.Views;
 
+import jakarta.transaction.Transactional;
 
 import java.util.List;
 

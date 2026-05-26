@@ -7,8 +7,11 @@ import com.sendgrid.Response;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.startupsphere.capstone.entity.Bookmarks;
+import com.startupsphere.capstone.entity.Like;
 import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
+import com.startupsphere.capstone.entity.Views;
 import com.startupsphere.capstone.repository.BookmarksRepository;
 import com.startupsphere.capstone.repository.LikeRepository;
 import com.startupsphere.capstone.repository.StartupRepository;
@@ -32,6 +35,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 
 @Service
 public class StartupService {

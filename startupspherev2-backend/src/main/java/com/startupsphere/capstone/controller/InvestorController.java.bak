@@ -1,6 +1,7 @@
 package com.startupsphere.capstone.controller;
 
 import com.startupsphere.capstone.entity.Investor;
+import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.repository.InvestorRepository;
 import com.startupsphere.capstone.service.InvestorService;

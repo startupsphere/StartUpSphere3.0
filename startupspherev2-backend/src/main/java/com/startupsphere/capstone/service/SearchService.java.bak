@@ -5,6 +5,7 @@ import com.startupsphere.capstone.dtos.StakeholderDTO;
 import com.startupsphere.capstone.dtos.StartupDTO;
 import com.startupsphere.capstone.entity.Stakeholder;
 import com.startupsphere.capstone.entity.Startup;
+import com.startupsphere.capstone.entity.StartupStakeholder;
 import com.startupsphere.capstone.repository.StakeholderRepository;
 import com.startupsphere.capstone.repository.StartupRepository;
 import org.springframework.stereotype.Service;

@@ -2,6 +2,7 @@ package com.startupsphere.capstone.repository;
 
 import com.startupsphere.capstone.entity.Like;
 import com.startupsphere.capstone.entity.Startup;
+import com.startupsphere.capstone.entity.Views;
 
 import jakarta.transaction.Transactional;
 

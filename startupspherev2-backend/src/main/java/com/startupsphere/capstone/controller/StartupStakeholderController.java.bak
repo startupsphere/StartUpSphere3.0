@@ -1,12 +1,17 @@
 package com.startupsphere.capstone.controller;
 
 import com.startupsphere.capstone.dtos.StartupStakeholderRequest;
+import com.startupsphere.capstone.entity.Stakeholder;
+import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.StartupStakeholder;
+import com.startupsphere.capstone.repository.StakeholderRepository;
+import com.startupsphere.capstone.repository.StartupRepository;
 import com.startupsphere.capstone.repository.StartupStakeholderRepository;
 import com.startupsphere.capstone.responses.ApiResponse;
 import com.startupsphere.capstone.service.StartupStakeholderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
