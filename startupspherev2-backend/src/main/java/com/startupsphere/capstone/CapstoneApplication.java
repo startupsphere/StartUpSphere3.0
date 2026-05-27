@@ -22,6 +22,7 @@ public class    CapstoneApplication {
         setSystemProperty(dotenv, "SPRING_DATASOURCE_USERNAME", "spring.datasource.username");
         setSystemProperty(dotenv, "SPRING_DATASOURCE_PASSWORD", "spring.datasource.password");
         setSystemProperty(dotenv, "SECURITY_JWT_SECRET_KEY", "security.jwt.secret-key");
+        setSystemProperty(dotenv, "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE", "spring.datasource.hikari.maximum-pool-size");
 
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");
