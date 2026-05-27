@@ -1292,10 +1292,17 @@ export default function Sidebar({
           {/* Logo */}
           <div className="flex justify-center items-center py-6 border-b border-gray-200">
             <button
-              onClick={() =>
-                (window.location.href =
-                  "https://startupsphere-azure.vercel.app/")
-              }
+              onClick={() => {
+                navigate("/");
+                setShowSearchContainer(false);
+                setShowRecents(false);
+                setShowBookmarks(false);
+                setViewingStartup(null);
+                setViewingStakeholder(null);
+                setStartup(null);
+                setStakeholder(null);
+                setContainerMode(null);
+              }}
               className="group relative flex flex-col items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
             >
               <img
