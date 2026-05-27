@@ -14,7 +14,8 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award } from "lucide-react";
+import { Award, Sparkles } from "lucide-react";
+import GeminiAiChat from "../components/GeminiAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone } from "react-icons/fa";
 import { BsCalendarEvent, BsPeople, BsBriefcase } from "react-icons/bs";
@@ -161,6 +162,7 @@ export default function Sidebar({
   const [adminSubmissions, setAdminSubmissions] = useState([]);
   const [adminSubmissionsCount, setAdminSubmissionsCount] = useState(0);
   const [notificationAdminTab, setNotificationAdminTab] = useState(false);
+  const [showGeminiAi, setShowGeminiAi] = useState(false);
 
   const markAsViewed = async (id) => {
     try {
@@ -314,6 +316,7 @@ export default function Sidebar({
 
       setShowRecents(false);
       setShowBookmarks(false);
+      setShowGeminiAi(false);
       setViewingStartup(null);
       setViewingStakeholder(null);
       setStartup(null);
@@ -1333,6 +1336,7 @@ export default function Sidebar({
                       setShowSearchContainer((prev) => !prev);
                       setViewingStartup(null);
                       setViewingStakeholder(null);
+                      setShowGeminiAi(false);
                     }}
                   >
                     <FaGlobe className="h-6 w-6 opacity-80 group-hover:opacity-100" />
@@ -1360,6 +1364,7 @@ export default function Sidebar({
                           setStakeholder(null);
                           setViewingStartup(null);
                           setViewingStakeholder(null);
+                          setShowGeminiAi(false);
                         }}
                       >
                         <svg
@@ -1397,6 +1402,7 @@ export default function Sidebar({
                           setStakeholder(null);
                           setViewingStartup(null);
                           setViewingStakeholder(null);
+                          setShowGeminiAi(false);
                         }}
                       >
                         <svg
@@ -1425,6 +1431,7 @@ export default function Sidebar({
                           setShowRecents(false);
                           setShowSearchContainer(false);
                           setShowBookmarks(false);
+                          setShowGeminiAi(false);
                           navigate("/startup-dashboard");
                         }}
                         className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
@@ -1443,6 +1450,7 @@ export default function Sidebar({
                           setShowRecents(false);
                           setShowSearchContainer(false);
                           setShowBookmarks(false);
+                          setShowGeminiAi(false);
                           navigate("/all-startup-dashboard");
                         }}
                         className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
@@ -1459,7 +1467,7 @@ export default function Sidebar({
                       <li className="flex justify-center">
                         <button
                           className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
-                          onClick={() => navigate("/notifications")}
+                          onClick={() => { setShowGeminiAi(false); navigate("/notifications"); }}
                         >
                           <div className="relative">
                             <FaBell className="h-6 w-6 opacity-80 group-hover:opacity-100" />
@@ -1477,6 +1485,32 @@ export default function Sidebar({
                     )}
                   </>
                 )}
+                {/* Gemini AI Sparkles Icon */}
+                <li className="flex justify-center">
+                  <button
+                    className={`group relative flex flex-col items-center justify-center rounded-lg p-3 transition-all duration-200 cursor-pointer ${
+                      showGeminiAi 
+                        ? "bg-indigo-50 text-indigo-600" 
+                        : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                    }`}
+                    onClick={() => {
+                      setShowSearchContainer(false);
+                      setShowRecents(false);
+                      setShowBookmarks(false);
+                      setViewingStartup(null);
+                      setViewingStakeholder(null);
+                      setStartup(null);
+                      setStakeholder(null);
+                      setContainerMode(null);
+                      setShowGeminiAi(!showGeminiAi);
+                    }}
+                  >
+                    <Sparkles className={`h-6 w-6 opacity-80 group-hover:opacity-100 ${showGeminiAi ? "animate-pulse text-indigo-600" : ""}`} />
+                    <span className="absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-[120]">
+                      Gemini AI
+                    </span>
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
@@ -3563,6 +3597,12 @@ export default function Sidebar({
           </div>
         </motion.div>
       )}
+      {/* Gemini AI Panel */}
+      <AnimatePresence>
+        {showGeminiAi && (
+          <GeminiAiChat onClose={() => setShowGeminiAi(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
