@@ -3225,7 +3225,7 @@ export default function Startupmap({
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div
         ref={mapContainerRef}
-        className="fixed top-0 left-0 w-full h-full z-0 marker-container"
+        className="absolute inset-0 z-0 marker-container"
         style={{ width: "100%", height: "100%" }}
       />
       <SearchComponent />
