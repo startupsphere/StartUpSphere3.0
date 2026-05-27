@@ -1,6 +1,8 @@
 package com.startupsphere.capstone;
 
+import java.net.ServerSocket;
 import java.security.SecureRandom;
+import java.io.IOException;
 import java.util.Base64;
 
 import org.springframework.boot.SpringApplication;
@@ -26,8 +28,37 @@ public class    CapstoneApplication {
         setSystemProperty(dotenv, "SPRING_DATASOURCE_PASSWORD", "spring.datasource.password");
         setSystemProperty(dotenv, "SECURITY_JWT_SECRET_KEY", "security.jwt.secret-key");
 
+        // Ensure server port is available for local dev; pick a free port if the configured one is in use.
+        ensureServerPortAvailable();
+
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");
+    }
+
+    private static void ensureServerPortAvailable() {
+        String portProp = System.getProperty("server.port");
+        int desiredPort = 8080;
+        try {
+            if (portProp != null && !portProp.isBlank()) {
+                desiredPort = Integer.parseInt(portProp);
+            }
+        } catch (NumberFormatException ex) {
+            desiredPort = 8080;
+        }
+
+        try (ServerSocket ss = new ServerSocket(desiredPort)) {
+            ss.setReuseAddress(true);
+            // port is available, close and continue
+        } catch (IOException e) {
+            // desired port is in use — find a free port and set `server.port`
+            try (ServerSocket free = new ServerSocket(0)) {
+                int freePort = free.getLocalPort();
+                System.setProperty("server.port", String.valueOf(freePort));
+                System.out.println("[INFO] Port " + desiredPort + " is in use; starting on available port " + freePort);
+            } catch (IOException ex) {
+                // ignore — let Spring fail with its normal message
+            }
+        }
     }
 
     private static void setSystemProperty(Dotenv dotenv, String dotenvKey, String systemPropertyKey) {
