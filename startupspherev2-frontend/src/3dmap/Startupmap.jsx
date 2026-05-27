@@ -61,6 +61,7 @@ export default function Startupmap({
   );
   const [stakeholderConnections, setStakeholderConnections] = useState([]);
   const [showConnections, setShowConnections] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(true);
   const [connectionLines, setConnectionLines] = useState([]);
   const [stakeholderMarkers, setStakeholderMarkers] = useState([]);
   const [filteredStakeholders, setFilteredStakeholders] = useState([]);
@@ -86,7 +87,7 @@ export default function Startupmap({
         sortBy: "companyName",
         sortDir: "ASC"
       });
-      
+
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/approved?${params.toString()}`,
         {
@@ -94,7 +95,7 @@ export default function Startupmap({
         }
       );
       const data = await response.json();
-      
+
       // Extract startups from paginated response
       const startups = data.content || [];
       setStartupMarkers(startups);
@@ -115,7 +116,7 @@ export default function Startupmap({
         const sourceId = "startups-src";
         const layerId = "startups-layer";
         const highlightLayerId = "startups-highlight";
-        
+
         if (mapRef.getLayer(layerId)) {
           mapRef.setLayoutProperty(layerId, 'visibility', 'none');
         }
@@ -152,7 +153,7 @@ export default function Startupmap({
           { source: "stakeholders-src", id: stakeholderId },
           { selected: true }
         );
-      } catch {}
+      } catch { }
 
       // Update highlight circle filter
       if (map.getLayer("stakeholders-highlight")) {
@@ -206,7 +207,7 @@ export default function Startupmap({
     },
     [activeStakeholderId, stakeholderMarkers]
   );
-  
+
   // Handle external highlight stakeholder requests
   useEffect(() => {
     if (onHighlightStakeholder && typeof onHighlightStakeholder === 'function') {
@@ -228,27 +229,27 @@ export default function Startupmap({
       }
       const stakeholders = await response.json();
       console.log("Stakeholders loaded:", stakeholders.length);
-      
+
       // Filter out stakeholders without location data and ensure coordinates are valid
       const stakeholdersWithLocation = stakeholders.filter(stakeholder => {
         // Check if location data exists
         if (!stakeholder.locationLat || !stakeholder.locationLng) return false;
-        
+
         // Parse coordinates if they're stored as strings
         const lat = typeof stakeholder.locationLat === "string" ? parseFloat(stakeholder.locationLat) : stakeholder.locationLat;
         const lng = typeof stakeholder.locationLng === "string" ? parseFloat(stakeholder.locationLng) : stakeholder.locationLng;
-        
+
         // Validate coordinates are within valid ranges
-        return !isNaN(lat) && !isNaN(lng) && 
-               lat >= -90 && lat <= 90 && 
-               lng >= -180 && lng <= 180;
+        return !isNaN(lat) && !isNaN(lng) &&
+          lat >= -90 && lat <= 90 &&
+          lng >= -180 && lng <= 180;
       });
-      
+
       console.log("Stakeholders with valid location data:", stakeholdersWithLocation.length);
       stakeholdersWithLocation.forEach(s => {
         console.log(`Stakeholder ${s.id} (${s.name}) has location: [${s.locationLng}, ${s.locationLat}]`);
       });
-      
+
       // Set all stakeholders for filtering purposes
       setStakeholderMarkers(stakeholders);
       setFilteredStakeholders(stakeholders);
@@ -356,7 +357,7 @@ export default function Startupmap({
     // Add or update source
     if (map.getSource(sourceId)) {
       const src = map.getSource(sourceId);
-      try { src.setData(data); } catch {}
+      try { src.setData(data); } catch { }
     } else {
       map.addSource(sourceId, { type: "geojson", data });
     }
@@ -479,7 +480,7 @@ export default function Startupmap({
             if (map.getLayer(highlightLayerId)) {
               map.setFilter(highlightLayerId, ["==", ["get", "id"], id]);
             }
-          } catch {}
+          } catch { }
 
           // Fly and popup
           map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 14.5), speed: 0.8, curve: 1.2, essential: true });
@@ -528,11 +529,11 @@ export default function Startupmap({
     } else {
       ensureIconAndLayers();
     }
-    
+
     function loadIconFromURL() {
       const iconUrl = `${window.location.origin}/stakeholder-icon.png`;
       console.log("Loading stakeholder icon from:", iconUrl);
-      
+
       map.loadImage(iconUrl, (err, img) => {
         if (err) {
           console.error("Failed to load stakeholder icon from URL, using fallback:", err);
@@ -540,8 +541,8 @@ export default function Startupmap({
           const canvas = document.createElement('canvas');
           canvas.width = 64; canvas.height = 64;
           const ctx = canvas.getContext('2d');
-          ctx.clearRect(0,0,64,64);
-          
+          ctx.clearRect(0, 0, 64, 64);
+
           // Create circular background with gradient
           const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 24);
           gradient.addColorStop(0, '#9333EA');
@@ -550,14 +551,14 @@ export default function Startupmap({
           ctx.beginPath();
           ctx.arc(32, 32, 24, 0, Math.PI * 2);
           ctx.fill();
-          
+
           // Add white border for professional look
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(32, 32, 22, 0, Math.PI * 2);
           ctx.stroke();
-          
+
           // Add person silhouette
           ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
           // Head
@@ -568,14 +569,14 @@ export default function Startupmap({
           ctx.beginPath();
           ctx.arc(32, 34, 11, 0, Math.PI, true);
           ctx.fill();
-          
-          try { 
+
+          try {
             const imageData = ctx.getImageData(0, 0, 64, 64);
-            map.addImage(iconName, { 
-              width: 64, 
-              height: 64, 
-              data: new Uint8Array(imageData.data) 
-            }, { pixelRatio: 2 }); 
+            map.addImage(iconName, {
+              width: 64,
+              height: 64,
+              data: new Uint8Array(imageData.data)
+            }, { pixelRatio: 2 });
             console.log("Stakeholder fallback icon added successfully");
           } catch (e) {
             console.error("Failed to add fallback icon:", e);
@@ -596,7 +597,7 @@ export default function Startupmap({
   // Render startups using a Mapbox symbol layer (professional marker)
   const renderStartupMarkers = (map, startupsWithLocation) => {
     if (!map) return;
-    
+
     // Don't render anything if there are no startups with valid locations
     if (!startupsWithLocation || startupsWithLocation.length === 0) {
       console.log("No startups with valid locations to render");
@@ -626,7 +627,7 @@ export default function Startupmap({
     const data = { type: "FeatureCollection", features };
 
     if (map.getSource(sourceId)) {
-      try { map.getSource(sourceId).setData(data); } catch {}
+      try { map.getSource(sourceId).setData(data); } catch { }
     } else {
       map.addSource(sourceId, { type: "geojson", data });
     }
@@ -661,6 +662,59 @@ export default function Startupmap({
             "icon-halo-blur": 1.2
           },
         });
+      }
+
+      if (!map.getLayer("startups-heatmap")) {
+        map.addLayer({
+          id: "startups-heatmap",
+          type: "heatmap",
+          source: sourceId,
+          maxzoom: 15,
+          layout: {
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            // Increase the heatmap weight based on frequency or property value
+            "heatmap-weight": 1,
+            // Increase the heatmap color weight by zoom level
+            // heatmap-intensity is a multiplier on top of heatmap-weight
+            "heatmap-intensity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 1,
+              15, 3
+            ],
+            // Color ramp for heatmap. Domain is 0 (low) to 1 (high).
+            // Red if a lot of startups, green or yellow if less/none.
+            "heatmap-color": [
+              "interpolate",
+              ["linear"],
+              ["heatmap-density"],
+              0, "rgba(0, 255, 0, 0)",         // Transparent
+              0.2, "rgba(34, 197, 94, 0.6)",    // Light Green (when none/less)
+              0.5, "rgba(234, 179, 8, 0.8)",    // Yellow (medium density)
+              0.8, "rgba(249, 115, 22, 0.9)",   // Orange
+              1.0, "rgba(239, 68, 68, 0.95)"    // Vibrant Red (high density)
+            ],
+            // Adjust the heatmap radius by zoom level
+            "heatmap-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 3,
+              15, 35
+            ],
+            // Transition from heatmap to circle layer by zoom level
+            "heatmap-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 1,
+              15, 0.8
+            ]
+          }
+        }, layerId);
       }
 
       if (!map.getLayer(highlightLayerId)) {
@@ -720,7 +774,7 @@ export default function Startupmap({
             if (map.getLayer(highlightLayerId)) {
               map.setFilter(highlightLayerId, ["==", ["get", "id"], id]);
             }
-          } catch {}
+          } catch { }
 
           // Fly and popup
           map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), speed: 0.8, curve: 1.2, essential: true });
@@ -738,8 +792,8 @@ export default function Startupmap({
                 </div>
               </div>
               <div style="padding: 14px 18px; background: #fff; border-radius: 0 0 10px 10px;">
-                ${props.locationName ? 
-                  `<div style="font-size: 13px; color: #4B5563; display: flex; align-items: center;">
+                ${props.locationName ?
+              `<div style="font-size: 13px; color: #4B5563; display: flex; align-items: center;">
                     <div style="min-width: 24px; height: 24px; background-color: rgba(10, 102, 194, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
                       <svg style="width: 14px; height: 14px;" fill="none" stroke="#0A66C2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -748,7 +802,7 @@ export default function Startupmap({
                     </div>
                     <span>${props.locationName}</span>
                   </div>` : ''
-                }
+            }
               </div>
             </div>`;
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup" })
@@ -761,7 +815,7 @@ export default function Startupmap({
 
     if (!map.hasImage(iconName)) {
       const iconUrl = `${window.location.origin}/startup-marker.png`;
-      
+
       // Try SVG marker first (more professional), fallback to PNG
       map.loadImage(iconUrl, (err, img) => {
         if (err) {
@@ -775,25 +829,25 @@ export default function Startupmap({
               canvas.width = 128; canvas.height = 128; // Larger canvas for better quality
               const ctx = canvas.getContext('2d');
               ctx.clearRect(0, 0, 128, 128);
-              
+
               // Enhanced drop shadow
               ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
               ctx.shadowBlur = 10;
               ctx.shadowOffsetX = 0;
               ctx.shadowOffsetY = 4;
-              
+
               // Define professional color palette - using LinkedIn-inspired blues
               const primaryColor = '#0A66C2'; // Professional LinkedIn blue
               const secondaryColor = '#0077B5'; // Slightly deeper blue
               const highlightColor = '#0e87db'; // Highlight blue for embellishments
               const accentColor = '#FFFFFF';
-              
+
               // Pin body with sophisticated gradient
               const gradient = ctx.createLinearGradient(64, 16, 64, 64);
               gradient.addColorStop(0, primaryColor);
               gradient.addColorStop(1, secondaryColor);
               ctx.fillStyle = gradient;
-              
+
               // Main pin shape - larger and more professional
               ctx.beginPath();
               ctx.arc(64, 40, 28, Math.PI, Math.PI * 2);
@@ -802,13 +856,13 @@ export default function Startupmap({
               ctx.lineTo(36, 40);
               ctx.closePath();
               ctx.fill();
-              
+
               // Reset shadow for inner details
               ctx.shadowColor = 'transparent';
               ctx.shadowBlur = 0;
               ctx.shadowOffsetX = 0;
               ctx.shadowOffsetY = 0;
-              
+
               // Glossy highlight for professional look
               const glossGradient = ctx.createLinearGradient(40, 20, 88, 60);
               glossGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
@@ -821,7 +875,7 @@ export default function Startupmap({
               ctx.lineTo(37, 40);
               ctx.closePath();
               ctx.fill();
-              
+
               // White border for professional contrast
               ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
               ctx.lineWidth = 2;
@@ -830,13 +884,13 @@ export default function Startupmap({
               ctx.lineTo(64, 102);
               ctx.lineTo(37, 40);
               ctx.stroke();
-              
+
               // Inner circle with refined look
               ctx.fillStyle = accentColor;
               ctx.beginPath();
               ctx.arc(64, 40, 18, 0, Math.PI * 2);
               ctx.fill();
-              
+
               // Subtle inner shadow for depth
               const innerShadow = ctx.createRadialGradient(64, 38, 4, 64, 40, 18);
               innerShadow.addColorStop(0, 'rgba(255, 255, 255, 1)');
@@ -845,7 +899,7 @@ export default function Startupmap({
               ctx.beginPath();
               ctx.arc(64, 40, 16, 0, Math.PI * 2);
               ctx.fill();
-              
+
               // Building icon for startup representation
               ctx.fillStyle = primaryColor;
               // Building body
@@ -856,15 +910,15 @@ export default function Startupmap({
               ctx.fillRect(64, 34, 4, 4);
               ctx.fillRect(58, 40, 4, 4);
               ctx.fillRect(64, 40, 4, 4);
-              
-              try { map.addImage(iconName, { width: 128, height: 128, data: ctx.getImageData(0, 0, 128, 128).data }, { pixelRatio: 3.0 }); } catch {}
+
+              try { map.addImage(iconName, { width: 128, height: 128, data: ctx.getImageData(0, 0, 128, 128).data }, { pixelRatio: 3.0 }); } catch { }
               return ensureLayer();
             }
-            try { map.addImage(iconName, img2, { pixelRatio: 2 }); } catch {}
+            try { map.addImage(iconName, img2, { pixelRatio: 2 }); } catch { }
             ensureLayer();
           });
         } else {
-          try { map.addImage(iconName, img, { pixelRatio: 2 }); } catch {}
+          try { map.addImage(iconName, img, { pixelRatio: 2 }); } catch { }
           ensureLayer();
         }
       });
@@ -883,10 +937,10 @@ export default function Startupmap({
     el.className = "default-startup-marker";
     el.style.width = "15px";  // Larger for better visibility
     el.style.height = "15px"; // Maintain aspect ratio
-    
+
     // Try to use professional SVG marker first, fallback to custom design
     const markerIconSvg = `${window.location.origin}/startup-marker.png`;
-    
+
     // Create professional looking marker
     const createCustomMarker = () => {
       // Create canvas for custom marker
@@ -894,15 +948,15 @@ export default function Startupmap({
       canvas.width = 60;
       canvas.height = 60;
       const ctx = canvas.getContext('2d');
-      
+
       // Draw professional pin with blue color theme
       ctx.clearRect(0, 0, 60, 60);
-      
+
       // Pin body with gradient
       const gradient = ctx.createLinearGradient(30, 10, 30, 35);
       gradient.addColorStop(0, '#0A66C2');
       gradient.addColorStop(1, '#0077B5');
-      
+
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(30, 20, 12, Math.PI, Math.PI * 2);
@@ -910,24 +964,24 @@ export default function Startupmap({
       ctx.lineTo(18, 20);
       ctx.closePath();
       ctx.fill();
-      
+
       // White center
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(30, 20, 6, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Blue dot in center
       ctx.fillStyle = '#0A66C2';
       ctx.beginPath();
       ctx.arc(30, 20, 2, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Convert to image URL
       const dataURL = canvas.toDataURL();
       el.style.backgroundImage = `url(${dataURL})`;
     };
-    
+
     // Check if SVG exists, fallback to custom design
     fetch(markerIconSvg)
       .then(response => {
@@ -940,7 +994,7 @@ export default function Startupmap({
       .catch(() => {
         createCustomMarker();
       });
-      
+
     el.style.backgroundSize = "contain";
     el.style.backgroundRepeat = "no-repeat";
     el.style.backgroundPosition = "center";
@@ -949,7 +1003,7 @@ export default function Startupmap({
     // Add enhanced professional shadow effect
     el.style.filter = "drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3))";
     el.style.transform = "translate(-50%, -100%)";
-    
+
     // Create a popup with enhanced professional styling for the default marker
     const popup = new mapboxgl.Popup({ offset: 28, closeButton: true, className: "startup-popup" }).setHTML(
       `<div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; overflow: hidden; border-radius: 8px;">
@@ -1031,6 +1085,28 @@ export default function Startupmap({
         renderConnectionLines(map, stakeholderConnections);
       }
 
+      return next;
+    });
+  };
+
+  const toggleHeatmapVisibility = () => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    setShowHeatmap((prev) => {
+      const next = !prev;
+      const heatmapLayerId = "startups-heatmap";
+      if (map.getLayer(heatmapLayerId)) {
+        try {
+          map.setLayoutProperty(
+            heatmapLayerId,
+            "visibility",
+            next ? "visible" : "none"
+          );
+        } catch (e) {
+          console.error("Error toggling heatmap visibility:", e);
+        }
+      }
       return next;
     });
   };
@@ -1734,9 +1810,9 @@ export default function Startupmap({
   const addDynamicLighting = (map) => {
     // Simulate different times of day (you can make this dynamic)
     const timeOfDay = "day"; // Options: "dawn", "day", "dusk", "night"
-    
+
     // Set the light preset and adjust colors for Standard style
-    switch(timeOfDay) {
+    switch (timeOfDay) {
       case "dawn":
         map.setConfigProperty("lightPreset", "dawn");
         // Warmer colors for dawn
@@ -1779,7 +1855,7 @@ export default function Startupmap({
       map.setConfigProperty("basemap", "colorPlaceLabels", "#f0f0f0");
       map.setConfigProperty("basemap", "colorRoadLabels", "#e0e0e0");
       map.setConfigProperty("basemap", "colorPointOfInterestLabels", "#d0d0d0");
-      
+
       // Enhance fog for night atmosphere
       map.setFog({
         range: [0.5, 8],
@@ -1789,7 +1865,7 @@ export default function Startupmap({
         "space-color": "rgba(20, 30, 50, 0.4)",
         "star-intensity": 0.5,
       });
-      
+
       // Try to add building lights if custom layers are supported
       try {
         map.addLayer({
@@ -1843,20 +1919,20 @@ export default function Startupmap({
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const newStyle = !isSatelliteView 
+    const newStyle = !isSatelliteView
       ? "mapbox://styles/mapbox/standard-satellite"
       : "mapbox://styles/mapbox/standard";
-    
+
     setIsSatelliteView(!isSatelliteView);
-    
+
     // Store current center and zoom
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom();
     const currentPitch = map.getPitch();
     const currentBearing = map.getBearing();
-    
+
     map.setStyle(newStyle);
-    
+
     // Reload stakeholders and startups after style loads
     map.once('style.load', () => {
       // Restore camera position
@@ -1866,12 +1942,12 @@ export default function Startupmap({
         pitch: currentPitch,
         bearing: currentBearing
       });
-      
+
       // Reload markers
       console.log("Style changed, reloading stakeholders, startups, and connections...");
       loadStakeholders(map);
       loadStartupMarkers(map);
-      
+
       // Reload connections if they were visible
       if (showConnections && stakeholderConnections.length > 0) {
         renderConnectionLines(map, stakeholderConnections);
@@ -1926,8 +2002,7 @@ export default function Startupmap({
         const mapboxResponse = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
             query
-          )}.json?access_token=${
-            mapboxgl.accessToken
+          )}.json?access_token=${mapboxgl.accessToken
           }&country=PH&types=place,locality,district,neighborhood,address,poi&proximity=123.8854,10.3157&limit=3&autocomplete=true&language=en`
         );
 
@@ -1948,48 +2023,47 @@ export default function Startupmap({
         const filteredStartups =
           searchCategory !== "stakeholder"
             ? startupMarkers
-                .filter(
-                  (startup) =>
-                    startup.companyName
-                      ?.toLowerCase()
-                      .includes(query.toLowerCase()) ||
-                    startup.locationName
-                      ?.toLowerCase()
-                      .includes(query.toLowerCase())
-                )
-                .slice(0, 3)
-                .map((startup) => ({
-                  id: `startup-${startup.id}`,
-                  text: startup.companyName,
-                  name: `${startup.companyName} (${
-                    startup.locationName || "Unknown location"
+              .filter(
+                (startup) =>
+                  startup.companyName
+                    ?.toLowerCase()
+                    .includes(query.toLowerCase()) ||
+                  startup.locationName
+                    ?.toLowerCase()
+                    .includes(query.toLowerCase())
+              )
+              .slice(0, 3)
+              .map((startup) => ({
+                id: `startup-${startup.id}`,
+                text: startup.companyName,
+                name: `${startup.companyName} (${startup.locationName || "Unknown location"
                   })`,
-                  center: [startup.locationLng, startup.locationLat],
-                  type: "startup",
-                  data: startup,
-                }))
+                center: [startup.locationLng, startup.locationLat],
+                type: "startup",
+                data: startup,
+              }))
             : [];
 
         const filteredStakeholdersSug =
           searchCategory !== "startup"
             ? stakeholderMarkers
-                .filter(
-                  (s) =>
-                    s.name?.toLowerCase().includes(query.toLowerCase()) ||
-                    s.locationName?.toLowerCase().includes(query.toLowerCase())
-                )
-                .slice(0, 3)
-                .map((s) => ({
-                  id: `stakeholder-${s.id}`,
-                  text: s.name,
-                  name: `${s.name} (${s.locationName || "Unknown location"})`,
-                  center: [
-                    parseFloat(s.locationLng),
-                    parseFloat(s.locationLat),
-                  ],
-                  type: "stakeholder",
-                  data: s,
-                }))
+              .filter(
+                (s) =>
+                  s.name?.toLowerCase().includes(query.toLowerCase()) ||
+                  s.locationName?.toLowerCase().includes(query.toLowerCase())
+              )
+              .slice(0, 3)
+              .map((s) => ({
+                id: `stakeholder-${s.id}`,
+                text: s.name,
+                name: `${s.name} (${s.locationName || "Unknown location"})`,
+                center: [
+                  parseFloat(s.locationLng),
+                  parseFloat(s.locationLat),
+                ],
+                type: "stakeholder",
+                data: s,
+              }))
             : [];
 
         let combinedSuggestions = [];
@@ -2112,45 +2186,38 @@ export default function Startupmap({
     if (suggestion.type === "startup") {
       popupContent = `
         <div style="color: black; font-family: Arial, sans-serif;">
-          <h3 style="margin: 0; color: black; font-weight: bold;">${
-            suggestion.data.companyName
-          }</h3>
-          <p style="margin: 0; color: black;">${
-            suggestion.data.locationName || "Location not specified"
-          }</p>
-          ${
-            suggestion.data.industry
-              ? `<p style="margin: 0; color: #666; font-size: 12px;">${suggestion.data.industry}</p>`
-              : ""
-          }
+          <h3 style="margin: 0; color: black; font-weight: bold;">${suggestion.data.companyName
+        }</h3>
+          <p style="margin: 0; color: black;">${suggestion.data.locationName || "Location not specified"
+        }</p>
+          ${suggestion.data.industry
+          ? `<p style="margin: 0; color: #666; font-size: 12px;">${suggestion.data.industry}</p>`
+          : ""
+        }
         </div>
       `;
     } else if (suggestion.type === "stakeholder") {
       popupContent = `
         <div style="color: black; font-family: Arial, sans-serif;">
-          <h3 style="margin: 0; color: black; font-weight: bold;">${
-            suggestion.data.name
-          }</h3>
-          <p style="margin: 0; color: black;">${
-            suggestion.data.locationName || "Location not specified"
-          }</p>
-          ${
-            suggestion.data.email
-              ? `<p style="margin: 0; color: #666; font-size: 12px;">${suggestion.data.email}</p>`
-              : ""
-          }
+          <h3 style="margin: 0; color: black; font-weight: bold;">${suggestion.data.name
+        }</h3>
+          <p style="margin: 0; color: black;">${suggestion.data.locationName || "Location not specified"
+        }</p>
+          ${suggestion.data.email
+          ? `<p style="margin: 0; color: #666; font-size: 12px;">${suggestion.data.email}</p>`
+          : ""
+        }
         </div>
       `;
     } else {
       popupContent = `
         <div style="color: black; font-family: Arial, sans-serif;">
-          <h3 style="margin: 0; color: black; font-weight: bold;">${
-            suggestion.text
-          }</h3>
+          <h3 style="margin: 0; color: black; font-weight: bold;">${suggestion.text
+        }</h3>
           <p style="margin: 0; color: black;">${suggestion.name.replace(
-            `${suggestion.text}, `,
-            ""
-          )}</p>
+          `${suggestion.text}, `,
+          ""
+        )}</p>
         </div>
       `;
     }
@@ -2193,9 +2260,8 @@ export default function Startupmap({
 
   const SearchComponent = () => (
     <div
-      className={`absolute top-4 left-4 transition-all duration-300 ease-in-out ${
-        isSearchExpanded ? "w-96" : "w-12"
-      }`}
+      className={`absolute top-4 left-4 transition-all duration-300 ease-in-out ${isSearchExpanded ? "w-96" : "w-12"
+        }`}
       style={{ zIndex: 9999 }}
     >
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 transition-shadow duration-300 hover:shadow-xl">
@@ -2253,41 +2319,37 @@ export default function Startupmap({
             <div className="flex border-b border-gray-200 px-2 py-1">
               <button
                 onClick={() => setSearchCategory("all")}
-                className={`px-3 py-1 text-xs rounded-md ${
-                  searchCategory === "all"
-                    ? "bg-blue-100 text-blue-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 text-xs rounded-md ${searchCategory === "all"
+                  ? "bg-blue-100 text-blue-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 All
               </button>
               <button
                 onClick={() => setSearchCategory("startup")}
-                className={`px-3 py-1 text-xs rounded-md ${
-                  searchCategory === "startup"
-                    ? "bg-green-100 text-green-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 text-xs rounded-md ${searchCategory === "startup"
+                  ? "bg-green-100 text-green-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 Startups
               </button>
               <button
                 onClick={() => setSearchCategory("stakeholder")}
-                className={`px-3 py-1 text-xs rounded-md ${
-                  searchCategory === "stakeholder"
-                    ? "bg-indigo-100 text-indigo-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 text-xs rounded-md ${searchCategory === "stakeholder"
+                  ? "bg-indigo-100 text-indigo-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 Stakeholders
               </button>
               <button
                 onClick={() => setSearchCategory("place")}
-                className={`px-3 py-1 text-xs rounded-md ${
-                  searchCategory === "place"
-                    ? "bg-orange-100 text-orange-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 text-xs rounded-md ${searchCategory === "place"
+                  ? "bg-orange-100 text-orange-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 Places
               </button>
@@ -2327,10 +2389,10 @@ export default function Startupmap({
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
                       {suggestion.type === "startup" ? (
-                        <img 
-                          src="/startup-marker.png" 
-                          onError={(e) => {e.target.src = "/location.png"}}
-                          alt="Startup" 
+                        <img
+                          src="/startup-marker.png"
+                          onError={(e) => { e.target.src = "/location.png" }}
+                          alt="Startup"
                           style={{
                             width: '15px',
                             height: '15px',
@@ -2340,9 +2402,9 @@ export default function Startupmap({
                           }}
                         />
                       ) : suggestion.type === "stakeholder" ? (
-                        <img 
-                          src="/stakeholder-icon.png" 
-                          alt="Stakeholder" 
+                        <img
+                          src="/stakeholder-icon.png"
+                          alt="Stakeholder"
                           style={{
                             width: '12px',
                             height: '12px',
@@ -2436,8 +2498,7 @@ export default function Startupmap({
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
           placeName
-        )}.json?access_token=${
-          mapboxgl.accessToken
+        )}.json?access_token=${mapboxgl.accessToken
         }&types=place,locality,district,region,country`
       );
 
@@ -2668,7 +2729,7 @@ export default function Startupmap({
 
   useEffect(() => {
     console.log("Initializing map and stakeholder display...");
-    
+
     // Add global CSS for stakeholder markers to ensure they're always visible with professional styling
     if (!document.getElementById('stakeholder-marker-global-styles')) {
       const style = document.createElement('style');
@@ -2777,14 +2838,14 @@ export default function Startupmap({
       `;
       document.head.appendChild(style);
     }
-    
+
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/standard",
       config: {
         basemap: {
           colorModePointOfInterestLabels: "single",
-          
+
           // Feature Visibility - Professional settings
           showPedestrianRoads: true,
           showPlaceLabels: true,
@@ -2794,10 +2855,10 @@ export default function Startupmap({
           show3dObjects: true, // Enable 3D objects like trees, signs
           showLandmarkIcons: true, // Show landmark building icons
           showLandmarkIconLabels: true, // Show landmark labels
-          
+
           // Typography - Professional font stack
           font: "Montserrat, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          
+
           // Color Customization - Professional color scheme
           colorAdminBoundaries: "#c0c4cc", // Subtle admin boundaries
           colorGreenspace: "#9dc183", // Fresh, vibrant green for parks
@@ -2836,7 +2897,7 @@ export default function Startupmap({
     map.touchZoomRotate.enableRotation();
     mapInstanceRef.current = map;
     map.resize();
-    
+
     // Ensure stakeholder icon is preloaded before map load completes
     if (!stakeholderIconRef.current || !stakeholderIconRef.current.complete) {
       console.log("Preloading stakeholder icon during map initialization");
@@ -2846,7 +2907,7 @@ export default function Startupmap({
       stakeholderIconRef.current.onload = () => console.log("Stakeholder icon loaded during map init");
       stakeholderIconRef.current.onerror = () => {
         console.error("Failed to load stakeholder icon during map init, checking icon availability...");
-        
+
         // Check if the icon is actually accessible via fetch
         fetch(iconUrl)
           .then(response => {
@@ -2865,13 +2926,13 @@ export default function Startupmap({
     // Add 3D terrain and buildings
     map.on("load", () => {
       console.log("Map loaded, loading markers...");
-      
+
       // Load stakeholders first to ensure they're displayed
       loadStakeholders(map);
-      
+
       // The Standard style has built-in 3D buildings and terrain
       // We'll customize the appearance with configuration
-      
+
       // Advanced Feature Visibility Configuration
       map.setConfigProperty("basemap", "showPedestrianRoads", true);
       map.setConfigProperty("basemap", "showPlaceLabels", true);
@@ -2881,10 +2942,10 @@ export default function Startupmap({
       map.setConfigProperty("basemap", "show3dObjects", true);
       map.setConfigProperty("basemap", "showLandmarkIcons", true);
       map.setConfigProperty("basemap", "showLandmarkIconLabels", true);
-      
+
       // Professional Typography
       map.setConfigProperty("basemap", "font", "Montserrat, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-      
+
       // Professional Color Scheme
       map.setConfigProperty("basemap", "colorAdminBoundaries", "#c0c4cc");
       map.setConfigProperty("basemap", "colorGreenspace", "#9dc183");
@@ -2895,10 +2956,10 @@ export default function Startupmap({
       map.setConfigProperty("basemap", "colorMotorways", "#ff8c42");
       map.setConfigProperty("basemap", "colorTrunks", "#ffa75d");
       map.setConfigProperty("basemap", "colorRoads", "#ffffff");
-      
+
       // Set lighting preset for professional look
       map.setConfigProperty("lightPreset", "day");
-      
+
       // Enable enhanced fog for depth perception (Standard style supports fog natively)
       map.setFog({
         range: [0.5, 12],
@@ -2948,17 +3009,17 @@ export default function Startupmap({
 
       // Enhance road labels
       enhanceRoadLabels(map);
-      
+
       // Add elevated structures (bridges, overpasses)
       addElevatedStructures(map);
-      
+
       // Add dynamic lighting effects
       addDynamicLighting(map);
 
       // Load markers after 3D is set up
       loadStartupMarkers(map);
       // loadInvestorMarkers(map); // removed
-      
+
       // Ensure data refresh shortly after load
       setTimeout(() => loadStakeholders(map), 500);
 
@@ -3029,7 +3090,7 @@ export default function Startupmap({
           if (map.getSource(lineId)) map.removeSource(lineId);
           if (map.getSource(`${lineId}-shadow`))
             map.removeSource(`${lineId}-shadow`);
-        } catch {}
+        } catch { }
       });
     }
     window.connectionLinesArray = [];
@@ -3230,10 +3291,56 @@ export default function Startupmap({
       />
       <SearchComponent />
 
+      {/* Map Style Toggle Button */}
+      <button
+        onClick={toggleMapStyle}
+        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% - 250px))', zIndex: 10000 }}
+        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
+        title={isSatelliteView ? "Switch to Standard Map" : "Switch to Satellite View"}
+      >
+        {isSatelliteView ? (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+              />
+            </svg>
+            Map
+          </>
+        ) : (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Satellite
+          </>
+        )}
+      </button>
+
       {/* 3D Toggle Button */}
       <button
         onClick={toggle3DView}
-        style={{ position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% - 80px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
       >
         {is3DActive ? (
@@ -3275,10 +3382,39 @@ export default function Startupmap({
         )}
       </button>
 
+      {/* Heatmap Toggle Button */}
+      <button
+        onClick={toggleHeatmapVisibility}
+        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% + 80px))', zIndex: 10000 }}
+        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4 mr-1 text-orange-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.879 16.121A3 3 0 1012.015 11L11 14H9"
+          />
+        </svg>
+        {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+      </button>
+
       {/* Connections Toggle Button */}
       <button
         onClick={toggleConnectionsVisibility}
-        style={{ position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% + 220px))', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% + 250px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
       >
         <svg
@@ -3296,52 +3432,6 @@ export default function Startupmap({
           />
         </svg>
         {showConnections ? "Hide Connections" : "Show Connections"}
-      </button>
-
-      {/* Map Style Toggle Button */}
-      <button
-        onClick={toggleMapStyle}
-        style={{ position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% - 220px))', zIndex: 10000 }}
-        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
-        title={isSatelliteView ? "Switch to Standard Map" : "Switch to Satellite View"}
-      >
-        {isSatelliteView ? (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-              />
-            </svg>
-            Map
-          </>
-        ) : (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Satellite
-          </>
-        )}
       </button>
 
       {openLogin && (
