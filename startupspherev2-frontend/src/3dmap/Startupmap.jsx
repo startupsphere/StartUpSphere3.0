@@ -2970,6 +2970,9 @@ export default function Startupmap({
 
     return () => {
       map.remove();
+      if (mapInstanceRef) {
+        mapInstanceRef.current = null;
+      }
     };
   }, []);
 

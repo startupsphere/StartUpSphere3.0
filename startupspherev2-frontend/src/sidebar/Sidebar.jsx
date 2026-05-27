@@ -183,28 +183,38 @@ export default function Sidebar({
   // Trigger Mapbox resize on sidebar state shifts so map redraws to exact container bounds
   useEffect(() => {
     if (mapInstanceRef && mapInstanceRef.current) {
-      // Immediate resize
-      mapInstanceRef.current.resize();
-      
-      // Periodic resize to smooth out the slide-in/out transitions
-      const interval = setInterval(() => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.resize();
-        }
-      }, 50);
+      try {
+        // Immediate resize
+        mapInstanceRef.current.resize();
+        
+        // Periodic resize to smooth out the slide-in/out transitions
+        const interval = setInterval(() => {
+          try {
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.resize();
+            }
+          } catch (e) {
+            clearInterval(interval);
+          }
+        }, 50);
 
-      // Clean up interval and fire one final resize at transition completion (300ms)
-      const timer = setTimeout(() => {
-        clearInterval(interval);
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.resize();
-        }
-      }, 350);
+        // Clean up interval and fire one final resize at transition completion (300ms)
+        const timer = setTimeout(() => {
+          clearInterval(interval);
+          try {
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.resize();
+            }
+          } catch (e) {}
+        }, 350);
 
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timer);
-      };
+        return () => {
+          clearInterval(interval);
+          clearTimeout(timer);
+        };
+      } catch (error) {
+        console.warn("Mapbox resize deferred or failed:", error);
+      }
     }
   }, [marginLeft, marginRight, mapInstanceRef]);
 
