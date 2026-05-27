@@ -45,7 +45,7 @@ export default function GeminiAiChat({ onClose }) {
       const fullPrompt = `${systemInstruction}\n\nChat History:\n${chatContext}\nUser: ${userMessage}\nAssistant:`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
