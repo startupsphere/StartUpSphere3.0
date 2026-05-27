@@ -43,8 +43,13 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         "Keep your tone highly professional, encouraging, inspiring, and direct. Format your output nicely with clean bullet points and bold headers if needed. " +
         "Limit answers to concise paragraphs that are easy to read in a chat window.";
 
+      // Security & Privacy: Limit AI context strictly to name and platform role.
+      // Explicitly omit sensitive personal details like email addresses or passwords.
       if (currentUser) {
-        systemInstruction += ` The user you are talking to is logged in. Their profile details are: Name: ${currentUser.firstname || ""} ${currentUser.lastname || ""}, Email: ${currentUser.email || ""}, Platform Role: ${currentUser.role || "USER"}. Refer to them by name if appropriate to make the conversation highly personalized and premium!`;
+        const sanitizedName = `${currentUser.firstname || ""} ${currentUser.lastname || ""}`.trim();
+        const sanitizedRole = currentUser.role || "USER";
+        
+        systemInstruction += ` The user you are talking to is logged in. Their profile details are: Name: ${sanitizedName}, Platform Role: ${sanitizedRole}. Refer to them by name if appropriate to make the conversation highly personalized and premium!`;
       }
 
       // Build chat context
