@@ -61,7 +61,6 @@ public class Startup {
 
     private String companyName;
     
-    @Lob
     @Column(columnDefinition = "text")
     private String companyDescription;
     
@@ -114,7 +113,6 @@ public class Startup {
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
-    @Lob
     @Column(name = "photo", columnDefinition = "bytea")
     private byte[] photo;
 
@@ -150,7 +148,6 @@ public class Startup {
     private Boolean isDraft = false;
 
     // Registration certificate as file (image, any extension)
-    @Lob
     @Column(name = "registration_certificate", columnDefinition = "bytea")
     private byte[] registrationCertificate;
 

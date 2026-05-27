@@ -49,7 +49,7 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
             "(:industry IS NULL OR s.industry = :industry) AND " +
             "(:status IS NULL OR s.status = :status) AND " +
             "(:region IS NULL OR s.region = :region) AND " +
-            "(:search IS NULL OR LOWER(s.companyName) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+            "(CAST(:search AS string) IS NULL OR LOWER(s.companyName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
             "(:startDate IS NULL OR s.createdAt >= :startDate) AND " +
             "(:endDate IS NULL OR s.createdAt <= :endDate)")
     Page<Startup> findStartupsWithFilters(
@@ -67,7 +67,7 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
             "(:industry IS NULL OR s.industry = :industry) AND " +
             "(:status IS NULL OR s.status = :status) AND " +
             "(:region IS NULL OR s.region = :region) AND " +
-            "(:search IS NULL OR LOWER(s.companyName) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+            "(CAST(:search AS string) IS NULL OR LOWER(s.companyName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
             "(:startDate IS NULL OR s.createdAt >= :startDate) AND " +
             "(:endDate IS NULL OR s.createdAt <= :endDate)")
     List<Startup> findStartupsWithFilters(

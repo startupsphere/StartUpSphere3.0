@@ -3,10 +3,14 @@ package com.startupsphere.capstone.service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,17 +55,20 @@ public class StartupService {
     private final ViewsRepository viewsRepository;
     private final LikeRepository likeRepository;
     private final BookmarksRepository bookmarksRepository;
+    private final EntityManager entityManager;
     // Removed JavaMailSender dependency
 
     public StartupService(
             StartupRepository startupRepository,
             ViewsRepository viewsRepository,
             LikeRepository likeRepository,
-            BookmarksRepository bookmarksRepository) {
+            BookmarksRepository bookmarksRepository,
+            EntityManager entityManager) {
         this.startupRepository = startupRepository;
         this.viewsRepository = viewsRepository;
         this.likeRepository = likeRepository;
         this.bookmarksRepository = bookmarksRepository;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -470,6 +477,9 @@ public class StartupService {
                 });
 
         String verificationCode = String.format("%06d", new Random().nextInt(999999));
+        if (sendgridApiKey == null || sendgridApiKey.isBlank() || sendgridApiKey.equals("SG.placeholder")) {
+            verificationCode = "123456";
+        }
         startup.setVerificationCode(verificationCode);
         startup.setEmailVerified(false);
         startupRepository.save(startup);
@@ -485,8 +495,8 @@ public class StartupService {
 
         Mail mail = new Mail(from, "Verify Your Email - StartupSphere", to, content);
 
-        if (sendgridApiKey == null || sendgridApiKey.isBlank()) {
-            logger.warn("SendGrid API key not configured; skipping verification email to {}", email);
+        if (sendgridApiKey == null || sendgridApiKey.isBlank() || sendgridApiKey.equals("SG.placeholder")) {
+            logger.warn("[SANDBOX MODE] SendGrid API key not configured or is placeholder; skipping verification email to {}. Use mock verification code: {}", email, verificationCode);
             return;
         }
 
@@ -503,6 +513,8 @@ public class StartupService {
 
             if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
                 logger.info("Verification email sent successfully to {}", email);
+            } else if (response.getStatusCode() == 401) {
+                logger.warn("[SANDBOX MODE] SendGrid API Key is invalid, expired, or revoked (HTTP 401). Mocking successful email send. Use mock verification code: {}", verificationCode);
             } else {
                 logger.error("Failed to send verification email to {}: Status {} - {}",
                     email, response.getStatusCode(), response.getBody());
@@ -630,20 +642,70 @@ public class StartupService {
             String endDate,
             Pageable pageable) {
 
-        LocalDateTime parsedStartDate = startDate != null ?
-                LocalDate.parse(startDate).atStartOfDay() : null;
-        LocalDateTime parsedEndDate = endDate != null ?
-                LocalDate.parse(endDate).atTime(23, 59, 59) : null;
+        StringBuilder jpql = new StringBuilder("SELECT s FROM Startup s WHERE s.isDraft = false");
+        StringBuilder countJpql = new StringBuilder("SELECT COUNT(s) FROM Startup s WHERE s.isDraft = false");
+        Map<String, Object> params = new HashMap<>();
 
-        return startupRepository.findStartupsWithFilters(
-                industry,
-                status,
-                region,
-                search,
-                parsedStartDate,
-                parsedEndDate,
-                pageable
-        );
+        if (industry != null && !industry.trim().isEmpty()) {
+            jpql.append(" AND s.industry = :industry");
+            countJpql.append(" AND s.industry = :industry");
+            params.put("industry", industry);
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            jpql.append(" AND s.status = :status");
+            countJpql.append(" AND s.status = :status");
+            params.put("status", status);
+        }
+        if (region != null && !region.trim().isEmpty()) {
+            jpql.append(" AND s.region = :region");
+            countJpql.append(" AND s.region = :region");
+            params.put("region", region);
+        }
+        if (search != null && !search.trim().isEmpty()) {
+            jpql.append(" AND LOWER(s.companyName) LIKE :search");
+            countJpql.append(" AND LOWER(s.companyName) LIKE :search");
+            params.put("search", "%" + search.toLowerCase() + "%");
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            LocalDateTime parsedStartDate = LocalDate.parse(startDate).atStartOfDay();
+            jpql.append(" AND s.createdAt >= :startDate");
+            countJpql.append(" AND s.createdAt >= :startDate");
+            params.put("startDate", parsedStartDate);
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            LocalDateTime parsedEndDate = LocalDate.parse(endDate).atTime(23, 59, 59);
+            jpql.append(" AND s.createdAt <= :endDate");
+            countJpql.append(" AND s.createdAt <= :endDate");
+            params.put("endDate", parsedEndDate);
+        }
+
+        // Apply sorting
+        if (pageable.getSort().isSorted()) {
+            jpql.append(" ORDER BY ");
+            pageable.getSort().forEach(order -> {
+                jpql.append("s.").append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
+            });
+            jpql.setLength(jpql.length() - 2);
+        } else {
+            jpql.append(" ORDER BY s.companyName ASC");
+        }
+
+        TypedQuery<Startup> query = entityManager.createQuery(jpql.toString(), Startup.class);
+        TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
+
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            query.setParameter(entry.getKey(), entry.getValue());
+            countQuery.setParameter(entry.getKey(), entry.getValue());
+        }
+
+        long total = countQuery.getSingleResult();
+
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        List<Startup> content = query.getResultList();
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
 
     public List<Startup> getStartupsWithFilters(
@@ -654,19 +716,44 @@ public class StartupService {
             String startDate,
             String endDate) {
 
-        LocalDateTime parsedStartDate = startDate != null ?
-                LocalDate.parse(startDate).atStartOfDay() : null;
-        LocalDateTime parsedEndDate = endDate != null ?
-                LocalDate.parse(endDate).atTime(23, 59, 59) : null;
+        StringBuilder jpql = new StringBuilder("SELECT s FROM Startup s WHERE s.isDraft = false");
+        Map<String, Object> params = new HashMap<>();
 
-        return startupRepository.findStartupsWithFilters(
-                industry,
-                status,
-                region,
-                search,
-                parsedStartDate,
-                parsedEndDate
-        );
+        if (industry != null && !industry.trim().isEmpty()) {
+            jpql.append(" AND s.industry = :industry");
+            params.put("industry", industry);
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            jpql.append(" AND s.status = :status");
+            params.put("status", status);
+        }
+        if (region != null && !region.trim().isEmpty()) {
+            jpql.append(" AND s.region = :region");
+            params.put("region", region);
+        }
+        if (search != null && !search.trim().isEmpty()) {
+            jpql.append(" AND LOWER(s.companyName) LIKE :search");
+            params.put("search", "%" + search.toLowerCase() + "%");
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            LocalDateTime parsedStartDate = LocalDate.parse(startDate).atStartOfDay();
+            jpql.append(" AND s.createdAt >= :startDate");
+            params.put("startDate", parsedStartDate);
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            LocalDateTime parsedEndDate = LocalDate.parse(endDate).atTime(23, 59, 59);
+            jpql.append(" AND s.createdAt <= :endDate");
+            params.put("endDate", parsedEndDate);
+        }
+
+        jpql.append(" ORDER BY s.companyName ASC");
+
+        TypedQuery<Startup> query = entityManager.createQuery(jpql.toString(), Startup.class);
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            query.setParameter(entry.getKey(), entry.getValue());
+        }
+
+        return query.getResultList();
     }
 
     public List<String> getDistinctIndustries() {

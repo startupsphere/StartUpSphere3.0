@@ -1,7 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+const ACTOR_LABELS = {
+  ROLE_STARTUP: {
+    name: "Startup",
+    prefix: "Add Startup",
+  },
+  ROLE_HEI: {
+    name: "University / HEI",
+    prefix: "Add University / HEI",
+  },
+  ROLE_SME: {
+    name: "SME / Business",
+    prefix: "Add SME / Business",
+  },
+  ROLE_RESEARCH: {
+    name: "Research Institution",
+    prefix: "Add Research Institution",
+  },
+  ROLE_INNOVATION: {
+    name: "Innovation Output",
+    prefix: "Add Innovation Output",
+  },
+  ROLE_SUPPORT: {
+    name: "Support Organization",
+    prefix: "Add Support Organization",
+  },
+  ROLE_GOVERNMENT: {
+    name: "Government / Funding Agency",
+    prefix: "Add Government Agency",
+  }
+};
 
 const PrivacyModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -46,7 +77,7 @@ const PrivacyModal = ({ isOpen, onClose }) => {
 };
 
 
-const LoadingModal = ({ isLoading, loadingProgress, loadingStatus }) => {
+const LoadingModal = ({ isLoading, loadingProgress, loadingStatus, actorName }) => {
     if (!isLoading) return null;
 
     return (
@@ -56,7 +87,7 @@ const LoadingModal = ({ isLoading, loadingProgress, loadingStatus }) => {
                     <div className="mb-4">
                         <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Startup</h2>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your {actorName || "Startup"}</h2>
                     <p className="text-gray-600 mb-4">{loadingStatus}</p>
                     <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
                         <div 
@@ -64,7 +95,7 @@ const LoadingModal = ({ isLoading, loadingProgress, loadingStatus }) => {
                             style={{ width: `${loadingProgress}%` }}
                         ></div>
                     </div>
-                    <p className="text-sm text-gray-500">Please wait while we process your startup information...</p>
+                    <p className="text-sm text-gray-500">Please wait while we process your {(actorName || "startup").toLowerCase()} information...</p>
                 </div>
             </div>
         </div>
@@ -74,6 +105,10 @@ const LoadingModal = ({ isLoading, loadingProgress, loadingStatus }) => {
 
 export default function CsvUploadPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const actor = searchParams.get("actor") || "ROLE_STARTUP";
+
     const [uploadedFile, setUploadedFile] = useState(null);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -233,16 +268,51 @@ export default function CsvUploadPage() {
 
 
     return (
-        <div className="h-screen overflow-hidden bg-gray-100 min-h-screen text-gray-800 relative">
+        <div className="min-h-screen bg-gray-100 text-gray-800 relative">
+            <div className="bg-white border-b border-gray-200 px-10 py-5">  
+                <div className="flex items-center text-sm font-medium">
+                    {/*Back Arrow*/}
+                    <button
+                        onClick={() => navigate("/startup-dashboard")}
+                        className="mr-3 text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    {/* Breadcrumb Links */}
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={() => navigate("/")}
+                            className="text-gray-500 hover:text-[#1D3557] transition-colors"
+                        >
+                            Home
+                        </button>
+                        <span className="text-gray-400">&gt;</span>
+                        <button
+                            onClick={() => navigate("/startup-dashboard")}
+                            className="text-gray-500 hover:text-[#1D3557] transition-colors"
+                        >
+                            Dashboard
+                        </button>
+                        <span className="text-gray-400">&gt;</span>
+                        <span className="text-gray-500">{ACTOR_LABELS[actor]?.prefix || "Add Startup"}</span>
+                        <span className="text-gray-400">&gt;</span>
+                        <span className="text-[#1D3557] font-semibold">CSV Upload</span>
+                    </div>
+                </div>
+            </div>
+
             <div className="bg-[#1D3557] px-10 py-6 text-white">
-                <h1 className="text-3xl font-semibold">Upload Startup Data</h1>
+                <h1 className="text-3xl font-semibold">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h1>
             </div>
 
             <div className="bg-white shadow-md rounded-md p-8 w-4/5 mx-auto mt-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">Upload Startup Data</h2>
+                            <h2 className="text-2xl font-semibold text-gray-800">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h2>
                             <button
                                 type="button"
                                 className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
@@ -262,7 +332,7 @@ export default function CsvUploadPage() {
                                     <h3 className="text-lg font-medium text-blue-800 mb-2">Quick Start Guide</h3>
                                     <ol className="list-decimal list-inside space-y-2 text-blue-700">
                                         <li>Download the Excel template</li>
-                                        <li>Fill in your startup's data</li>
+                                        <li>Fill in your {(ACTOR_LABELS[actor]?.name || "Startup").toLowerCase()}'s data</li>
                                         <li>Upload the completed file</li>
                                         <li>Review and submit</li>
                                     </ol>
@@ -434,6 +504,7 @@ export default function CsvUploadPage() {
                 isLoading={isLoading} 
                 loadingProgress={loadingProgress} 
                 loadingStatus={loadingStatus} 
+                actorName={ACTOR_LABELS[actor]?.name}
             />
             <ToastContainer
               position="bottom-right"

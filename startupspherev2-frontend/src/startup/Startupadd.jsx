@@ -116,6 +116,128 @@ const PrivacyModal = ({ isOpen, onClose }) => {
   );
 };
 
+const ACTOR_LABELS = {
+  ROLE_STARTUP: {
+    name: "Startup",
+    prefix: "Add Startup",
+    companyLabel: "Company Name",
+    companyDescLabel: "Company Description",
+    companyDescPlaceholder: "Brief description of what your company does...",
+    typeLabel: "Type of Company",
+    typePlaceholder: "Select type of company",
+    industryLabel: "Industry",
+    industryPlaceholder: "Select industry",
+    foundedLabel: "Founded Date",
+    operatingLabel: "Operating Hours",
+    activityLabel: "Business Activity",
+    activityPlaceholder: "e.g., Software Development, E-commerce, Consulting",
+    basicHeader: "Basic Company Details",
+    basicSub: "Tell us about your startup and help others discover what makes you unique"
+  },
+  ROLE_HEI: {
+    name: "University / HEI",
+    prefix: "Add University / HEI",
+    companyLabel: "HEI / University Name",
+    companyDescLabel: "Institution Profile",
+    companyDescPlaceholder: "Brief profile of your Higher Education Institution, academic programs, and focus...",
+    typeLabel: "Type of Institution",
+    typePlaceholder: "Select type of institution",
+    industryLabel: "Academic Sector",
+    industryPlaceholder: "Select academic sector",
+    foundedLabel: "Establishment Date",
+    operatingLabel: "Academic Hours",
+    activityLabel: "Primary Academic/Research Focus",
+    activityPlaceholder: "e.g., Engineering Research, Agricultural Science, IT Education",
+    basicHeader: "Basic Institution Details",
+    basicSub: "Tell us about your institution and help others discover your academic programs"
+  },
+  ROLE_SME: {
+    name: "SME / Business",
+    prefix: "Add SME / Business",
+    companyLabel: "Business Name",
+    companyDescLabel: "Business Description",
+    companyDescPlaceholder: "Brief description of your business operations, products, and services...",
+    typeLabel: "Type of Business",
+    typePlaceholder: "Select type of business",
+    industryLabel: "Business Sector",
+    industryPlaceholder: "Select business sector",
+    foundedLabel: "Date of Establishment",
+    operatingLabel: "Business Hours",
+    activityLabel: "Business Activity Focus",
+    activityPlaceholder: "e.g., Retail Sales, Food Manufacturing, Cleaning Services",
+    basicHeader: "Basic Business Details",
+    basicSub: "Tell us about your SME and help others discover your products and services"
+  },
+  ROLE_RESEARCH: {
+    name: "Research Institution",
+    prefix: "Add Research Institution",
+    companyLabel: "Research Center Name",
+    companyDescLabel: "Research Facility Profile",
+    companyDescPlaceholder: "Brief description of your research labs, facilities, and scientific focus...",
+    typeLabel: "Type of Center",
+    typePlaceholder: "Select type of research institution",
+    industryLabel: "Scientific Field",
+    industryPlaceholder: "Select scientific field",
+    foundedLabel: "Date Founded",
+    operatingLabel: "Lab/Research Hours",
+    activityLabel: "Scientific / Research Focus",
+    activityPlaceholder: "e.g., Biotechnology, Renewable Energy, Artificial Intelligence",
+    basicHeader: "Basic Research Details",
+    basicSub: "Tell us about your research lab and help others discover your scientific breakthroughs"
+  },
+  ROLE_INNOVATION: {
+    name: "Innovation Output",
+    prefix: "Add Innovation Output",
+    companyLabel: "Project / Technology Name",
+    companyDescLabel: "Innovation & Tech Details",
+    companyDescPlaceholder: "Brief description of the innovative technology, patent details, and solve application...",
+    typeLabel: "Type of Innovation",
+    typePlaceholder: "Select type of innovation output",
+    industryLabel: "Technology Sector",
+    industryPlaceholder: "Select technology sector",
+    foundedLabel: "Development / Release Date",
+    operatingLabel: "Development Hours",
+    activityLabel: "Innovation Focus",
+    activityPlaceholder: "e.g., Embedded Systems, Blockchain, Green Tech Spinoff",
+    basicHeader: "Basic Innovation Details",
+    basicSub: "Tell us about your technological innovation and share intellectual property highlights"
+  },
+  ROLE_SUPPORT: {
+    name: "Support Organization",
+    prefix: "Add Support Organization",
+    companyLabel: "Organization Name",
+    companyDescLabel: "Support Programs Description",
+    companyDescPlaceholder: "Brief description of your incubation, accelerator programs, mentorship, and support services...",
+    typeLabel: "Type of Support Organization",
+    typePlaceholder: "Select type of support organization",
+    industryLabel: "Support Sector",
+    industryPlaceholder: "Select support sector",
+    foundedLabel: "Date Established",
+    operatingLabel: "Operations Hours",
+    activityLabel: "Primary Support Focus",
+    activityPlaceholder: "e.g., Startup Incubation, Venture Mentoring, Financial Grants Support",
+    basicHeader: "Basic Support Organization Details",
+    basicSub: "Tell us about your support organization and help startups discover your programs"
+  },
+  ROLE_GOVERNMENT: {
+    name: "Government / Funding Agency",
+    prefix: "Add Government Agency",
+    companyLabel: "Agency / Office Name",
+    companyDescLabel: "Mandate and Funding Programs",
+    companyDescPlaceholder: "Brief description of your agency's public mandate, funding programs, and grants...",
+    typeLabel: "Type of Agency",
+    typePlaceholder: "Select type of government agency",
+    industryLabel: "Government Sector",
+    industryPlaceholder: "Select government sector",
+    foundedLabel: "Establishment Date",
+    operatingLabel: "Office Hours",
+    activityLabel: "Mandate & Funding Focus",
+    activityPlaceholder: "e.g., Science Grants, SME Registration, Digitization Support",
+    basicHeader: "Basic Government Agency Details",
+    basicSub: "Tell us about your government agency and help the community discover your funding programs"
+  }
+};
+
 export default function Startupadd() {
   const { toast, toasts, removeToast } = useToast();
   const [selectedTab, setSelectedTab] = useState("Company Information");
@@ -125,6 +247,9 @@ export default function Startupadd() {
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const actor = searchParams.get("actor") || "ROLE_STARTUP";
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedProvince, setSelectedProvince] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
@@ -838,20 +963,100 @@ const fetchDraftData = async (id) => {
           geocoderContainerRef.current.appendChild(geocoder.onAdd(map));
         }
 
-        // Restore saved location + marker
-        if (formData.locationLat && formData.locationLng) {
-          const lng = formData.locationLng;
-          const lat = formData.locationLat;
+        // Consolidated on load logic
+        map.on("load", () => {
+          map.resize();
 
-          map.on("load", () => {
+          // Restore saved location + marker
+          if (formData.locationLat && formData.locationLng) {
+            const lng = formData.locationLng;
+            const lat = formData.locationLat;
             map.flyTo({ center: [lng, lat], zoom: 15 });
 
             if (markerRef.current) markerRef.current.remove();
             markerRef.current = new mapboxgl.Marker({ color: "red" })
               .setLngLat([lng, lat])
               .addTo(map);
-          });
-        }
+          }
+
+          // Fetch approved listings and add heatmap layer
+          const apiUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_REACT_APP_API_URL;
+          fetch(`${apiUrl}/startups/approved?page=0&size=1000`, {
+            credentials: "include"
+          })
+            .then(res => res.json())
+            .then(data => {
+              const startups = data.content || data || [];
+              const features = startups
+                .filter(s => s.locationLat && s.locationLng)
+                .map(s => ({
+                  type: "Feature",
+                  properties: {
+                    id: s.id,
+                    name: s.companyName,
+                  },
+                  geometry: {
+                    type: "Point",
+                    coordinates: [parseFloat(s.locationLng), parseFloat(s.locationLat)]
+                  }
+                }));
+                
+              const geojson = {
+                type: "FeatureCollection",
+                features: features
+              };
+              
+              map.addSource("heatmap-source", {
+                type: "geojson",
+                data: geojson
+              });
+              
+              map.addLayer({
+                id: "density-heatmap",
+                type: "heatmap",
+                source: "heatmap-source",
+                maxzoom: 15,
+                paint: {
+                  "heatmap-weight": 1,
+                  "heatmap-intensity": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    0, 1,
+                    15, 3
+                  ],
+                  "heatmap-color": [
+                    "interpolate",
+                    ["linear"],
+                    ["heatmap-density"],
+                    0, "rgba(33,102,172,0)",
+                    0.2, "rgb(103,169,207)",
+                    0.4, "rgb(209,229,240)",
+                    0.6, "rgb(253,219,199)",
+                    0.8, "rgb(239,138,98)",
+                    1, "rgb(178,24,43)"
+                  ],
+                  "heatmap-radius": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    0, 2,
+                    15, 20
+                  ],
+                  "heatmap-opacity": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    7, 1,
+                    15, 0.7
+                  ]
+                }
+              }, "waterway-label");
+            })
+            .catch(error => {
+              console.error("Error loading approved listings for heatmap:", error);
+            });
+        });
 
         // Geocoder result
         geocoder.on("result", (e) => {
@@ -883,8 +1088,6 @@ const fetchDraftData = async (id) => {
             });
         });
 
-        // Force resize after load
-        map.on("load", () => map.resize());
       }, 100);
 
       return () => clearTimeout(timer);
@@ -909,36 +1112,37 @@ const fetchDraftData = async (id) => {
   // Update validation for Company Information
   const validateCompanyInformation = () => {
     const errors = {};
+    const labels = ACTOR_LABELS[actor] || ACTOR_LABELS.ROLE_STARTUP;
     
     if (!formData.companyName) {
-      errors.companyName = "Company Name is required.";
-      toast.error("Company Name is required.");
+      errors.companyName = `${labels.companyLabel} is required.`;
+      toast.error(`${labels.companyLabel} is required.`);
     }
     if (!formData.companyDescription) {
-      errors.companyDescription = "Company Description is required.";
-      toast.error("Company Description is required.");
+      errors.companyDescription = `${labels.companyDescLabel} is required.`;
+      toast.error(`${labels.companyDescLabel} is required.`);
     }
     if (!formData.foundedDate) {
-      errors.foundedDate = "Founded Date is required.";
-      toast.error("Founded Date is required.");
+      errors.foundedDate = `${labels.foundedLabel} is required.`;
+      toast.error(`${labels.foundedLabel} is required.`);
     }
     if (!formData.numberOfEmployees) {
       errors.numberOfEmployees = "Number of Employees is required.";
       toast.error("Number of Employees is required.");
     }
     if (!formData.typeOfCompany) {
-      errors.typeOfCompany = "Type of Company is required.";
-      toast.error("Type of Company is required.");
+      errors.typeOfCompany = `${labels.typeLabel} is required.`;
+      toast.error(`${labels.typeLabel} is required.`);
     }
     if (!formData.industry) {
-      errors.industry = "Industry is required.";
-      toast.error("Industry is required.");
+      errors.industry = `${labels.industryLabel} is required.`;
+      toast.error(`${labels.industryLabel} is required.`);
     }
     
     // Registration validation
     if (formData.isGovernmentRegistered === "") {
-      errors.isGovernmentRegistered = "Please specify if your startup is registered.";
-      toast.error("Please specify if your startup is registered with a government agency.");
+      errors.isGovernmentRegistered = "Please specify registration status.";
+      toast.error("Please specify if registered with a government agency.");
     }
     if (formData.isGovernmentRegistered === "yes") {
       if (!formData.registrationAgency) {
@@ -1009,17 +1213,25 @@ const fetchDraftData = async (id) => {
   const validateAddressInformation = () => {
     const errors = {};
     
-    if (!formData.streetAddress) {
-      errors.streetAddress = "Street Address is required.";
-      toast.error("Street Address is required.");
+    if (!formData.region) {
+      errors.region = "Region is required.";
+      toast.error("Region is required.");
+    }
+    if (!formData.province) {
+      errors.province = "Province is required.";
+      toast.error("Province is required.");
     }
     if (!formData.city) {
       errors.city = "City is required.";
       toast.error("City is required.");
     }
-    if (!formData.province) {
-      errors.province = "Province is required.";
-      toast.error("Province is required.");
+    if (!formData.barangay) {
+      errors.barangay = "Barangay is required.";
+      toast.error("Barangay is required.");
+    }
+    if (!formData.streetAddress) {
+      errors.streetAddress = "Street Address is required.";
+      toast.error("Street Address is required.");
     }
     if (!formData.postalCode) {
       errors.postalCode = "Postal Code is required.";
@@ -2208,7 +2420,7 @@ const handleSubmit = async () => {
                 Dashboard
             </button>
             <span className="text-gray-400">&gt;</span>
-            <span className="text-gray-500">Add Startup</span>
+            <span className="text-gray-500">{ACTOR_LABELS[actor]?.prefix || "Add Startup"}</span>
             <span className="text-gray-400">&gt;</span>
             <span className="text-[#1D3557] font-semibold">
               {selectedTab}
@@ -2380,9 +2592,9 @@ const handleSubmit = async () => {
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                Basic Company Details
+                {ACTOR_LABELS[actor]?.basicHeader || "Basic Company Details"}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">Tell us about your startup and help others discover what makes you unique</p>
+              <p className="text-sm text-gray-600 mt-1">{ACTOR_LABELS[actor]?.basicSub || "Tell us about your startup and help others discover what makes you unique"}</p>
             </div>
 
             {/* Company Name & Description */}
@@ -2392,14 +2604,14 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  Company Name
+                  {ACTOR_LABELS[actor]?.companyLabel || "Company Name"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
                   <input
                     type="text"
                     name="companyName"
-                    placeholder="Enter your company name"
+                    placeholder={`Enter ${((ACTOR_LABELS[actor]?.companyLabel || "Company Name")).toLowerCase()}`}
                     className={`w-full border-2 ${fieldErrors.companyName ? 'border-red-500' : 'border-gray-300'} rounded-lg px-4 py-3 pr-10 focus:ring-2 ${fieldErrors.companyName ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'} outline-none transition-all duration-200 group-hover:border-gray-400`}
                     value={formData.companyName}
                     onChange={handleChange}
@@ -2431,7 +2643,7 @@ const handleSubmit = async () => {
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
-                  Official registered name of your company
+                  Official registered name of your {(ACTOR_LABELS[actor]?.name || "Company").toLowerCase()}
                 </p>
               </div>
 
@@ -2440,13 +2652,13 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Company Description
+                  {ACTOR_LABELS[actor]?.companyDescLabel || "Company Description"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
                   <textarea
                     name="companyDescription"
-                    placeholder="Brief description of what your company does..."
+                    placeholder={ACTOR_LABELS[actor]?.companyDescPlaceholder || "Brief description of what your company does..."}
                     rows="3"
                     className={`w-full border-2 ${fieldErrors.companyDescription ? 'border-red-500' : 'border-gray-300'} rounded-lg px-4 py-3 ${fieldErrors.companyDescription ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'} focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 resize-none`}
                     value={formData.companyDescription}
@@ -2475,7 +2687,7 @@ const handleSubmit = async () => {
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Founded Date
+                {ACTOR_LABELS[actor]?.foundedLabel || "Founded Date"}
                 <span className="text-red-500">*</span>
               </label>
               <div className="relative group">
@@ -2484,7 +2696,7 @@ const handleSubmit = async () => {
                     formData.foundedDate ? new Date(formData.foundedDate) : null
                   }
                   onChange={handleDateChange}
-                  placeholderText="Select founded date"
+                  placeholderText={`Select ${((ACTOR_LABELS[actor]?.foundedLabel || "Founded Date")).toLowerCase()}`}
                   className={`w-full border-2 ${fieldErrors.foundedDate ? 'border-red-500' : 'border-gray-300'} rounded-lg px-4 py-3 pr-10 ${fieldErrors.foundedDate ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'} focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400`}
                   maxDate={new Date()}
                   showYearDropdown
@@ -2512,7 +2724,7 @@ const handleSubmit = async () => {
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                Select the month and year your company was founded
+                Select the month and year your {(ACTOR_LABELS[actor]?.name || "Company").toLowerCase()} was founded
               </p>
             </div>
 
@@ -2575,7 +2787,7 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  Type of Company
+                  {ACTOR_LABELS[actor]?.typeLabel || "Type of Company"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
@@ -2589,26 +2801,26 @@ const handleSubmit = async () => {
                     value={formData.typeOfCompany}
                     onChange={handleChange}
                   >
-                <option value="">Select type of company</option>
-                <option value="Cooperative">Cooperative</option>
-                <option value="Corporation">Corporation</option>
-                <option value="Family Business">Family Business</option>
-                <option value="Foundation">Foundation</option>
-                <option value="Franchise">Franchise</option>
-                <option value="General Partnership">General Partnership</option>
-                <option value="Large Enterprise">Large Enterprise (200+ employees)</option>
-                <option value="Limited Partnership">Limited Partnership</option>
-                <option value="Medium Enterprise">Medium Enterprise (100-199 employees)</option>
-                <option value="Microenterprise">Microenterprise (1-9 employees)</option>
-                <option value="NGO (Non-Governmental Organization)">NGO (Non-Governmental Organization)</option>
-                <option value="Non-Profit Organization">Non-Profit Organization</option>
-                <option value="Non-Stock Corporation">Non-Stock Corporation</option>
-                <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
-                <option value="Partnership">Partnership</option>
-                <option value="Small Enterprise">Small Enterprise (10-99 employees)</option>
-                <option value="Social Enterprise">Social Enterprise</option>
-                <option value="Sole Proprietorship">Sole Proprietorship</option>
-                <option value="Stock Corporation">Stock Corporation</option>
+                    <option value="">{ACTOR_LABELS[actor]?.typePlaceholder || "Select type of company"}</option>
+                    <option value="Cooperative">Cooperative</option>
+                    <option value="Corporation">Corporation</option>
+                    <option value="Family Business">Family Business</option>
+                    <option value="Foundation">Foundation</option>
+                    <option value="Franchise">Franchise</option>
+                    <option value="General Partnership">General Partnership</option>
+                    <option value="Large Enterprise">Large Enterprise (200+ employees)</option>
+                    <option value="Limited Partnership">Limited Partnership</option>
+                    <option value="Medium Enterprise">Medium Enterprise (100-199 employees)</option>
+                    <option value="Microenterprise">Microenterprise (1-9 employees)</option>
+                    <option value="NGO (Non-Governmental Organization)">NGO (Non-Governmental Organization)</option>
+                    <option value="Non-Profit Organization">Non-Profit Organization</option>
+                    <option value="Non-Stock Corporation">Non-Stock Corporation</option>
+                    <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Small Enterprise">Small Enterprise (10-99 employees)</option>
+                    <option value="Social Enterprise">Social Enterprise</option>
+                    <option value="Sole Proprietorship">Sole Proprietorship</option>
+                    <option value="Stock Corporation">Stock Corporation</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2628,7 +2840,7 @@ const handleSubmit = async () => {
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
-                  Legal structure of your business
+                  Legal structure of your {(ACTOR_LABELS[actor]?.name || "Company").toLowerCase()}
                 </p>
               </div>
 
@@ -2637,7 +2849,7 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  Industry
+                  {ACTOR_LABELS[actor]?.industryLabel || "Industry"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
@@ -2651,7 +2863,7 @@ const handleSubmit = async () => {
                     value={formData.industry}
                     onChange={handleChange}
                   >
-                <option value="">Select industry</option>
+                    <option value="">{ACTOR_LABELS[actor]?.industryPlaceholder || "Select industry"}</option>
                 
                 {/* Agriculture & Food */}
                 <optgroup label="🌾 Agriculture & Food">
@@ -3610,12 +3822,16 @@ const handleSubmit = async () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                   Region
-                  <span className="text-gray-400 text-xs">(Optional)</span>
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
                   <select
                     name="region"
-                    className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 bg-white group-hover:border-gray-400"
+                    className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 ${
+                      fieldErrors.region
+                        ? 'bg-white border-red-500 focus:ring-red-500 focus:border-red-500 group-hover:border-red-600'
+                        : 'bg-white border-gray-300 group-hover:border-gray-400 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
                     value={selectedRegion?.code || ""}
                     onChange={(e) => {
                       const code = e.target.value;
@@ -3628,6 +3844,13 @@ const handleSubmit = async () => {
                       setFormData((prev) => ({
                         ...prev,
                         region: selectedRegionObj?.name || "",
+                        province: "",
+                        city: "",
+                        barangay: "",
+                      }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        region: "",
                         province: "",
                         city: "",
                         barangay: "",
@@ -3647,6 +3870,14 @@ const handleSubmit = async () => {
                     </svg>
                   </div>
                 </div>
+                {fieldErrors.region && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {fieldErrors.region}
+                  </p>
+                )}
               </div>
 
               {/* Province */}
@@ -3679,6 +3910,12 @@ const handleSubmit = async () => {
                       setFormData((prev) => ({
                         ...prev,
                         province: selectedProvinceObj?.name || "",
+                        city: "",
+                        barangay: "",
+                      }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        province: "",
                         city: "",
                         barangay: "",
                       }));
@@ -3739,6 +3976,11 @@ const handleSubmit = async () => {
                         city: selectedCityObj?.name || "",
                         barangay: "",
                       }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        city: "",
+                        barangay: "",
+                      }));
                     }}
                     disabled={!selectedProvince}
                   >
@@ -3773,15 +4015,17 @@ const handleSubmit = async () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   Barangay
-                  <span className="text-gray-400 text-xs">(Optional)</span>
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
                   <select
                     name="barangay"
-                    className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 ${
+                    className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 ${
                       !selectedCity 
                         ? 'bg-gray-50 border-gray-200 cursor-not-allowed text-gray-400' 
-                        : 'bg-white border-gray-300 group-hover:border-gray-400'
+                        : fieldErrors.barangay
+                        ? 'bg-white border-red-500 focus:ring-red-500 focus:border-red-500 group-hover:border-red-600'
+                        : 'bg-white border-gray-300 group-hover:border-gray-400 focus:ring-blue-500 focus:border-blue-500'
                     }`}
                     value={selectedBarangay?.code || ""}
                     onChange={(e) => {
@@ -3792,6 +4036,10 @@ const handleSubmit = async () => {
                       setFormData((prev) => ({
                         ...prev,
                         barangay: selectedBarangayObj?.name || "",
+                      }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        barangay: "",
                       }));
                     }}
                     disabled={!selectedCity}
@@ -3809,6 +4057,14 @@ const handleSubmit = async () => {
                     </svg>
                   </div>
                 </div>
+                {fieldErrors.barangay && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {fieldErrors.barangay}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -4337,14 +4593,14 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  Business Activity
+                  {ACTOR_LABELS[actor]?.activityLabel || "Business Activity"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     name="businessActivity"
-                    placeholder="e.g., Software Development, E-commerce, Consulting"
+                    placeholder={ACTOR_LABELS[actor]?.activityPlaceholder || "e.g., Software Development, E-commerce, Consulting"}
                     className={`w-full border-2 rounded-lg px-4 py-3 pr-10 focus:ring-2 outline-none transition-all duration-200 hover:border-gray-400 ${
                       fieldErrors.businessActivity 
                         ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
