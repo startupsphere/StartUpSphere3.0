@@ -2104,9 +2104,36 @@ export default function Sidebar({
                         <div className="text-sm font-semibold text-gray-900">
                           {currentUser?.firstname} {currentUser?.lastname}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-0.5">
                           {currentUser?.email}
                         </div>
+                        {currentUser?.role && (
+                          <div className="mt-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
+                              currentUser.role === 'ROLE_ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                              currentUser.role === 'ROLE_STARTUP' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                              currentUser.role === 'ROLE_HEI' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
+                              currentUser.role === 'ROLE_SME' ? 'bg-green-100 text-green-800 border border-green-200' :
+                              currentUser.role === 'ROLE_RESEARCH' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                              currentUser.role === 'ROLE_INNOVATION' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
+                              currentUser.role === 'ROLE_SUPPORT' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
+                              currentUser.role === 'ROLE_GOVERNMENT' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                              'bg-gray-100 text-gray-800 border border-gray-200'
+                            }`}>
+                              {
+                                currentUser.role === 'ROLE_ADMIN' ? 'Admin' :
+                                currentUser.role === 'ROLE_STARTUP' ? 'Startup' :
+                                currentUser.role === 'ROLE_HEI' ? 'University / HEI' :
+                                currentUser.role === 'ROLE_SME' ? 'SME / Business' :
+                                currentUser.role === 'ROLE_RESEARCH' ? 'Research Institution' :
+                                currentUser.role === 'ROLE_INNOVATION' ? 'Innovation Output' :
+                                currentUser.role === 'ROLE_SUPPORT' ? 'Support Organization' :
+                                currentUser.role === 'ROLE_GOVERNMENT' ? 'Government / Funding' :
+                                'Standard User'
+                              }
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="relative">
                         <FaBell

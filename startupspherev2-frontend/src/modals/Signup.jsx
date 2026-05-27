@@ -7,6 +7,7 @@ export default function Signup({ closeModal, openLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("ROLE_STARTUP");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -98,13 +99,22 @@ export default function Signup({ closeModal, openLogin }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ firstname, lastname, email, password }),
+        body: JSON.stringify({ firstname, lastname, email, password, role }),
       });
+
+      const parseJSON = async (res) => {
+        const text = await res.text();
+        try {
+          return text ? JSON.parse(text) : {};
+        } catch (err) {
+          throw new Error("Invalid response from server. Please verify that the backend is running.");
+        }
+      };
 
       if (!response.ok) {
         let errorData;
         try {
-          errorData = await response.json();
+          errorData = await parseJSON(response);
           console.log("Error response:", errorData);
         } catch (parseError) {
           console.log("Failed to parse error response:", parseError);
@@ -122,7 +132,7 @@ export default function Signup({ closeModal, openLogin }) {
         throw new Error(errorData.message || "We're unable to complete your registration at this time. Please try again later.");
       }
 
-      const data = await response.json();
+      const data = await parseJSON(response);
       console.log("Registration successful:", data);
       openLogin();
 
@@ -385,6 +395,45 @@ export default function Signup({ closeModal, openLogin }) {
                   }}
                   required
                 />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5 ml-0.5">
+                Ecosystem Actor Type
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg
+                    className="w-5 h-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <select
+                  id="role"
+                  className="block w-full px-3 py-2.5 sm:py-3 pl-11 text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base cursor-pointer"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  required
+                >
+                  <option value="ROLE_STARTUP">Startup</option>
+                  <option value="ROLE_HEI">University / HEI</option>
+                  <option value="ROLE_SME">SME / Business</option>
+                  <option value="ROLE_RESEARCH">Research Institution</option>
+                  <option value="ROLE_INNOVATION">Innovation Output</option>
+                  <option value="ROLE_SUPPORT">Support Organization</option>
+                  <option value="ROLE_GOVERNMENT">Government / Funding Agency</option>
+                </select>
               </div>
             </div>
 

@@ -27,11 +27,20 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
         }
       );
 
+      const parseJSON = async (res) => {
+        const text = await res.text();
+        try {
+          return text ? JSON.parse(text) : {};
+        } catch (err) {
+          throw new Error("Invalid response from server. Please verify that the backend is running.");
+        }
+      };
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.description || "Failed to login");
+        const errorData = await parseJSON(response).catch(() => ({}));
+        throw new Error(errorData.description || errorData.error || "Failed to login");
       } else {
-        const data = await response.json();
+        const data = await parseJSON(response);
         console.log(response);
         const userResponse = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/users/me`,
@@ -48,7 +57,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
           throw new Error("Failed to fetch user details");
         }
 
-        const userData = await userResponse.json();
+        const userData = await parseJSON(userResponse);
         console.log("Login successful, user data:", userData);
 
         setSuccess(true);
