@@ -62,7 +62,7 @@ public class Startup {
     private String companyName;
     
     @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "text")
     private String companyDescription;
     
     private String foundedDate;
@@ -115,7 +115,7 @@ public class Startup {
     private Boolean emailVerified = false;
 
     @Lob
-    @Column(name = "photo", columnDefinition = "LONGBLOB")
+    @Column(name = "photo", columnDefinition = "bytea")
     private byte[] photo;
 
     @Column(name = "created_at", nullable = true, updatable = false)
@@ -151,7 +151,7 @@ public class Startup {
 
     // Registration certificate as file (image, any extension)
     @Lob
-    @Column(name = "registration_certificate", columnDefinition = "LONGBLOB")
+    @Column(name = "registration_certificate", columnDefinition = "bytea")
     private byte[] registrationCertificate;
 
     public Startup() {
