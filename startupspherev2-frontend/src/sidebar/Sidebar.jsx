@@ -1334,7 +1334,7 @@ export default function Sidebar({
       )}
 
       {/* Sidebar */}
-      <div className="flex h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-30 sidebar-container">
+      <div className="relative flex h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-30 sidebar-container">
         <div>
           {/* Logo */}
           <div className="flex justify-center items-center py-6 border-b border-gray-200">
