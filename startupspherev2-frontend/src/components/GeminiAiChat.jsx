@@ -87,11 +87,12 @@ export default function GeminiAiChat({ onClose }) {
 
   return (
     <motion.div
+      data-theme="light"
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="fixed top-0 right-0 z-[110] h-screen w-[420px] border-l border-gray-200/80 bg-white/95 backdrop-blur-md shadow-[-10px_0_30px_rgba(0,0,0,0.08)] flex flex-col"
+      className="fixed top-0 right-0 z-[110] h-screen w-[420px] border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.08)] flex flex-col"
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 p-4 text-white flex items-center justify-between shadow-sm relative overflow-hidden">
