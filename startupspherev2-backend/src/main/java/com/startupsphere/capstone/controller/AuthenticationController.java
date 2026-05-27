@@ -46,22 +46,26 @@ public class AuthenticationController {
         }
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(
+        @PostMapping("/login")
+        public ResponseEntity<LoginResponse> authenticate(
             @RequestBody LoginUserDto loginUserDto,
-            HttpServletResponse response) {
+            HttpServletResponse response,
+            jakarta.servlet.http.HttpServletRequest request) {
         User authenticatedUser = authenticationService.authenticate(loginUserDto);
 
         String jwtToken = jwtService.generateToken(authenticatedUser);
 
         // Create an HTTP-only cookie
+        boolean isSecure = request.isSecure();
+        String sameSite = isSecure ? "None" : "Lax";
+
         ResponseCookie cookie = ResponseCookie.from("token", jwtToken)
-                .httpOnly(true)
-                .secure(true) // Set to true if using HTTPS
-                .path("/")
-                .sameSite("None")
-                .maxAge(3600)
-                .build(); // No expiration since the token has no expiry
+            .httpOnly(true)
+            .secure(isSecure)
+            .path("/")
+            .sameSite(sameSite)
+            .maxAge(3600)
+            .build(); // No expiration since the token has no expiry
 
         // Add the cookie to the response
         response.addHeader("Set-Cookie", cookie.toString());
@@ -74,15 +78,17 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletResponse response, jakarta.servlet.http.HttpServletRequest request) {
+        boolean isSecure = request.isSecure();
+        String sameSite = isSecure ? "None" : "Lax";
+
         ResponseCookie cookie = ResponseCookie.from("token", "")
                 .httpOnly(true)
-                .secure(true) // Set to true if using HTTPS
+                .secure(isSecure)
                 .path("/")
-                .sameSite("None")
+                .sameSite(sameSite)
                 .maxAge(0) // Expire the cookie immediately
                 .build();
-                
 
         response.addHeader("Set-Cookie", cookie.toString());
 

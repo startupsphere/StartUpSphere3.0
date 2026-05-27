@@ -1,8 +1,8 @@
 package com.startupsphere.capstone;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.security.SecureRandom;
-import java.io.IOException;
 import java.util.Base64;
 
 import org.springframework.boot.SpringApplication;

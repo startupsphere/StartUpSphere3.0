@@ -25,24 +25,26 @@ public class SecurityConfiguration {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/startups", "/startups/**").permitAll()
-                        .requestMatchers("/stakeholders", "/stakeholders/**").permitAll()
-                        .requestMatchers("/startup-stakeholders", "/startup-stakeholders/**").permitAll()
-                        .requestMatchers("/api/bookmarks/**").hasAnyRole("USER", "ADMIN")
-                        .anyRequest().authenticated())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/startups", "/startups/**").permitAll()
+                .requestMatchers("/stakeholders", "/stakeholders/**").permitAll()
+                .requestMatchers("/startup-stakeholders", "/startup-stakeholders/**").permitAll()
+                .requestMatchers("/api/bookmarks/**").hasAnyRole("USER", "ADMIN")
+                .anyRequest().authenticated())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
+        }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
@@ -51,12 +53,13 @@ public class SecurityConfiguration {
         // Allow your Vercel domain and local development
         configuration.setAllowedOrigins(Arrays.asList(
             "https://startupsphere-azure.vercel.app", // Replace with your actual Vercel domain
+            "https://startupsphere-git-test-alprinces-projects.vercel.app/",
+            "http://localhost:3000",
             "https://localhost:3000",
+            "http://localhost:5173",
             "https://localhost:5173",
-                "https://localhost:5174",
-                "https://startupsphere-git-test-alprinces-projects.vercel.app/"
-
-
+            "http://localhost:5174",
+            "https://localhost:5174"
         ));
 
         // Or if you want to allow all Vercel subdomains temporarily for testing:
