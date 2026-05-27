@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, Trash2, X, Bot, User } from "lucide-react";
 
-export default function GeminiAiChat({ onClose }) {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Hello! I am your StartUpSphere AI Advisor. Ask me anything about startup valuation, finding investors, business compliance in the Philippines, or pitch deck strategies!"
-    }
-  ]);
+export default function GeminiAiChat({ currentUser, onClose }) {
+  const [messages, setMessages] = useState(() => {
+    const userName = currentUser ? (currentUser.firstname || currentUser.name || "there") : "there";
+    return [
+      {
+        role: "assistant",
+        content: `Hello, ${userName}! Welcome back to StartUpSphere. I'm ready to assist you.\n\nPlease feel free to ask me anything about:\n* **Startup Valuation**\n* **Finding Investors**\n* **Business Compliance in the Philippines**\n* **Pitch Deck Strategies**\n* **Technology Trends**\n* **Business Growth Insights**\n\nHow can I help you today?`
+      }
+    ];
+  });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -34,11 +37,15 @@ export default function GeminiAiChat({ onClose }) {
       }
 
       // Format chat history for Gemini API
-      const systemInstruction = 
+      let systemInstruction = 
         "You are the StartUpSphere AI Consultant, an expert startup advisor and data analyst for the StartUpSphere platform. " +
         "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology trends, and compliance. " +
         "Keep your tone highly professional, encouraging, inspiring, and direct. Format your output nicely with clean bullet points and bold headers if needed. " +
         "Limit answers to concise paragraphs that are easy to read in a chat window.";
+
+      if (currentUser) {
+        systemInstruction += ` The user you are talking to is logged in. Their profile details are: Name: ${currentUser.firstname || ""} ${currentUser.lastname || ""}, Email: ${currentUser.email || ""}, Platform Role: ${currentUser.role || "USER"}. Refer to them by name if appropriate to make the conversation highly personalized and premium!`;
+      }
 
       // Build chat context
       const chatContext = messages.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join("\n");

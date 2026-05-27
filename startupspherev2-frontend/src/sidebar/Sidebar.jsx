@@ -3600,7 +3600,7 @@ export default function Sidebar({
       {/* Gemini AI Panel */}
       <AnimatePresence>
         {showGeminiAi && (
-          <GeminiAiChat onClose={() => setShowGeminiAi(false)} />
+          <GeminiAiChat currentUser={currentUser} onClose={() => setShowGeminiAi(false)} />
         )}
       </AnimatePresence>
     </div>
