@@ -2,7 +2,7 @@ import { useState, useEffect, memo, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Login from "../modals/Login";
 import Signup from "../modals/Signup";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { CiLocationOn } from "react-icons/ci";
 import { FaGlobe } from "react-icons/fa";
 import { FaBookmark } from "react-icons/fa6";
