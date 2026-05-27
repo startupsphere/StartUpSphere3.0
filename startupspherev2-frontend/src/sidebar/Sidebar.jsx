@@ -164,6 +164,50 @@ export default function Sidebar({
   const [notificationAdminTab, setNotificationAdminTab] = useState(false);
   const [showGeminiAi, setShowGeminiAi] = useState(false);
 
+  // Calculate dynamic margins to resize map / dashboard layout when sidebars slide open
+  const hasLeftPanel420 = (stakeholder && !viewingStartup) || (startup && !viewingStartup);
+  const hasLeftPanel384 = showSearchContainer || (containerMode === "recents" && showRecents) || (containerMode === "bookmarks" && showBookmarks);
+
+  let marginLeft = "0px";
+  if (hasLeftPanel420) {
+    marginLeft = "420px";
+  } else if (hasLeftPanel384) {
+    marginLeft = "384px";
+  }
+
+  let marginRight = "0px";
+  if (showGeminiAi) {
+    marginRight = "420px";
+  }
+
+  // Trigger Mapbox resize on sidebar state shifts so map redraws to exact container bounds
+  useEffect(() => {
+    if (mapInstanceRef && mapInstanceRef.current) {
+      // Immediate resize
+      mapInstanceRef.current.resize();
+      
+      // Periodic resize to smooth out the slide-in/out transitions
+      const interval = setInterval(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.resize();
+        }
+      }, 50);
+
+      // Clean up interval and fire one final resize at transition completion (300ms)
+      const timer = setTimeout(() => {
+        clearInterval(interval);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.resize();
+        }
+      }, 350);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+      };
+    }
+  }, [marginLeft, marginRight, mapInstanceRef]);
+
   const markAsViewed = async (id) => {
     try {
       const response = await fetch(
@@ -1290,7 +1334,7 @@ export default function Sidebar({
       )}
 
       {/* Sidebar */}
-      <div className="flex h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-2 sidebar-container">
+      <div className="flex h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-30 sidebar-container">
         <div>
           {/* Logo */}
           <div className="flex justify-center items-center py-6 border-b border-gray-200">
@@ -3461,7 +3505,10 @@ export default function Sidebar({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div 
+        className="flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out"
+        style={{ marginLeft, marginRight }}
+      >
         <div className="flex-1">
           <Outlet />
         </div>
