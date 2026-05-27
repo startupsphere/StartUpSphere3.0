@@ -152,7 +152,7 @@ export default function GeminiAiChat({ onClose }) {
                 {/* Message Bubble */}
                 <div className={`p-3 rounded-2xl shadow-sm text-sm leading-relaxed border ${
                   msg.role === "user" 
-                    ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-blue-600 rounded-tr-none" 
+                    ? "bg-blue-600 text-white border-blue-600 rounded-tr-none" 
                     : "bg-white text-gray-800 border-gray-100 rounded-tl-none"
                 }`}>
                   <p className="whitespace-pre-line">{msg.content}</p>
