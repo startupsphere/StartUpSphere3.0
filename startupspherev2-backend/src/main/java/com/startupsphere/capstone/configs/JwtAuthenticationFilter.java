@@ -49,16 +49,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 1. Try extracting from Authorization header
             final String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                jwt = authHeader.substring(7);
+                String potentialJwt = authHeader.substring(7);
+                if (!potentialJwt.trim().isEmpty() && !"null".equals(potentialJwt) && !"undefined".equals(potentialJwt)) {
+                    jwt = potentialJwt;
+                }
             }
             
             // 2. Fallback to cookies
             if (jwt == null && request.getCookies() != null) {
-                jwt = Arrays.stream(request.getCookies())
+                String potentialCookieJwt = Arrays.stream(request.getCookies())
                         .filter(cookie -> "token".equals(cookie.getName()))
                         .map(Cookie::getValue)
                         .findFirst()
                         .orElse(null);
+                if (potentialCookieJwt != null && !"null".equals(potentialCookieJwt) && !"undefined".equals(potentialCookieJwt)) {
+                    jwt = potentialCookieJwt;
+                }
             }
 
             if (jwt == null) {
