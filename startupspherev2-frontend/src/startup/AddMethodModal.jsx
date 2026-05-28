@@ -23,6 +23,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Innovative ventures seeking scalability and growth",
     icon: Rocket,
     color: "from-blue-600 to-indigo-600",
+    gradStart: "#2563eb",
+    gradEnd: "#4f46e5",
     bgLight: "bg-blue-50/70 hover:bg-blue-50"
   },
   {
@@ -31,6 +33,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Higher Education Institutions driving research & talent",
     icon: GraduationCap,
     color: "from-emerald-600 to-teal-600",
+    gradStart: "#059669",
+    gradEnd: "#0d9488",
     bgLight: "bg-emerald-50/70 hover:bg-emerald-50"
   },
   {
@@ -39,6 +43,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Small & medium enterprises driving regional trade",
     icon: Briefcase,
     color: "from-orange-600 to-amber-600",
+    gradStart: "#ea580c",
+    gradEnd: "#d97706",
     bgLight: "bg-amber-50/70 hover:bg-amber-50"
   },
   {
@@ -47,6 +53,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Organizations focused on scientific research and labs",
     icon: FlaskConical,
     color: "from-purple-600 to-pink-600",
+    gradStart: "#9333ea",
+    gradEnd: "#db2777",
     bgLight: "bg-purple-50/70 hover:bg-purple-50"
   },
   {
@@ -55,6 +63,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Patented tech, intellectual property, and spinoffs",
     icon: Lightbulb,
     color: "from-amber-500 to-orange-600",
+    gradStart: "#f59e0b",
+    gradEnd: "#ea580c",
     bgLight: "bg-yellow-50/70 hover:bg-yellow-50"
   },
   {
@@ -63,6 +73,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "Incubators, accelerators, and business support systems",
     icon: Handshake,
     color: "from-red-600 to-rose-600",
+    gradStart: "#dc2626",
+    gradEnd: "#e11d48",
     bgLight: "bg-red-50/70 hover:bg-red-50"
   },
   {
@@ -71,6 +83,8 @@ const ECOSYSTEM_ACTORS = [
     desc: "State bodies providing grants, policies, and funds",
     icon: Landmark,
     color: "from-sky-600 to-blue-700",
+    gradStart: "#0284c7",
+    gradEnd: "#1d4ed8",
     bgLight: "bg-sky-50/70 hover:bg-sky-50"
   }
 ];
@@ -110,7 +124,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[90vh]"> 
         
         {/* Header decoration */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+        <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(90deg, #2563eb, #4f46e5)' }}></div>
 
         {/* Modal Close */}
         <button
@@ -141,7 +155,10 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                     onClick={() => selectActor(actor)}
                     className={`flex flex-col items-start text-left p-5 rounded-xl border-2 border-transparent transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
                   >
-                    <div className={`p-3 rounded-lg bg-gradient-to-br ${actor.color} text-white mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
+                    <div 
+                      className="p-3 rounded-lg text-white mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200"
+                      style={{ background: `linear-gradient(135deg, ${actor.gradStart}, ${actor.gradEnd})` }}
+                    >
                       <IconComponent className="w-6 h-6" />
                     </div>
                     <h3 className="text-base font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
@@ -167,7 +184,10 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </button>
 
             <div className="text-center mb-8 max-w-lg mt-4">
-              <div className={`inline-flex p-4 rounded-full bg-gradient-to-br ${selectedActor?.color} text-white mb-4 shadow-md`}>
+              <div 
+                className="inline-flex p-4 rounded-full text-white mb-4 shadow-md"
+                style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
+              >
                 {React.createElement(selectedActor?.icon || Rocket, { className: "w-8 h-8" })}
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
@@ -184,7 +204,10 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                 onClick={handleManualInput}
                 className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"
               >
-                <div className={`p-5 rounded-full bg-gradient-to-br ${selectedActor?.color || 'from-blue-500 to-indigo-500'} text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                <div 
+                  className="p-5 rounded-full text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
+                  style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
+                >
                   <Edit className="w-8 h-8" />
                 </div>
                 <span className="text-2xl font-bold mb-3">Manual Input</span>
@@ -197,7 +220,10 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                 onClick={handleCsvFile}
                 className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"   
               >
-                <div className={`p-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                <div 
+                  className="p-5 rounded-full text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
+                >
                   <FileText className="w-8 h-8" />
                 </div>
                 <span className="text-2xl font-bold mb-3">CSV File Upload</span>
