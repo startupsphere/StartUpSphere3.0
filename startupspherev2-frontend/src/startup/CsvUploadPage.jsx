@@ -170,6 +170,7 @@ export default function CsvUploadPage() {
 
         const formData = new FormData();
         formData.append("file", uploadedFile);
+        formData.append("role", actor);
 
         try {
             // Simulate progress updates

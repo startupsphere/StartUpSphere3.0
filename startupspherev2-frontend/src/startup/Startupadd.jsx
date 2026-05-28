@@ -255,6 +255,7 @@ export default function Startupadd() {
   const [selectedCity, setSelectedCity] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState(null);
   const [formData, setFormData] = useState({
+    role: actor,
     companyName: "",
     companyDescription: "",
     foundedDate: null,
@@ -1439,6 +1440,7 @@ const fetchDraftData = async (id) => {
         businessLicenseNumber: formData.businessLicenseNumber,
         tin: formData.tin,
         isDraft: true,
+        role: actor,
       };
 
       // Remove empty/null values
@@ -1671,6 +1673,7 @@ const handleSubmit = async () => {
         businessLicenseNumber: formData.businessLicenseNumber,
         tin: formData.tin,
         isDraft: true,
+        role: actor,
       };
 
       // Remove empty/null values

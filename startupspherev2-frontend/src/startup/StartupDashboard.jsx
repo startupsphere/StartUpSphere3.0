@@ -20,8 +20,9 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
 } from "chart.js";
-import { Doughnut, Line } from "react-chartjs-2";
+import { Doughnut, Line, Bar } from "react-chartjs-2";
 import Card from "../components/Card";
 import CardContent from "../components/CardContent";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +37,8 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement
+  LineElement,
+  BarElement
 );
 
 export default function StartupDashboard({ openAddMethodModal }) {
@@ -57,6 +59,31 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [activeFilter, setActiveFilter] = useState("All");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  const [globalMetrics, setGlobalMetrics] = useState({
+    idi: 0,
+    si: 0,
+    ebs: 0,
+    egs: 0
+  });
+
+  const fetchGlobalMetrics = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/metrics/dashboard`, {
+        credentials: "include"
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalMetrics(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch global metrics", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGlobalMetrics();
+  }, []);
 
   const [isAddMethodModalOpen, setIsAddMethodModalOpen] = useState(false);
 
@@ -1386,7 +1413,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         <div className="mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
             <div className="flex flex-wrap gap-2 justify-center">
-              {["All", "Likes", "Bookmarks", "Views"].map((filter) => (
+              {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
                 <button
                   key={filter}
                   className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -1403,8 +1430,124 @@ export default function StartupDashboard({ openAddMethodModal }) {
           </div>
         </div>
 
-        {/* Premium Metrics Cards with Glassmorphism */}
-        <div className="mb-8">
+        {activeFilter === "Metrics" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* IDI Chart */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">IDI (Innovation Density)</h3>
+              <div className="flex-1 w-full relative">
+                <Bar
+                  data={{
+                    labels: ['IDI'],
+                    datasets: [{
+                      label: 'Value',
+                      data: [globalMetrics.idi],
+                      backgroundColor: '#4f46e5',
+                      borderRadius: 6
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                      y: { beginAtZero: true, grid: { display: false } },
+                      x: { display: false, grid: { display: false } }
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-2xl font-bold text-center text-indigo-600 mt-2">{globalMetrics.idi}</p>
+            </div>
+
+            {/* SI Chart */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">SI (Support Index)</h3>
+              <div className="flex-1 w-full relative">
+                <Bar
+                  data={{
+                    labels: ['SI'],
+                    datasets: [{
+                      label: 'Value',
+                      data: [globalMetrics.si],
+                      backgroundColor: '#0ea5e9',
+                      borderRadius: 6
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                      y: { beginAtZero: true, grid: { display: false } },
+                      x: { display: false, grid: { display: false } }
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-2xl font-bold text-center text-sky-500 mt-2">{globalMetrics.si}</p>
+            </div>
+
+            {/* EBS Chart (Gauge) */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">EBS (Ecosystem Balance)</h3>
+              <div className="flex-1 w-full relative flex items-center justify-center pt-8">
+                <Doughnut
+                  data={{
+                    labels: ['Score', 'Remaining'],
+                    datasets: [{
+                      data: [globalMetrics.ebs, Math.max(0, 10 - globalMetrics.ebs)],
+                      backgroundColor: ['#10b981', '#f3f4f6'],
+                      borderWidth: 0
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '75%',
+                    plugins: { legend: { display: false }, tooltip: { filter: (item) => item.dataIndex === 0 } }
+                  }}
+                />
+                <div className="absolute inset-0 flex items-end justify-center pb-6">
+                  <p className="text-3xl font-bold text-emerald-500">{globalMetrics.ebs}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* EGS Chart (Gauge) */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">EGS (Ecosystem Gap)</h3>
+              <div className="flex-1 w-full relative flex items-center justify-center pt-8">
+                <Doughnut
+                  data={{
+                    labels: ['Score', 'Remaining'],
+                    datasets: [{
+                      data: [globalMetrics.egs, Math.max(0, 10 - globalMetrics.egs)],
+                      backgroundColor: ['#f59e0b', '#f3f4f6'],
+                      borderWidth: 0
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '75%',
+                    plugins: { legend: { display: false }, tooltip: { filter: (item) => item.dataIndex === 0 } }
+                  }}
+                />
+                <div className="absolute inset-0 flex items-end justify-center pb-6">
+                  <p className="text-3xl font-bold text-amber-500">{globalMetrics.egs}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Premium Metrics Cards with Glassmorphism */}
+            <div className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Views Card - Enhanced */}
             <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
@@ -2034,6 +2177,8 @@ export default function StartupDashboard({ openAddMethodModal }) {
             </div>
           </div>
         </div>
+          </>
+        )}
         {verificationModal && (
           <Verification
             setVerificationModal={setVerificationModal}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   Search,
   X,
@@ -36,6 +37,8 @@ export default function Startupmap({
   onHighlightStakeholder,
   onStartupClick,
 }) {
+  const context = useOutletContext();
+  const activeActorType = context?.activeActorType || "All";
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
   const mapContainerRef = useRef(null);
@@ -62,6 +65,7 @@ export default function Startupmap({
   const [stakeholderConnections, setStakeholderConnections] = useState([]);
   const [showConnections, setShowConnections] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showLegend, setShowLegend] = useState(true);
   const [connectionLines, setConnectionLines] = useState([]);
   const [stakeholderMarkers, setStakeholderMarkers] = useState([]);
   const [filteredStakeholders, setFilteredStakeholders] = useState([]);
@@ -619,6 +623,7 @@ export default function Startupmap({
           id: s.id,
           name: s.companyName || s.name || "Startup",
           locationName: s.locationName || "",
+          role: s.role || "ROLE_STARTUP"
         },
         geometry: { type: "Point", coordinates: [lng, lat] },
       };
@@ -638,6 +643,7 @@ export default function Startupmap({
           id: layerId,
           type: "symbol",
           source: sourceId,
+          filter: ["==", "id", ""],
           layout: {
             "icon-image": iconName,
             "icon-size": [
@@ -691,11 +697,11 @@ export default function Startupmap({
               "interpolate",
               ["linear"],
               ["heatmap-density"],
-              0, "rgba(0, 255, 0, 0)",         // Transparent
-              0.2, "rgba(34, 197, 94, 0.6)",    // Light Green (when none/less)
-              0.5, "rgba(234, 179, 8, 0.8)",    // Yellow (medium density)
-              0.8, "rgba(249, 115, 22, 0.9)",   // Orange
-              1.0, "rgba(239, 68, 68, 0.95)"    // Vibrant Red (high density)
+              0, "rgba(255, 255, 255, 0)",         // Transparent
+              0.25, "rgba(34, 197, 94, 0.8)",    // Green (Underserved regions)
+              0.5, "rgba(234, 179, 8, 0.8)",    // Yellow (Imbalanced ecosystems)
+              0.75, "rgba(59, 130, 246, 0.8)",   // Blue (Strong support zones)
+              1.0, "rgba(239, 68, 68, 0.95)"    // Red (High innovation areas)
             ],
             // Adjust the heatmap radius by zoom level
             "heatmap-radius": [
@@ -3282,6 +3288,34 @@ export default function Startupmap({
     });
   };
 
+  // Filter map layers based on the active actor type from Sidebar
+  useEffect(() => {
+    const map = mapInstanceRef?.current;
+    if (!map) return;
+    
+    const applyFiltersToMap = () => {
+      try {
+        const layerId = "startups-layer";
+        if (map.getLayer(layerId)) {
+          if (activeActorType !== "All") {
+            map.setFilter(layerId, ["==", ["get", "role"], activeActorType]);
+          } else {
+            map.setFilter(layerId, null); // Clear filter
+          }
+        }
+      } catch (e) {
+        console.warn("Could not apply layer filters yet", e);
+      }
+    };
+
+    // Apply immediately if style is loaded
+    if (map.isStyleLoaded()) {
+      applyFiltersToMap();
+    } else {
+      map.once('styledata', applyFiltersToMap);
+    }
+  }, [activeActorType, mapInstanceRef]);
+
   return (
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div
@@ -3433,6 +3467,47 @@ export default function Startupmap({
         </svg>
         {showConnections ? "Hide Connections" : "Show Connections"}
       </button>
+
+      {showHeatmap && (
+        <button
+          onClick={() => setShowLegend(!showLegend)}
+          style={{ position: 'absolute', bottom: '16px', left: '16px', zIndex: 10000 }}
+          className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          Legend
+        </button>
+      )}
+
+      {/* Heatmap Legend */}
+      <div
+        className={`absolute bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${
+          showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
+        }`}
+        style={{ width: "220px" }}
+      >
+        <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Heatmap Legend</h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm border border-red-200"></span>
+            <span className="text-gray-700 font-medium">High innovation areas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm border border-blue-200"></span>
+            <span className="text-gray-700 font-medium">Strong support zones</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm border border-yellow-200"></span>
+            <span className="text-gray-700 font-medium">Imbalanced ecosystems</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-green-200"></span>
+            <span className="text-gray-700 font-medium">Underserved regions</span>
+          </div>
+        </div>
+      </div>
 
       {openLogin && (
         <Login

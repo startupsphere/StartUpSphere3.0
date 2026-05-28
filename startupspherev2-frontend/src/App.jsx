@@ -15,7 +15,6 @@ import CsvUploadPage from "./startup/CsvUploadPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
-
 function App() {
   const mapInstanceRef = useRef(null);
   const highlightStakeholderRef = useRef(null);
@@ -37,7 +36,9 @@ function App() {
 
   const handleStartupClickFromMap = (handleFn) => {
     handleStartupClickRef.current = handleFn;
-  };  return (
+  };
+
+  return (
     <SidebarProvider>
       <Routes>
         <Route
@@ -68,9 +69,9 @@ function App() {
           />
           <Route element={<ProtectedRoute />}>
             <Route 
-              path="/startup-dashboard" 
-              element={<StartupDashboard openAddMethodModal={openAddMethodModal} />} 
-            />
+              path="/startup-dashboard" 
+              element={<StartupDashboard openAddMethodModal={openAddMethodModal} />} 
+            />
             <Route
               path="/all-startup-dashboard"
               element={<AllStartupDashboard />}
@@ -89,9 +90,9 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
       <AddMethodModal 
-        isOpen={isAddMethodModalOpen} 
-        onClose={() => setIsAddMethodModalOpen(false)} 
-      />
+        isOpen={isAddMethodModalOpen} 
+        onClose={() => setIsAddMethodModalOpen(false)} 
+      />
     </SidebarProvider>
   );
 }

@@ -10,9 +10,11 @@ import {
   Lightbulb, 
   Handshake, 
   Landmark, 
-  ArrowLeft, 
-  X 
+  ArrowLeft,
+  X
 } from 'lucide-react';
+
+const TAILWIND_SAFELIST = "from-emerald-600 to-teal-600 bg-emerald-50/70 hover:bg-emerald-50 from-orange-600 to-amber-600 bg-amber-50/70 hover:bg-amber-50 from-amber-500 to-orange-600 bg-yellow-50/70 hover:bg-yellow-50 from-red-600 to-rose-600 bg-red-50/70 hover:bg-red-50 from-blue-600 to-indigo-600 bg-blue-50/70 hover:bg-blue-50 from-purple-600 to-pink-600 bg-purple-50/70 hover:bg-purple-50 from-sky-600 to-blue-700 bg-sky-50/70 hover:bg-sky-50";
 
 const ECOSYSTEM_ACTORS = [
   {
@@ -20,7 +22,7 @@ const ECOSYSTEM_ACTORS = [
     name: "Startup",
     desc: "Innovative ventures seeking scalability and growth",
     icon: Rocket,
-    color: "from-blue-500 to-indigo-500",
+    color: "from-blue-600 to-indigo-600",
     bgLight: "bg-blue-50/70 hover:bg-blue-50"
   },
   {
@@ -28,7 +30,7 @@ const ECOSYSTEM_ACTORS = [
     name: "University / HEI",
     desc: "Higher Education Institutions driving research & talent",
     icon: GraduationCap,
-    color: "from-emerald-500 to-teal-500",
+    color: "from-emerald-600 to-teal-600",
     bgLight: "bg-emerald-50/70 hover:bg-emerald-50"
   },
   {
@@ -36,7 +38,7 @@ const ECOSYSTEM_ACTORS = [
     name: "SME / Business",
     desc: "Small & medium enterprises driving regional trade",
     icon: Briefcase,
-    color: "from-amber-500 to-orange-500",
+    color: "from-orange-600 to-amber-600",
     bgLight: "bg-amber-50/70 hover:bg-amber-50"
   },
   {
@@ -44,7 +46,7 @@ const ECOSYSTEM_ACTORS = [
     name: "Research Institution",
     desc: "Organizations focused on scientific research and labs",
     icon: FlaskConical,
-    color: "from-purple-500 to-pink-500",
+    color: "from-purple-600 to-pink-600",
     bgLight: "bg-purple-50/70 hover:bg-purple-50"
   },
   {
@@ -52,7 +54,7 @@ const ECOSYSTEM_ACTORS = [
     name: "Innovation Output",
     desc: "Patented tech, intellectual property, and spinoffs",
     icon: Lightbulb,
-    color: "from-yellow-500 to-amber-500",
+    color: "from-amber-500 to-orange-600",
     bgLight: "bg-yellow-50/70 hover:bg-yellow-50"
   },
   {
@@ -60,7 +62,7 @@ const ECOSYSTEM_ACTORS = [
     name: "Support Organization",
     desc: "Incubators, accelerators, and business support systems",
     icon: Handshake,
-    color: "from-red-500 to-rose-500",
+    color: "from-red-600 to-rose-600",
     bgLight: "bg-red-50/70 hover:bg-red-50"
   },
   {
@@ -68,7 +70,7 @@ const ECOSYSTEM_ACTORS = [
     name: "Government / Funding",
     desc: "State bodies providing grants, policies, and funds",
     icon: Landmark,
-    color: "from-sky-500 to-blue-600",
+    color: "from-sky-600 to-blue-700",
     bgLight: "bg-sky-50/70 hover:bg-sky-50"
   }
 ];
@@ -137,7 +139,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                   <button
                     key={actor.id}
                     onClick={() => selectActor(actor)}
-                    className={`flex flex-col items-start text-left p-5 rounded-xl border-2 border-gray-200 transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
+                    className={`flex flex-col items-start text-left p-5 rounded-xl border-2 border-transparent transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
                   >
                     <div className={`p-3 rounded-lg bg-gradient-to-br ${actor.color} text-white mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
                       <IconComponent className="w-6 h-6" />
@@ -177,29 +179,29 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Methods Row */}
-            <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl px-4">
+            <div className="flex flex-col md:flex-row gap-6 w-full px-6 flex-1 mb-4">
               <button
                 onClick={handleManualInput}
-                className="flex-1 flex flex-col items-center justify-center p-8 border-2 border-gray-200 text-blue-900 rounded-xl hover:bg-blue-50/50 hover:border-blue-500 hover:ring-4 hover:ring-blue-100 transition-all duration-200 shadow-sm cursor-pointer group"
+                className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"
               >
-                <div className="p-4 rounded-full bg-blue-100 text-blue-600 mb-4 group-hover:scale-105 transition-transform">
+                <div className={`p-5 rounded-full bg-gradient-to-br ${selectedActor?.color || 'from-blue-500 to-indigo-500'} text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300`}>
                   <Edit className="w-8 h-8" />
                 </div>
-                <span className="text-lg font-bold">Manual Input</span>
-                <span className="text-sm text-gray-500 mt-1.5 text-center font-medium">
+                <span className="text-2xl font-bold mb-3">Manual Input</span>
+                <span className="text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
                   Step-by-step interactive form tailored for {selectedActor?.name.toLowerCase()} listings
                 </span>
               </button>
 
               <button
                 onClick={handleCsvFile}
-                className="flex-1 flex flex-col items-center justify-center p-8 border-2 border-gray-200 text-blue-900 rounded-xl hover:bg-blue-50/50 hover:border-blue-500 hover:ring-4 hover:ring-blue-100 transition-all duration-200 shadow-sm cursor-pointer group"   
+                className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"   
               >
-                <div className="p-4 rounded-full bg-blue-100 text-blue-600 mb-4 group-hover:scale-105 transition-transform">
+                <div className={`p-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300`}>
                   <FileText className="w-8 h-8" />
                 </div>
-                <span className="text-lg font-bold">CSV File Upload</span>
-                <span className="text-sm text-gray-500 mt-1.5 text-center font-medium">
+                <span className="text-2xl font-bold mb-3">CSV File Upload</span>
+                <span className="text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
                   Bulk import many records at once using our Excel or CSV spreadsheet templates
                 </span>
               </button>

@@ -126,19 +126,18 @@ export default function Sidebar({
       foundedDate: "",
       teamSize: "",
       fundingStage: "",
+      actorType: "All",
     },
     stakeholders: {
       query: "",
-      region: "",
-      sector: "",
-      organization: "",
-      location: "",
+      actorType: "All",
     },
   });
   const [startups, setStartups] = useState([]);
   const [notificationsCount, setNotificationsCount] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchInputLoading, setSearchInputLoading] = useState(false);
   const [startup, setStartup] = useState(null);
   const [stakeholders, setStakeholders] = useState([]);
   const [newNotifications, setNewNotifications] = useState([]);
@@ -815,6 +814,23 @@ export default function Sidebar({
     setShowSearchContainer(false);
   };
 
+  useEffect(() => {
+    if (mapInstanceRef && mapInstanceRef.current) {
+      const map = mapInstanceRef.current;
+      try {
+        if (map.isStyleLoaded() && map.getLayer("startups-layer")) {
+          if (startup) {
+            map.setFilter("startups-layer", ["==", "id", startup.id]);
+          } else {
+            map.setFilter("startups-layer", ["==", "id", ""]);
+          }
+        }
+      } catch (e) {
+        console.warn("Map style not fully loaded yet for filtering.", e);
+      }
+    }
+  }, [startup, mapInstanceRef]);
+
   const handleStakeholderClick = (stakeholder) => {
     if (!stakeholder || !stakeholder.id) {
       console.error("Invalid stakeholder object:", stakeholder);
@@ -1207,7 +1223,7 @@ export default function Sidebar({
       viewingType === "startups" ? filters.startups : filters.stakeholders;
 
     // If no query, return all items
-    if (!currentFilters.query) return items;
+    if (!currentFilters.query && currentFilters.actorType === "All") return items;
 
     // Helper function to safely check if a field contains the query
     const safeFieldCheck = (fieldValue, query) => {
@@ -1228,59 +1244,12 @@ export default function Sidebar({
         }
 
         const query = currentFilters.query.trim();
-        if (!query) return true;
-
-        if (viewingType === "startups") {
-          // Search only in the specified fields
-          const searchableFields = [
-            "companyName",
-            "industry",
-            "companyDescription",
-            "city",
-            "status",
-            "businessActivity",
-            "foundedDate",
-          ];
-
-          // Check if any field matches the query
-          return searchableFields.some((fieldName) => {
-            try {
-              const fieldValue = item[fieldName];
-              return safeFieldCheck(fieldValue, query);
-            } catch (error) {
-              console.warn(`Error checking field ${fieldName}:`, error);
-              return false;
-            }
-          });
-        } else {
-          // Stakeholder search - keep existing fields
-          const searchableFields = [
-            "name",
-            "email",
-            "region",
-            "organization",
-            "city",
-            "province",
-            "sector",
-            "biography",
-            "phoneNumber",
-            "linkedIn",
-            "facebook",
-          ];
-
-          return searchableFields.some((fieldName) => {
-            try {
-              const fieldValue = item[fieldName];
-              return safeFieldCheck(fieldValue, query);
-            } catch (error) {
-              console.warn(
-                `Error checking stakeholder field ${fieldName}:`,
-                error
-              );
-              return false;
-            }
-          });
-        }
+        const matchesQuery = !query || (viewingType === "startups" ? 
+            ["companyName", "industry", "companyDescription", "city", "status", "businessActivity", "foundedDate"].some(f => safeFieldCheck(item[f], query)) :
+            ["name", "email", "region", "organization", "city", "province", "sector", "biography", "phoneNumber", "linkedIn", "facebook"].some(f => safeFieldCheck(item[f], query)));
+            
+        const matchesActorType = currentFilters.actorType === "All" || (item.role || "ROLE_STARTUP") === currentFilters.actorType;
+        return matchesQuery && matchesActorType;
       } catch (error) {
         console.error("Error in applyFilters:", error);
         return false;
@@ -2300,7 +2269,7 @@ export default function Sidebar({
                         : "text-white/80"
                     }`}
                   />
-                  Startups
+                  Innovations
                 </div>
               </button>
               <button
@@ -2334,7 +2303,33 @@ export default function Sidebar({
                 </div>
               </button>
             </div>
-          </div>
+            
+            {viewingType === "startups" && (
+              <div className="mt-3">
+                <select
+                  value={filters.startups.actorType || "All"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFilters((prev) => ({
+                      ...prev,
+                      startups: { ...prev.startups, actorType: value },
+                    }));
+                  }}
+                  className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
+                >
+                  <option value="All">All Innovation Types</option>
+                  <option value="ROLE_STARTUP">Startup</option>
+                  <option value="ROLE_HEI">University / HEI</option>
+                  <option value="ROLE_SME">SME / Business</option>
+                  <option value="ROLE_RESEARCH">Research Institution</option>
+                  <option value="ROLE_INNOVATION">Innovation Output</option>
+                  <option value="ROLE_SUPPORT">Support Organization</option>
+                  <option value="ROLE_GOVERNMENT">Government / Funding</option>
+                </select>
+              </div>
+            )}
+            
+            {/* Search Input Container */}  </div>
 
           <div className="h-[calc(100vh-200px)] overflow-y-auto p-4 space-y-4">
             {loading ? (
@@ -3547,7 +3542,7 @@ export default function Sidebar({
         style={{ marginLeft, marginRight }}
       >
         <div className="flex-1">
-          <Outlet />
+          <Outlet context={{ activeActorType: filters.startups.actorType }} />
         </div>
       </div>
 

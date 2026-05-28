@@ -765,7 +765,9 @@ public class StartupController {
     }
 
     @PostMapping("/upload-startups")
-    public ResponseEntity<?> uploadStartupsCsv(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadStartupsCsv(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "role", defaultValue = "ROLE_STARTUP") String role) {
         String fileName = file.getOriginalFilename();
         if (file.isEmpty() || fileName == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Please upload a valid file."));
@@ -882,6 +884,7 @@ public class StartupController {
 
                     Startup startup = new Startup();
                     startup.setUser(loggedInUser);
+                    startup.setRole(role);
                     
                     // Basic Information
                     startup.setCompanyName(companyName);

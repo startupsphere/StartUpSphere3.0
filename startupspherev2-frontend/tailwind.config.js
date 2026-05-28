@@ -4,6 +4,15 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'from-emerald-600', 'to-teal-600', 'bg-emerald-50/70', 'hover:bg-emerald-50',
+    'from-orange-600', 'to-amber-600', 'bg-amber-50/70', 'hover:bg-amber-50',
+    'from-amber-500', 'to-orange-600', 'bg-yellow-50/70', 'hover:bg-yellow-50',
+    'from-red-600', 'to-rose-600', 'bg-red-50/70', 'hover:bg-red-50',
+    'from-blue-600', 'to-indigo-600', 'bg-blue-50/70', 'hover:bg-blue-50',
+    'from-purple-600', 'to-pink-600', 'bg-purple-50/70', 'hover:bg-purple-50',
+    'from-sky-600', 'to-blue-700', 'bg-sky-50/70', 'hover:bg-sky-50'
+  ],
   theme: {
     extend: {
       colors: {
@@ -67,3 +76,4 @@ export default {
     logs: false,
   },
 }
+ 

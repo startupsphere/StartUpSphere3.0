@@ -38,6 +38,7 @@ public class StartupDTO {
     private Integer viewsCount;
     private Boolean emailVerified;
     private Boolean isDraft;
+    private String role;
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdated;
 
@@ -82,6 +83,7 @@ public class StartupDTO {
         this.viewsCount = startup.getViewsCount();
         this.emailVerified = startup.getEmailVerified();
         this.isDraft = startup.getIsDraft();
+        this.role = startup.getRole();
         this.createdAt = startup.getCreatedAt();
         this.lastUpdated = startup.getLastUpdated();
         if (includeStakeholders) {
@@ -363,5 +365,13 @@ public class StartupDTO {
 
     public void setIsDraft(Boolean isDraft) {
         this.isDraft = isDraft;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

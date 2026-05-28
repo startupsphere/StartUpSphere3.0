@@ -147,6 +147,9 @@ public class Startup {
     @Column(name = "is_draft", nullable = false)
     private Boolean isDraft = false;
 
+    @Column(name = "role")
+    private String role;
+
     // Registration certificate as file (image, any extension)
     @Column(name = "registration_certificate", columnDefinition = "bytea")
     private byte[] registrationCertificate;
@@ -736,6 +739,14 @@ public class Startup {
 
     public void setIsDraft(Boolean isDraft) {
         this.isDraft = isDraft;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public List<StartupStakeholder> getStartupStakeholders() {
