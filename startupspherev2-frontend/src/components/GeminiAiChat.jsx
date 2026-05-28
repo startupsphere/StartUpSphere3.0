@@ -37,6 +37,123 @@ export default function GeminiAiChat({ currentUser, onClose }) {
     localStorage.setItem("startupsphere_ai_chat", JSON.stringify(messages));
   }, [messages]);
 
+  // Auto-describe pinpointed startup from map heatmap
+  useEffect(() => {
+    const handleHeatmapClick = async (event) => {
+      const startup = event?.detail;
+      if (!startup) {
+        // Try reading from localStorage as a fallback
+        const pendingStr = localStorage.getItem("pending_ai_startup_desc");
+        if (!pendingStr) return;
+        localStorage.removeItem("pending_ai_startup_desc");
+        try {
+          describeStartup(JSON.parse(pendingStr));
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        localStorage.removeItem("pending_ai_startup_desc");
+        describeStartup(startup);
+      }
+    };
+
+    const describeStartup = async (startupInfo) => {
+      const { id, companyName } = startupInfo;
+      if (!id) return;
+
+      try {
+        // 1. Add the user's click message to the chat log
+        const userMsgText = `Describe what the pinpointed startup "${companyName}" on the heatmap is all about.`;
+        setMessages((prev) => [...prev, { role: "user", content: userMsgText }]);
+        setLoading(true);
+
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) throw new Error("Gemini API key is not configured.");
+
+        // 2. Fetch the live database record for this startup
+        let startupDetails = null;
+        try {
+          const detailRes = await fetch(`${backendUrl}/startups/${id}`, {
+            credentials: "include"
+          });
+          if (detailRes.ok) {
+            startupDetails = await detailRes.json();
+          }
+        } catch (e) {
+          console.error("AI failed to fetch pending startup details:", e);
+        }
+
+        // 3. Format dynamic system instructions and prompt
+        let systemInstruction = 
+          "You are the StartUpSphere AI Consultant, an expert startup advisor and data analyst for the StartUpSphere platform. " +
+          "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
+          "Keep your tone highly professional, encouraging, inspiring, and direct. Format your output nicely with clean bullet points and bold headers if needed.\n\n" +
+          "**CRITICAL RESPONSE RULES:**\n" +
+          "- The user has clicked on this startup's pinpoint/hotspot on the live map heatmap.\n" +
+          "- Respond DIRECTLY by introducing and describing the startup based on its database record provided below.\n" +
+          "- Make it simple and easy to learn. Describe what they do, their industry, location, and potential in extremely engaging, layperson terms.\n" +
+          "- Avoid conversational pleasantries (e.g. do NOT say 'Sure! Here is the description...'). Start your response directly with the startup's name and description.\n" +
+          "- Limit the answer to 2-3 concise paragraphs.";
+
+        let detailContext = `\n\n=== LIVE STARTUP DATABASE RECORD ===\n`;
+        if (startupDetails) {
+          detailContext += JSON.stringify(startupDetails, null, 2);
+        } else {
+          detailContext += `Startup ID: ${id}\nCompany Name: ${companyName}\n(Detailed record could not be retrieved from database, describe what is known or encourage the user to explore the startup card.)`;
+        }
+
+        // Build prompt with context
+        const fullPrompt = `${systemInstruction}\n\n${detailContext}\n\nUser: Describe what the pinpointed startup "${companyName}" on the heatmap is all about.\nAssistant:`;
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: fullPrompt }] }]
+            })
+          }
+        );
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || "Failed to generate content");
+
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a description for this startup.";
+        setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
+      } catch (err) {
+        console.error("Failed to auto-describe startup from heatmap:", err);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `⚠️ Error loading map pinpoint description: ${err.message}` }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Register listener for heatmap clicks while open
+    window.addEventListener("open-ai-chat-with-startup", handleHeatmapClick);
+
+    // Also check on mount if there is a pending startup description in localStorage (handles first open)
+    const pendingStr = localStorage.getItem("pending_ai_startup_desc");
+    if (pendingStr) {
+      localStorage.removeItem("pending_ai_startup_desc");
+      try {
+        describeStartup(JSON.parse(pendingStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("open-ai-chat-with-startup", handleHeatmapClick);
+    };
+  }, []);
+
   // Fetch live database and dashboard metrics on mount
   useEffect(() => {
     const fetchDatabaseDetails = async () => {

@@ -163,6 +163,17 @@ export default function Sidebar({
   const [notificationAdminTab, setNotificationAdminTab] = useState(false);
   const [showGeminiAi, setShowGeminiAi] = useState(false);
 
+  // Listen to custom window events to open the Gemini AI Chat panel automatically
+  useEffect(() => {
+    const handleOpenAiChat = () => {
+      setShowGeminiAi(true);
+    };
+    window.addEventListener("open-ai-chat-with-startup", handleOpenAiChat);
+    return () => {
+      window.removeEventListener("open-ai-chat-with-startup", handleOpenAiChat);
+    };
+  }, []);
+
   // Calculate dynamic margins to resize map / dashboard layout when sidebars slide open
   const hasLeftPanel420 = (stakeholder && !viewingStartup) || (startup && !viewingStartup);
   const hasLeftPanel384 = showSearchContainer || (containerMode === "recents" && showRecents) || (containerMode === "bookmarks" && showBookmarks);

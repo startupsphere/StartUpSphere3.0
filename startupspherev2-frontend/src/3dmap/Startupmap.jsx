@@ -823,13 +823,15 @@ export default function Startupmap({
           }
         }, layerId);
 
-        // Add click event to expand zones
+        // Add click event to expand zones (making gradients, core, and text count all clickable)
         if (!map.__zoneEventsAdded) {
           map.__zoneEventsAdded = true;
-          map.on('click', 'startups-zone-core', (e) => {
+          
+          const handleClusterClick = (e, layerName) => {
             const features = map.queryRenderedFeatures(e.point, {
-              layers: ['startups-zone-core']
+              layers: [layerName]
             });
+            if (!features || !features.length) return;
             const clusterId = features[0].properties.cluster_id;
             map.getSource(sourceId).getClusterExpansionZoom(
               clusterId,
@@ -841,13 +843,21 @@ export default function Startupmap({
                 });
               }
             );
-          });
-          map.on('mouseenter', 'startups-zone-core', () => {
-            map.getCanvas().style.cursor = 'pointer';
-          });
-          map.on('mouseleave', 'startups-zone-core', () => {
-            map.getCanvas().style.cursor = '';
-          });
+          };
+
+          const setupClusterLayerEvents = (layerName) => {
+            map.on('click', layerName, (e) => handleClusterClick(e, layerName));
+            map.on('mouseenter', layerName, () => {
+              map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', layerName, () => {
+              map.getCanvas().style.cursor = '';
+            });
+          };
+
+          setupClusterLayerEvents('startups-zone-core');
+          setupClusterLayerEvents('startups-zone-gradients');
+          setupClusterLayerEvents('startups-zone-count');
         }
       }
 
@@ -891,16 +901,9 @@ export default function Startupmap({
 
       if (!map.__startupEventsAdded) {
         map.__startupEventsAdded = true;
-        map.on("mouseenter", layerId, () => {
-          map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", layerId, () => {
-          map.getCanvas().style.cursor = "";
-        });
-        map.on("click", layerId, (e) => {
-          if (!e.features?.length) return;
-          const f = e.features[0];
-          const id = f.id;
+
+        const handleSingleStartupClick = (f) => {
+          const id = f.id || f.properties.id;
           const [lng, lat] = f.geometry.coordinates;
 
           // Highlight
@@ -927,7 +930,7 @@ export default function Startupmap({
               </div>
               <div style="padding: 14px 18px; background: #fff; border-radius: 0 0 10px 10px;">
                 ${props.locationName ?
-              `<div style="font-size: 13px; color: #4B5563; display: flex; align-items: center;">
+                  `<div style="font-size: 13px; color: #4B5563; display: flex; align-items: center;">
                     <div style="min-width: 24px; height: 24px; background-color: rgba(10, 102, 194, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
                       <svg style="width: 14px; height: 14px;" fill="none" stroke="#0A66C2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -936,13 +939,54 @@ export default function Startupmap({
                     </div>
                     <span>${props.locationName}</span>
                   </div>` : ''
-            }
+                }
               </div>
             </div>`;
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup" })
             .setLngLat([lng, lat])
             .setHTML(html)
             .addTo(map);
+
+          // Dispatch event to open Gemini AI Chat and auto-describe startup
+          const startupDataToPass = { id, companyName: props.name || "Startup" };
+          localStorage.setItem("pending_ai_startup_desc", JSON.stringify(startupDataToPass));
+          window.dispatchEvent(new CustomEvent("open-ai-chat-with-startup", { detail: startupDataToPass }));
+        };
+
+        // Standard Symbol/Marker Events
+        map.on("mouseenter", layerId, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("click", layerId, (e) => {
+          if (!e.features?.length) return;
+          handleSingleStartupClick(e.features[0]);
+        });
+
+        // Heatmap Unclustered core events
+        map.on("mouseenter", "startups-unclustered-core", () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "startups-unclustered-core", () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("click", "startups-unclustered-core", (e) => {
+          if (!e.features?.length) return;
+          handleSingleStartupClick(e.features[0]);
+        });
+
+        // Heatmap Unclustered gradient events
+        map.on("mouseenter", "startups-unclustered-gradient", () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "startups-unclustered-gradient", () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("click", "startups-unclustered-gradient", (e) => {
+          if (!e.features?.length) return;
+          handleSingleStartupClick(e.features[0]);
         });
       }
     };
