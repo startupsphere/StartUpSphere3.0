@@ -634,7 +634,13 @@ export default function Startupmap({
     if (map.getSource(sourceId)) {
       try { map.getSource(sourceId).setData(data); } catch { }
     } else {
-      map.addSource(sourceId, { type: "geojson", data });
+      map.addSource(sourceId, {
+        type: "geojson",
+        data,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 60 // Slightly larger radius to group zones better
+      });
     }
 
     const ensureLayer = () => {
@@ -670,57 +676,149 @@ export default function Startupmap({
         });
       }
 
+      // Add gradient orbs (blurred circles) for distinct color zones per area
       if (!map.getLayer("startups-heatmap")) {
+        // We reuse the ID "startups-heatmap" or create a new one. Let's use new IDs and remove old.
+        if (map.getLayer("startups-heatmap")) map.removeLayer("startups-heatmap");
+
         map.addLayer({
-          id: "startups-heatmap",
-          type: "heatmap",
+          id: "startups-zone-gradients",
+          type: "circle",
           source: sourceId,
-          maxzoom: 15,
+          filter: ["has", "point_count"],
           layout: {
             visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
-            // Increase the heatmap weight based on frequency or property value
-            "heatmap-weight": 1,
-            // Increase the heatmap color weight by zoom level
-            // heatmap-intensity is a multiplier on top of heatmap-weight
-            "heatmap-intensity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 1,
-              15, 3
+            "circle-color": [
+              "step",
+              ["get", "point_count"],
+              "#22c55e", // Green (1-3)
+              4, "#eab308", // Yellow (4-9)
+              10, "#3b82f6", // Blue (10-20)
+              21, "#ef4444" // Red (21+)
             ],
-            // Color ramp for heatmap. Domain is 0 (low) to 1 (high).
-            // Red if a lot of startups, green or yellow if less/none.
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0, "rgba(255, 255, 255, 0)",         // Transparent
-              0.25, "rgba(34, 197, 94, 0.8)",    // Green (Underserved regions)
-              0.5, "rgba(234, 179, 8, 0.8)",    // Yellow (Imbalanced ecosystems)
-              0.75, "rgba(59, 130, 246, 0.8)",   // Blue (Strong support zones)
-              1.0, "rgba(239, 68, 68, 0.95)"    // Red (High innovation areas)
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              40, // Base radius
+              4, 55,
+              10, 75,
+              21, 100
             ],
-            // Adjust the heatmap radius by zoom level
-            "heatmap-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 3,
-              15, 35
+            // This blur creates the smooth radial gradient effect!
+            "circle-blur": 0.8,
+            "circle-opacity": 0.7
+          }
+        }, layerId); // insert before the icon layer
+
+        // Inner solid core for the gradient to look like a hotspot
+        map.addLayer({
+          id: "startups-zone-core",
+          type: "circle",
+          source: sourceId,
+          filter: ["has", "point_count"],
+          layout: {
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            "circle-color": [
+              "step",
+              ["get", "point_count"],
+              "#16a34a", // Darker Green
+              4, "#ca8a04", // Darker Yellow
+              10, "#2563eb", // Darker Blue
+              21, "#dc2626" // Darker Red
             ],
-            // Transition from heatmap to circle layer by zoom level
-            "heatmap-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 1,
-              15, 0.8
-            ]
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              15,
+              4, 20,
+              10, 25,
+              21, 30
+            ],
+            "circle-blur": 0.2,
+            "circle-opacity": 0.9
           }
         }, layerId);
+
+        // Add zone count labels
+        map.addLayer({
+          id: "startups-zone-count",
+          type: "symbol",
+          source: sourceId,
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": "{point_count_abbreviated}",
+            "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+            "text-size": 14,
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            "text-color": "#ffffff"
+          }
+        });
+
+        // Unclustered isolated points
+        map.addLayer({
+          id: "startups-unclustered-gradient",
+          type: "circle",
+          source: sourceId,
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            "circle-color": "#22c55e",
+            "circle-radius": 30,
+            "circle-blur": 0.8,
+            "circle-opacity": 0.7
+          }
+        }, layerId);
+
+        map.addLayer({
+          id: "startups-unclustered-core",
+          type: "circle",
+          source: sourceId,
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            "circle-color": "#16a34a",
+            "circle-radius": 12,
+            "circle-blur": 0.2,
+            "circle-opacity": 0.9
+          }
+        }, layerId);
+
+        // Add click event to expand zones
+        if (!map.__zoneEventsAdded) {
+          map.__zoneEventsAdded = true;
+          map.on('click', 'startups-zone-core', (e) => {
+            const features = map.queryRenderedFeatures(e.point, {
+              layers: ['startups-zone-core']
+            });
+            const clusterId = features[0].properties.cluster_id;
+            map.getSource(sourceId).getClusterExpansionZoom(
+              clusterId,
+              (err, zoom) => {
+                if (err) return;
+                map.easeTo({
+                  center: features[0].geometry.coordinates,
+                  zoom: zoom
+                });
+              }
+            );
+          });
+          map.on('mouseenter', 'startups-zone-core', () => {
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', 'startups-zone-core', () => {
+            map.getCanvas().style.cursor = '';
+          });
+        }
       }
 
       if (!map.getLayer(highlightLayerId)) {
@@ -1101,18 +1199,20 @@ export default function Startupmap({
 
     setShowHeatmap((prev) => {
       const next = !prev;
-      const heatmapLayerId = "startups-heatmap";
-      if (map.getLayer(heatmapLayerId)) {
-        try {
-          map.setLayoutProperty(
-            heatmapLayerId,
-            "visibility",
-            next ? "visible" : "none"
-          );
-        } catch (e) {
-          console.error("Error toggling heatmap visibility:", e);
+      const layers = ["startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count", "startups-unclustered-gradient", "startups-unclustered-core"];
+      layers.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+          try {
+            map.setLayoutProperty(
+              layerId,
+              "visibility",
+              next ? "visible" : "none"
+            );
+          } catch (e) {
+            console.error(`Error toggling ${layerId} visibility:`, e);
+          }
         }
-      }
+      });
       return next;
     });
   };
@@ -3292,7 +3392,7 @@ export default function Startupmap({
   useEffect(() => {
     const map = mapInstanceRef?.current;
     if (!map) return;
-    
+
     const applyFiltersToMap = () => {
       try {
         const layerId = "startups-layer";
@@ -3483,9 +3583,8 @@ export default function Startupmap({
 
       {/* Heatmap Legend */}
       <div
-        className={`absolute bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${
-          showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
-        }`}
+        className={`absolute bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
+          }`}
         style={{ width: "220px" }}
       >
         <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Heatmap Legend</h3>
@@ -3504,7 +3603,7 @@ export default function Startupmap({
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-green-200"></span>
-            <span className="text-gray-700 font-medium">Underserved regions</span>
+            <span className="text-gray-700 font-medium">Balanced regions</span>
           </div>
         </div>
       </div>
