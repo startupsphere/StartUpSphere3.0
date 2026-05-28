@@ -1033,9 +1033,9 @@ export default function Startupmap({
             if (popup.isOpen()) {
               // Convert any potential markdown double asterisks in AI text to HTML bold tags
               const formattedAiText = aiText
-                .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
-                .replace(/\\*(.*?)\\*/g, '<em>$1</em>')
-                .replace(/\\n/g, '<br/>');
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br/>');
 
               const loadedHtml = `
                 <style>
@@ -1169,7 +1169,7 @@ export default function Startupmap({
                         <svg style="width: 14px; height: 14px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
-                        <span>Gemini Business Summary</span>
+                        <span>AI Business Summary</span>
                       </div>
                       <div style="font-size: 12.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: justify; word-break: break-word; box-sizing: border-box;">
                         ${formattedAiText}
