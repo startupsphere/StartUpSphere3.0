@@ -121,6 +121,7 @@ export default function Sidebar({
   const [filters, setFilters] = useState({
     startups: {
       query: "",
+      searchField: "All",
       industry: "",
       customIndustry: "",
       foundedDate: "",
@@ -130,6 +131,7 @@ export default function Sidebar({
     },
     stakeholders: {
       query: "",
+      searchField: "All",
       actorType: "All",
     },
   });
@@ -1265,9 +1267,16 @@ export default function Sidebar({
         }
 
         const query = currentFilters.query.trim();
-        const matchesQuery = !query || (viewingType === "startups" ? 
-            ["companyName", "industry", "companyDescription", "city", "status", "businessActivity", "foundedDate"].some(f => safeFieldCheck(item[f], query)) :
-            ["name", "email", "region", "organization", "city", "province", "sector", "biography", "phoneNumber", "linkedIn", "facebook"].some(f => safeFieldCheck(item[f], query)));
+        const searchField = currentFilters.searchField || "All";
+        
+        const startupFields = ["companyName", "industry", "companyDescription", "city", "status", "businessActivity", "foundedDate"];
+        const stakeholderFields = ["name", "email", "region", "organization", "city", "province", "sector", "biography", "phoneNumber", "linkedIn", "facebook"];
+        
+        const fieldsToCheck = searchField === "All" 
+          ? (viewingType === "startups" ? startupFields : stakeholderFields) 
+          : [searchField];
+
+        const matchesQuery = !query || fieldsToCheck.some(f => safeFieldCheck(item[f], query));
             
         const matchesActorType = currentFilters.actorType === "All" || (item.role || "ROLE_STARTUP") === currentFilters.actorType;
         return matchesQuery && matchesActorType;
@@ -2326,25 +2335,60 @@ export default function Sidebar({
             </div>
             
             {viewingType === "startups" && (
+                <div className="mt-3">
+                  <select
+                    value={filters.startups.actorType || "All"}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFilters((prev) => ({
+                        ...prev,
+                        startups: { ...prev.startups, actorType: value },
+                      }));
+                    }}
+                    className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
+                  >
+                    <option value="All">All Innovation Types</option>
+                    <option value="ROLE_STARTUP">Startup</option>
+                    <option value="ROLE_HEI">University / HEI</option>
+                    <option value="ROLE_RESEARCH">Research Institution</option>
+                  </select>
+                </div>
+              )}
+
               <div className="mt-3">
                 <select
-                  value={filters.startups.actorType || "All"}
+                  value={
+                    (viewingType === "startups"
+                      ? filters.startups.searchField
+                      : filters.stakeholders.searchField) || "All"
+                  }
                   onChange={(e) => {
                     const value = e.target.value;
                     setFilters((prev) => ({
                       ...prev,
-                      startups: { ...prev.startups, actorType: value },
+                      [viewingType]: { ...prev[viewingType], searchField: value },
                     }));
                   }}
                   className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
                 >
-                  <option value="All">All Innovation Types</option>
-                  <option value="ROLE_STARTUP">Startup</option>
-                  <option value="ROLE_HEI">University / HEI</option>
-                  <option value="ROLE_RESEARCH">Research Institution</option>
+                  <option value="All">Search In: All Fields</option>
+                  {viewingType === "startups" ? (
+                    <>
+                      <option value="companyName">Company Name</option>
+                      <option value="industry">Industry</option>
+                      <option value="companyDescription">Description</option>
+                      <option value="city">City</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="name">Name</option>
+                      <option value="organization">Organization</option>
+                      <option value="sector">Sector</option>
+                      <option value="biography">Biography</option>
+                    </>
+                  )}
                 </select>
               </div>
-            )}
             
             {/* Search Input Container */}  </div>
 

@@ -65,7 +65,7 @@ public class InvestorService {
     }
 
     public List<Investor> searchInvestors(String query) {
-        return investorRepository.findByFirstnameContainingIgnoreCaseOrLastnameContainingIgnoreCase(query, query);
+        return investorRepository.searchAllFields(query);
     }
 
     public int getViewsByUserId(Integer userId) {

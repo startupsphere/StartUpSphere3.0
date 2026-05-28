@@ -14,8 +14,19 @@ import com.startupsphere.capstone.entity.Investor;
 
 @Repository
 public interface InvestorRepository extends JpaRepository<Investor, Integer> {
-    Page<Investor> findByFirstnameContainingIgnoreCaseOrLastnameContainingIgnoreCase(String firstname, String lastname, Pageable pageable);
-    List<Investor> findByFirstnameContainingIgnoreCaseOrLastnameContainingIgnoreCase(String firstname, String lastname);
+    @Query("SELECT i FROM Investor i WHERE " +
+           "LOWER(i.firstname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.lastname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.biography) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Investor> searchAllFields(@Param("query") String query, Pageable pageable);
+
+    @Query("SELECT i FROM Investor i WHERE " +
+           "LOWER(i.firstname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.lastname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.biography) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<Investor> searchAllFields(@Param("query") String query);
 
     @Query("SELECT i FROM Investor i WHERE i.user_id.id = :userId")
     Optional<Investor> findByUserId(@Param("userId") Integer userId);

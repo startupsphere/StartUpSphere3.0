@@ -13,8 +13,23 @@ import com.startupsphere.capstone.entity.Startup;
 import org.springframework.data.repository.query.Param;
 
 public interface StartupRepository extends JpaRepository<Startup, Long> {
-    Page<Startup> findByCompanyNameContainingIgnoreCase(String query, Pageable pageable);
-    List<Startup> findByCompanyNameContainingIgnoreCase(String query);
+    @Query("SELECT s FROM Startup s WHERE " +
+           "LOWER(s.companyName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.industry) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.businessActivity) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Startup> searchAllFields(@Param("query") String query, Pageable pageable);
+
+    @Query("SELECT s FROM Startup s WHERE " +
+           "LOWER(s.companyName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.industry) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.businessActivity) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<Startup> searchAllFields(@Param("query") String query);
 
     Page<Startup> findByUser_Id(Integer userId, Pageable pageable);
     List<Startup> findByUser_Id(Integer userId);

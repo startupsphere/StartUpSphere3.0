@@ -302,11 +302,11 @@ public class StartupService {
     }
 
     public Page<Startup> searchStartups(String query, Pageable pageable) {
-        return startupRepository.findByCompanyNameContainingIgnoreCase(query, pageable);
+        return startupRepository.searchAllFields(query, pageable);
     }
 
     public List<Startup> searchStartups(String query) {
-        return startupRepository.findByCompanyNameContainingIgnoreCase(query);
+        return startupRepository.searchAllFields(query);
     }
 
     public List<Long> getStartupIdsByLoggedInUser(Authentication authentication) {
