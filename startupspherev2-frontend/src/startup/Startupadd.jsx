@@ -562,10 +562,14 @@ export default function Startupadd() {
       }, 500);
 
       setLoadingStatus("Uploading data...");
+      const token = localStorage.getItem("token");
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-csv`,
         {
           method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
           credentials: "include",
         }
@@ -1387,10 +1391,14 @@ const fetchDraftData = async (id) => {
       const imageFormData = new FormData();
       imageFormData.append("photo", uploadedImage);
       
+      const token = localStorage.getItem("token");
       const imageResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/${draftId}/upload-photo`,
         {
           method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: imageFormData,
           credentials: "include",
         }
@@ -1419,10 +1427,14 @@ const fetchDraftData = async (id) => {
       const certFormData = new FormData();
       certFormData.append("registrationCertificate", formData.registrationCertificate);
       
+      const token = localStorage.getItem("token");
       const certResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/${draftId}/upload-registration-certificate`,
         {
           method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: certFormData,
           credentials: "include",
         }
@@ -1499,6 +1511,7 @@ const fetchDraftData = async (id) => {
 
       let response;
 
+      const token = localStorage.getItem("token");
       if (draftId) {
         // Update existing draft
         response = await fetch(
@@ -1507,6 +1520,7 @@ const fetchDraftData = async (id) => {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(draftData),
             credentials: "include",
@@ -1561,6 +1575,7 @@ const fetchDraftData = async (id) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(draftData),
             credentials: "include",
@@ -1735,6 +1750,7 @@ const handleSubmit = async () => {
         }
       });
 
+      const token = localStorage.getItem("token");
       // Update the draft with current form data
       const updateResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}`,
@@ -1742,6 +1758,7 @@ const handleSubmit = async () => {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(draftData),
           credentials: "include",
@@ -1775,6 +1792,9 @@ const handleSubmit = async () => {
         `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}/submit`,
         {
           method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           credentials: "include",
         }
       );
@@ -1816,6 +1836,7 @@ const handleSubmit = async () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(startupData),
         credentials: "include",
@@ -1861,6 +1882,9 @@ const handleSubmit = async () => {
             `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-registration-certificate`,
             {
               method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
               body: certFormData,
               credentials: "include",
             }
@@ -1894,6 +1918,9 @@ const handleSubmit = async () => {
             `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-photo`,
             {
               method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
               body: imageFormData,
               credentials: "include",
             }

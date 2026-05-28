@@ -41,6 +41,9 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
         throw new Error(errorData.description || errorData.error || "Failed to login");
       } else {
         const data = await parseJSON(response);
+        if (data && data.token) {
+          localStorage.setItem("token", data.token);
+        }
         console.log(response);
         const userResponse = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/users/me`,
