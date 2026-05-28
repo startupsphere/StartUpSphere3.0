@@ -419,10 +419,19 @@ export default function Sidebar({
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
+        const token = localStorage.getItem("token");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/users/me`,
           {
             method: "GET",
+            headers: headers,
             credentials: "include",
           }
         );
@@ -538,6 +547,7 @@ export default function Sidebar({
           localStorage.removeItem("likedStakeholders");
           localStorage.removeItem("user");
           localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("token");
           document.cookie =
             "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           setUserDetails(null);

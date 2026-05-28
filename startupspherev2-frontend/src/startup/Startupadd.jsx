@@ -1692,6 +1692,7 @@ const handleSubmit = async () => {
   setSubmissionStatus("Validation complete. Preparing submission...");
 
   try {
+    const token = localStorage.getItem("token");
     let response;
     let startupId;
     
@@ -1750,7 +1751,6 @@ const handleSubmit = async () => {
         }
       });
 
-      const token = localStorage.getItem("token");
       // Update the draft with current form data
       const updateResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}`,

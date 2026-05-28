@@ -51,6 +51,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${data.token}`,
             },
             credentials: "include",
           }
