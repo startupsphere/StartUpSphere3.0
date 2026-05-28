@@ -1115,7 +1115,7 @@ export default function Startupmap({
                             else if (trlValue <= 6) color = '#f59e0b'; // Amber/Yellow
                             else color = '#ef4444'; // Red
                           }
-                          return \`<div style="flex: 1; height: 100%; background: \${color}; border-radius: 1px; transition: background 0.3s ease;"></div>\`;
+                          return '<div style="flex: 1; height: 100%; background: ' + color + '; border-radius: 1px; transition: background 0.3s ease;"></div>';
                         }).join('')}
                       </div>
                     </div>` : ''}
