@@ -902,7 +902,7 @@ export default function Startupmap({
       if (!map.__startupEventsAdded) {
         map.__startupEventsAdded = true;
 
-        const handleSingleStartupClick = (f) => {
+        const handleSingleStartupClick = async (f) => {
           const id = f.id || f.properties.id;
           const [lng, lat] = f.geometry.coordinates;
 
@@ -917,43 +917,249 @@ export default function Startupmap({
           map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), speed: 0.8, curve: 1.2, essential: true });
 
           const props = f.properties || {};
-          const html = `
-            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; max-width: 280px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); border-radius: 10px; overflow: hidden;">
-              <div style="background: linear-gradient(135deg, #0A66C2, #0077B5); color: #fff; padding: 16px 18px; border-radius: 10px 10px 0 0; position: relative;">
-                <div style="font-weight: 600; font-size: 17px; margin-bottom: 2px;">${props.name || "Startup"}</div>
-                <div style="font-size: 12px; opacity: 0.9;">Startup Company</div>
-                <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.2); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 20px; height: 20px;" fill="none" stroke="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          
+          // Initial popup with Loading State
+          const initialHtml = `
+            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 330px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; border: 1px solid rgba(229, 231, 235, 0.5); background: #ffffff;">
+              <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 16px; position: relative;">
+                <div style="font-weight: 700; font-size: 16px; line-height: 1.25; margin-bottom: 2px;">${props.name || "Startup"}</div>
+                <div style="font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Startup Company</div>
+                <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                  <svg style="width: 16px; height: 16px;" fill="none" stroke="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                   </svg>
                 </div>
               </div>
-              <div style="padding: 14px 18px; background: #fff; border-radius: 0 0 10px 10px;">
-                ${props.locationName ?
-                  `<div style="font-size: 13px; color: #4B5563; display: flex; align-items: center;">
-                    <div style="min-width: 24px; height: 24px; background-color: rgba(10, 102, 194, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
-                      <svg style="width: 14px; height: 14px;" fill="none" stroke="#0A66C2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      </svg>
-                    </div>
-                    <span>${props.locationName}</span>
-                  </div>` : ''
-                }
+              <div style="padding: 16px; background: #ffffff; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4B5563;">
+                  <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span>${props.locationName || "Location not specified"}</span>
+                </div>
+                <div style="border-top: 1px solid #f3f4f6; padding-top: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; gap: 8px;">
+                  <div style="width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin-popup 1s linear infinite;"></div>
+                  <div style="font-size: 12px; color: #6b7280; font-weight: 500;">Generating AI Insights...</div>
+                </div>
               </div>
-            </div>`;
+            </div>
+            <style>
+              @keyframes spin-popup {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+          `;
+
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup" })
             .setLngLat([lng, lat])
-            .setHTML(html)
+            .setHTML(initialHtml)
             .addTo(map);
 
-          // Dispatch event to open Gemini AI Chat and auto-describe startup
-          const startupDataToPass = { id, companyName: props.name || "Startup" };
-          localStorage.setItem("pending_ai_startup_desc", JSON.stringify(startupDataToPass));
-          window.dispatchEvent(new CustomEvent("open-ai-chat-with-startup", { detail: startupDataToPass }));
-        };
+          try {
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            
+            // 1. Fetch live database details, likes, bookmarks, and views concurrently
+            const [detailRes, likesRes, bookmarksRes, viewsRes] = await Promise.all([
+              fetch(`${backendUrl}/startups/${id}`, { credentials: "include" }),
+              fetch(`${backendUrl}/api/likes/count/startup/${id}`, { credentials: "include" }).catch(() => null),
+              fetch(`${backendUrl}/api/bookmarks/count/startup/${id}`, { credentials: "include" }).catch(() => null),
+              fetch(`${backendUrl}/startups/${id}/view-count`, { credentials: "include" }).catch(() => null)
+            ]);
 
-        // Standard Symbol/Marker Events
+            if (!detailRes.ok) throw new Error("Failed to fetch database details");
+            const details = await detailRes.json();
+
+            let likes = 0, bookmarks = 0, views = 0;
+            if (likesRes && likesRes.ok) likes = await likesRes.json();
+            if (bookmarksRes && bookmarksRes.ok) bookmarks = await bookmarksRes.json();
+            if (viewsRes && viewsRes.ok) views = await viewsRes.json();
+
+            // Parse TRL Stage
+            let trlValue = 0;
+            if (details.trlLevel && typeof details.trlLevel === 'string') {
+              const match = details.trlLevel.match(/TRL\\s*(\\d)/i);
+              if (match) trlValue = parseInt(match[1], 10);
+            } else if (typeof details.trlLevel === 'number') {
+              trlValue = details.trlLevel;
+            }
+
+            // 2. Fetch summary from Gemini
+            let aiText = "AI analysis could not be generated at this time.";
+            if (apiKey) {
+              const systemInstruction = 
+                "You are the StartUpSphere AI Analyst. Summarize this startup's business model, technology readiness level (TRL), and potential strength in 2-3 sentences or clear bullet points.\\n" +
+                "Keep it simple and direct. Do NOT include preambles, introductory phrases, or conversational filler (e.g. do not say 'Sure! Here is...', or 'Based on the details...'). Start your response directly with the business insights.\\n" +
+                "Limit the summary to exactly 70-90 words to fit cleanly in a map popup bubble.";
+
+              const prompt = `${systemInstruction}\\n\\n=== STARTUP DATABASE DETAILS ===\\n${JSON.stringify(details, null, 2)}\\n\\nAnalysis:`;
+
+              const aiRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                }
+              );
+
+              if (aiRes.ok) {
+                const aiData = await aiRes.json();
+                aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || aiText;
+              }
+            }
+
+            // 3. Check if popup is still open before updating HTML
+            if (popup.isOpen()) {
+              // Convert any potential markdown double asterisks in AI text to HTML bold tags
+              const formattedAiText = aiText
+                .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
+                .replace(/\\*(.*?)\\*/g, '<em>$1</em>')
+                .replace(/\\n/g, '<br/>');
+
+              const loadedHtml = `
+                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 330px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; border: 1px solid rgba(229, 231, 235, 0.5); display: flex; flex-direction: column; background: #ffffff; height: auto;">
+                  <!-- Header with Gradient and Metadata -->
+                  <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 16px; position: relative; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="font-weight: 700; font-size: 16px; line-height: 1.25; padding-right: 20px; word-break: break-word;">${details.companyName || props.name}</div>
+                    <div style="font-size: 11px; opacity: 0.95; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${details.industry || "General"}</span>
+                      <span>•</span>
+                      <span style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; font-weight: 500;">${details.trlLevel || "TRL Not Set"}</span>
+                    </div>
+                    <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                      <svg style="width: 16px; height: 16px;" fill="none" stroke="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  <!-- Main Body (Auto-Adjust Height) -->
+                  <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+                    <!-- Location / Basic Info -->
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4B5563;">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span>${details.locationName || props.locationName || "Location not specified"}</span>
+                      </div>
+                      ${details.revenue ? `
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg style="width: 14px; height: 14px; color: #10b981; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Revenue: <strong>PHP ${Number(details.revenue).toLocaleString()}</strong></span>
+                      </div>` : ''}
+                    </div>
+
+                    <!-- TRL Segmented Progress Bar -->
+                    ${trlValue > 0 ? `
+                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px;">
+                      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; font-weight: 600; margin-bottom: 4px;">
+                        <span style="display: flex; align-items: center; gap: 4px;">
+                          <svg style="width: 12px; height: 12px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                          </svg>
+                          TRL Stage
+                        </span>
+                        <span>Level ${trlValue}/9</span>
+                      </div>
+                      <div style="display: flex; gap: 3px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                        ${Array.from({ length: 9 }).map((_, idx) => {
+                          const active = idx < trlValue;
+                          let color = '#e2e8f0';
+                          if (active) {
+                            if (trlValue <= 3) color = '#10b981'; // Green
+                            else if (trlValue <= 6) color = '#f59e0b'; // Amber/Yellow
+                            else color = '#ef4444'; // Red
+                          }
+                          return \`<div style="flex: 1; height: 100%; background: \${color}; border-radius: 1px; transition: background 0.3s ease;"></div>\`;
+                        }).join('')}
+                      </div>
+                    </div>` : ''}
+
+                    <!-- Data Analytics Progress Bars / Mini Charts -->
+                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="font-weight: 700; font-size: 11px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span>Ecosystem Engagement Analytics</span>
+                      </div>
+                      
+                      <!-- Views -->
+                      <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
+                          <span>Ecosystem Views</span>
+                          <strong>${views}</strong>
+                        </div>
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                          <div style="width: ${Math.min(100, views > 0 ? (views / 200) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #6366f1, #4f46e5); border-radius: 3px; transition: width 0.5s ease;"></div>
+                        </div>
+                      </div>
+
+                      <!-- Likes -->
+                      <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
+                          <span>Likes Benchmark</span>
+                          <strong>${likes}</strong>
+                        </div>
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                          <div style="width: ${Math.min(100, likes > 0 ? (likes / 50) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #34d399, #10b981); border-radius: 3px; transition: width 0.5s ease;"></div>
+                        </div>
+                      </div>
+
+                      <!-- Bookmarks -->
+                      <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
+                          <span>Bookmarks Saved</span>
+                          <strong>${bookmarks}</strong>
+                        </div>
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                          <div style="width: ${Math.min(100, bookmarks > 0 ? (bookmarks / 25) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 3px; transition: width 0.5s ease;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- AI Insight Card -->
+                    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                      <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 11px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <svg style="width: 14px; height: 14px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        <span>Gemini Business Summary</span>
+                      </div>
+                      <div style="font-size: 12.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: justify; word-break: break-word;">
+                        ${formattedAiText}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              popup.setHTML(loadedHtml);
+            }
+          } catch (e) {
+            console.error("Error loading popup dynamic context:", e);
+            if (popup.isOpen()) {
+              const errorHtml = `
+                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 280px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); border-radius: 10px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #0A66C2, #0077B5); color: #fff; padding: 16px 18px; border-radius: 10px 10px 0 0;">
+                    <div style="font-weight: 600; font-size: 16px;">${props.name || "Startup"}</div>
+                  </div>
+                  <div style="padding: 14px 18px; background: #fff; border-radius: 0 0 10px 10px; font-size: 13px; color: #4B5563;">
+                    <div>${props.locationName || "Location not specified"}</div>
+                    <div style="margin-top: 8px; color: #ef4444; font-size: 12px;">Failed to load live database insights.</div>
+                  </div>
+                </div>
+              `;
+              popup.setHTML(errorHtml);
+            }
+          }
+        };// Standard Symbol/Marker Events
         map.on("mouseenter", layerId, () => {
           map.getCanvas().style.cursor = "pointer";
         });
