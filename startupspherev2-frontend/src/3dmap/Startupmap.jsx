@@ -920,17 +920,41 @@ export default function Startupmap({
           
           // Initial popup with Loading State
           const initialHtml = `
-            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 330px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; border: 1px solid rgba(229, 231, 235, 0.5); background: #ffffff;">
-              <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 16px; position: relative;">
-                <div style="font-weight: 700; font-size: 16px; line-height: 1.25; margin-bottom: 2px;">${props.name || "Startup"}</div>
+            <style>
+              .mapboxgl-popup-content {
+                padding: 0 !important;
+                border-radius: 12px !important;
+                overflow: hidden !important;
+                background: #ffffff !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+                border: 1px solid rgba(229, 231, 235, 0.5) !important;
+              }
+              .mapboxgl-popup-close-button {
+                color: #ffffff !important;
+                font-size: 18px !important;
+                font-weight: bold !important;
+                padding: 10px 12px !important;
+                border: none !important;
+                background: transparent !important;
+                outline: none !important;
+                cursor: pointer !important;
+                z-index: 100 !important;
+              }
+              .mapboxgl-popup-close-button:hover {
+                background: rgba(255, 255, 255, 0.15) !important;
+                border-radius: 0 12px 0 12px !important;
+              }
+              @keyframes spin-popup {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 100%; min-width: 280px; max-width: 340px; box-sizing: border-box; display: flex; flex-direction: column;">
+              <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 16px 20px; box-sizing: border-box;">
+                <div style="font-weight: 700; font-size: 16px; line-height: 1.25; margin-bottom: 2px; padding-right: 20px;">${props.name || "Startup"}</div>
                 <div style="font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Startup Company</div>
-                <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 16px; height: 16px;" fill="none" stroke="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                  </svg>
-                </div>
               </div>
-              <div style="padding: 16px; background: #ffffff; display: flex; flex-direction: column; gap: 12px;">
+              <div style="padding: 16px 20px; background: #ffffff; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4B5563;">
                   <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -938,21 +962,15 @@ export default function Startupmap({
                   </svg>
                   <span>${props.locationName || "Location not specified"}</span>
                 </div>
-                <div style="border-top: 1px solid #f3f4f6; padding-top: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; gap: 8px;">
+                <div style="border-top: 1px solid #f3f4f6; padding-top: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; gap: 8px; box-sizing: border-box;">
                   <div style="width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin-popup 1s linear infinite;"></div>
                   <div style="font-size: 12px; color: #6b7280; font-weight: 500;">Generating AI Insights...</div>
                 </div>
               </div>
             </div>
-            <style>
-              @keyframes spin-popup {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            </style>
           `;
 
-          const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup" })
+          const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup", maxWidth: "none" })
             .setLngLat([lng, lat])
             .setHTML(initialHtml)
             .addTo(map);
@@ -1020,32 +1038,52 @@ export default function Startupmap({
                 .replace(/\\n/g, '<br/>');
 
               const loadedHtml = `
-                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 330px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; border: 1px solid rgba(229, 231, 235, 0.5); display: flex; flex-direction: column; background: #ffffff; height: auto;">
+                <style>
+                  .mapboxgl-popup-content {
+                    padding: 0 !important;
+                    border-radius: 12px !important;
+                    overflow: hidden !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+                    border: 1px solid rgba(229, 231, 235, 0.5) !important;
+                  }
+                  .mapboxgl-popup-close-button {
+                    color: #ffffff !important;
+                    font-size: 18px !important;
+                    font-weight: bold !important;
+                    padding: 10px 12px !important;
+                    border: none !important;
+                    background: transparent !important;
+                    outline: none !important;
+                    cursor: pointer !important;
+                    z-index: 100 !important;
+                  }
+                  .mapboxgl-popup-close-button:hover {
+                    background: rgba(255, 255, 255, 0.15) !important;
+                    border-radius: 0 12px 0 12px !important;
+                  }
+                </style>
+                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 100%; min-width: 280px; max-width: 350px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; height: auto;">
                   <!-- Header with Gradient and Metadata -->
-                  <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 16px; position: relative; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="font-weight: 700; font-size: 16px; line-height: 1.25; padding-right: 20px; word-break: break-word;">${details.companyName || props.name}</div>
+                  <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 16px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="font-weight: 700; font-size: 17px; line-height: 1.25; padding-right: 25px; word-break: break-word;">${details.companyName || props.name}</div>
                     <div style="font-size: 11px; opacity: 0.95; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                       <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${details.industry || "General"}</span>
                       <span>•</span>
                       <span style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; font-weight: 500;">${details.trlLevel || "TRL Not Set"}</span>
                     </div>
-                    <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                      <svg style="width: 16px; height: 16px;" fill="none" stroke="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                      </svg>
-                    </div>
                   </div>
                   
                   <!-- Main Body (Auto-Adjust Height) -->
-                  <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+                  <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px; background: #ffffff; box-sizing: border-box; height: auto;">
                     <!-- Location / Basic Info -->
-                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4B5563;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4B5563; box-sizing: border-box;">
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        <span>${details.locationName || props.locationName || "Location not specified"}</span>
+                        <span style="word-break: break-word; line-height: 1.35;">${details.locationName || props.locationName || "Location not specified"}</span>
                       </div>
                       ${details.revenue ? `
                       <div style="display: flex; align-items: center; gap: 8px;">
@@ -1058,7 +1096,7 @@ export default function Startupmap({
 
                     <!-- TRL Segmented Progress Bar -->
                     ${trlValue > 0 ? `
-                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px;">
+                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px; box-sizing: border-box;">
                       <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; font-weight: 600; margin-bottom: 4px;">
                         <span style="display: flex; align-items: center; gap: 4px;">
                           <svg style="width: 12px; height: 12px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1068,7 +1106,7 @@ export default function Startupmap({
                         </span>
                         <span>Level ${trlValue}/9</span>
                       </div>
-                      <div style="display: flex; gap: 3px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                      <div style="display: flex; gap: 3px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; box-sizing: border-box;">
                         ${Array.from({ length: 9 }).map((_, idx) => {
                           const active = idx < trlValue;
                           let color = '#e2e8f0';
@@ -1083,7 +1121,7 @@ export default function Startupmap({
                     </div>` : ''}
 
                     <!-- Data Analytics Progress Bars / Mini Charts -->
-                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="border-top: 1px solid #f3f4f6; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box;">
                       <div style="font-weight: 700; font-size: 11px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -1097,7 +1135,7 @@ export default function Startupmap({
                           <span>Ecosystem Views</span>
                           <strong>${views}</strong>
                         </div>
-                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box;">
                           <div style="width: ${Math.min(100, views > 0 ? (views / 200) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #6366f1, #4f46e5); border-radius: 3px; transition: width 0.5s ease;"></div>
                         </div>
                       </div>
@@ -1108,7 +1146,7 @@ export default function Startupmap({
                           <span>Likes Benchmark</span>
                           <strong>${likes}</strong>
                         </div>
-                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box;">
                           <div style="width: ${Math.min(100, likes > 0 ? (likes / 50) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #34d399, #10b981); border-radius: 3px; transition: width 0.5s ease;"></div>
                         </div>
                       </div>
@@ -1119,21 +1157,21 @@ export default function Startupmap({
                           <span>Bookmarks Saved</span>
                           <strong>${bookmarks}</strong>
                         </div>
-                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box;">
                           <div style="width: ${Math.min(100, bookmarks > 0 ? (bookmarks / 25) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 3px; transition: width 0.5s ease;"></div>
                         </div>
                       </div>
                     </div>
 
                     <!-- AI Insight Card -->
-                    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;">
                       <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 11px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em;">
                         <svg style="width: 14px; height: 14px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
                         <span>Gemini Business Summary</span>
                       </div>
-                      <div style="font-size: 12.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: justify; word-break: break-word;">
+                      <div style="font-size: 12.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: justify; word-break: break-word; box-sizing: border-box;">
                         ${formattedAiText}
                       </div>
                     </div>
