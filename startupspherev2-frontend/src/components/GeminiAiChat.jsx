@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, X, Bot, User } from "lucide-react";
+import { Sparkles, Send, Trash2, X, Bot, User, RotateCcw } from "lucide-react";
 
 export default function GeminiAiChat({ currentUser, onClose }) {
   const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem("startupsphere_ai_chat");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn("Failed to parse saved chat history, resetting", e);
+      }
+    }
     const userName = currentUser ? (currentUser.firstname || currentUser.name || "there") : "there";
     return [
       {
@@ -15,11 +23,82 @@ export default function GeminiAiChat({ currentUser, onClose }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const [dashboardMetrics, setDashboardMetrics] = useState(null);
+  const [userStartups, setUserStartups] = useState([]);
+  const [fetchingDb, setFetchingDb] = useState(true);
 
   // Scroll to bottom whenever messages list changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Save chat history to localStorage whenever messages change
+  useEffect(() => {
+    localStorage.setItem("startupsphere_ai_chat", JSON.stringify(messages));
+  }, [messages]);
+
+  // Fetch live database and dashboard metrics on mount
+  useEffect(() => {
+    const fetchDatabaseDetails = async () => {
+      try {
+        setFetchingDb(true);
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+        
+        // 1. Fetch Global Ecosystem Metrics
+        try {
+          const metricsRes = await fetch(`${backendUrl}/api/metrics/dashboard`, {
+            credentials: "include"
+          });
+          if (metricsRes.ok) {
+            const metricsData = await metricsRes.json();
+            setDashboardMetrics(metricsData);
+          }
+        } catch (e) {
+          console.error("AI chat failed to fetch global metrics:", e);
+        }
+
+        // 2. Fetch User's Startups & their details
+        try {
+          const startupsRes = await fetch(`${backendUrl}/startups/my-startups/details`, {
+            credentials: "include"
+          });
+          if (startupsRes.ok) {
+            const startupsList = await startupsRes.json();
+            
+            // 3. For each startup, fetch metrics
+            const enrichedStartups = await Promise.all(
+              startupsList.map(async (startup) => {
+                try {
+                  const [likesRes, bookmarksRes, viewsRes] = await Promise.all([
+                    fetch(`${backendUrl}/api/likes/count/startup/${startup.id}`, { credentials: "include" }),
+                    fetch(`${backendUrl}/api/bookmarks/count/startup/${startup.id}`, { credentials: "include" }),
+                    fetch(`${backendUrl}/startups/${startup.id}/view-count`, { credentials: "include" })
+                  ]);
+                  const likes = likesRes.ok ? await likesRes.json() : 0;
+                  const bookmarks = bookmarksRes.ok ? await bookmarksRes.json() : 0;
+                  const views = viewsRes.ok ? await viewsRes.json() : 0;
+                  return { ...startup, likes, bookmarks, views };
+                } catch (err) {
+                  console.error(`AI failed to fetch metrics for startup ${startup.id}:`, err);
+                  return startup;
+                }
+              })
+            );
+            
+            setUserStartups(enrichedStartups);
+          }
+        } catch (e) {
+          console.error("AI chat failed to fetch user startups:", e);
+        }
+      } catch (err) {
+        console.error("Failed to load database context for AI:", err);
+      } finally {
+        setFetchingDb(false);
+      }
+    };
+
+    fetchDatabaseDetails();
+  }, []);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -36,12 +115,20 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         throw new Error("Gemini API key is not configured in .env file.");
       }
 
-      // Format chat history for Gemini API
+      // Format chat history and system instructions for Gemini API
       let systemInstruction = 
         "You are the StartUpSphere AI Consultant, an expert startup advisor and data analyst for the StartUpSphere platform. " +
+        "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
         "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology trends, and compliance. " +
-        "Keep your tone highly professional, encouraging, inspiring, and direct. Format your output nicely with clean bullet points and bold headers if needed. " +
-        "Limit answers to concise paragraphs that are easy to read in a chat window.";
+        "Keep your tone highly professional, encouraging, inspiring, and direct. Format your output nicely with clean bullet points and bold headers if needed.\n\n" +
+        "**CRITICAL RESPONSE RULES:**\n" +
+        "- Focus DIRECTLY and strictly on the numbers, data, and answers requested. Remove any unnecessary text responses, conversational fluff, preambles, introductory statements, or pleasantries (e.g. do NOT say 'Sure! Here is the data you requested', 'I'd be happy to help!', or 'Here is a breakdown...').\n" +
+        "- Start your response directly with the data table, metrics, or answers.\n" +
+        "- Limit answers to concise blocks that are extremely easy to read in a chat window.\n\n" +
+        "**CRITICAL DATABASE INSTRUCTIONS:**\n" +
+        "1. When the user asks about 'details' of the database/dashboard, or asks you to make the database 'simple to learn/understand', you MUST reply by translating the database stats into a clean, text-based data representation (such as an ASCII text table, simple text layout, or easy-to-read section-by-section breakdown) that simplifies the numbers for the user.\n" +
+        "2. Explain what Innovation Density Index (IDI), Support Index (SI), Ecosystem Balance Score (EBS), and Ecosystem Gap Score (EGS) mean using extremely simple, layperson terms (e.g. 'Innovation Density is like the number of seeds planted, Support Index is like the water and soil provided, etc.').\n" +
+        "3. Provide clear actionable advice based on the metrics, presented in a friendly, text-only card or dashboard format using markdown.";
 
       // Security & Privacy: Limit AI context strictly to name and platform role.
       // Explicitly omit sensitive personal details like email addresses or passwords.
@@ -52,9 +139,34 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         systemInstruction += ` The user you are talking to is logged in. Their profile details are: Name: ${sanitizedName}, Platform Role: ${sanitizedRole}. Refer to them by name if appropriate to make the conversation highly personalized and premium!`;
       }
 
+      // Inject Live System Database Context into the prompt
+      let dbContext = "\n\n=== LIVE SYSTEM DATABASE & DASHBOARD CONTEXT ===";
+      if (dashboardMetrics) {
+        dbContext += `\n**Global Platform Ecosystem Stats:**` +
+          `\n- Total Registered Startups: ${dashboardMetrics.totalStartups}` +
+          `\n- Total Registered SMEs: ${dashboardMetrics.totalSmes}` +
+          `\n- Total Support Entities: ${dashboardMetrics.totalSupportEntities} (including ${dashboardMetrics.totalSupport} general support, ${dashboardMetrics.totalHei} Higher Education Institutions, ${dashboardMetrics.totalGov} Government units, ${dashboardMetrics.totalResearch} Research bodies)` +
+          `\n- Innovation Density Index (IDI): ${dashboardMetrics.idi}` +
+          `\n- Support Index (SI): ${dashboardMetrics.si}` +
+          `\n- Ecosystem Balance Score (EBS): ${dashboardMetrics.ebs}` +
+          `\n- Ecosystem Gap Score (EGS): ${dashboardMetrics.egs}`;
+      } else {
+        dbContext += `\nNo global platform metrics could be retrieved. Default to explaining the concept of IDI, SI, EBS, and EGS conceptually.`;
+      }
+
+      if (userStartups && userStartups.length > 0) {
+        dbContext += `\n\n**The Logged-in User's Startups & Performance Metrics:**`;
+        userStartups.forEach((startup, i) => {
+          dbContext += `\n${i + 1}. "${startup.companyName}" (Industry: ${startup.industry || "N/A"}, Location: ${startup.locationName || "N/A"})` +
+            `\n   - Views: ${startup.views || 0} | Likes: ${startup.likes || 0} | Bookmarks: ${startup.bookmarks || 0}`;
+        });
+      } else {
+        dbContext += `\n\nUser does not have any registered startups yet. Encourage them to add one to see live metrics!`;
+      }
+
       // Build chat context
       const chatContext = messages.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join("\n");
-      const fullPrompt = `${systemInstruction}\n\nChat History:\n${chatContext}\nUser: ${userMessage}\nAssistant:`;
+      const fullPrompt = `${systemInstruction}\n\n${dbContext}\n\nChat History:\n${chatContext}\nUser: ${userMessage}\nAssistant:`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -89,12 +201,14 @@ export default function GeminiAiChat({ currentUser, onClose }) {
   };
 
   const clearChat = () => {
-    setMessages([
+    const initialMsg = [
       {
         role: "assistant",
         content: "Hello! Chat cleared. I am ready to advise you on your next big startup idea, finding partners, or platform mechanics on StartUpSphere!"
       }
-    ]);
+    ];
+    setMessages(initialMsg);
+    localStorage.removeItem("startupsphere_ai_chat");
   };
 
   return (
@@ -167,7 +281,9 @@ export default function GeminiAiChat({ currentUser, onClose }) {
                     ? "bg-blue-600 text-white border-blue-600 rounded-tr-none" 
                     : "bg-white text-gray-800 border-gray-100 rounded-tl-none"
                 }`}>
-                  <p className="whitespace-pre-line">{msg.content}</p>
+                  <div className="space-y-1">
+                    {renderFormattedContent(msg.content, msg.role)}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -197,23 +313,152 @@ export default function GeminiAiChat({ currentUser, onClose }) {
       </div>
 
       {/* Footer Input Area */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 flex items-center space-x-2">
+      <form onSubmit={handleSend} className="p-4.5 bg-gray-50 border-t border-gray-200 flex items-center space-x-2.5 shadow-[0_-4px_15px_rgba(0,0,0,0.03)]">
+        <button
+          type="button"
+          onClick={clearChat}
+          className="h-11 w-11 flex items-center justify-center rounded-xl bg-white text-gray-700 hover:bg-red-500 hover:text-white hover:border-red-600 transition-all cursor-pointer border border-gray-300 shadow-sm flex-shrink-0"
+          title="Reset Conversation"
+        >
+          <RotateCcw className="h-5 w-5 stroke-[2.2]" />
+        </button>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask AI Consultant..."
           disabled={loading}
-          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-60 transition-all placeholder:text-gray-400"
+          className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 disabled:opacity-50 transition-all shadow-inner font-medium"
         />
         <button
           type="submit"
           disabled={!input.trim() || loading}
-          className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all cursor-pointer shadow-sm border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`h-11 w-11 flex items-center justify-center rounded-xl transition-all cursor-pointer shadow-md flex-shrink-0 border ${
+            !input.trim() || loading
+              ? "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed shadow-none"
+              : "bg-indigo-600 hover:bg-indigo-700 border-indigo-700 shadow-indigo-200/50"
+          }`}
+          title="Send Message"
         >
-          <Send className="h-4 w-4" />
+          <Send className={`h-5 w-5 stroke-[2.2] ${!input.trim() || loading ? "text-gray-400" : "text-white"}`} />
         </button>
       </form>
     </motion.div>
   );
+}
+
+function renderFormattedContent(text, role) {
+  if (!text) return null;
+
+  const lines = text.split("\n");
+  const isUser = role === "user";
+
+  const textColor = isUser ? "text-white" : "text-gray-700";
+  const headerColor = isUser ? "text-white" : "text-gray-900";
+  const listDotColor = isUser ? "text-white" : "text-gray-700";
+
+  return lines.map((line, lineIndex) => {
+    // 1. Handle Headers
+    if (line.startsWith("### ")) {
+      return (
+        <h5 key={lineIndex} className={`font-bold text-sm mt-3 mb-1.5 ${headerColor}`}>
+          {parseInlineFormatting(line.substring(4), isUser)}
+        </h5>
+      );
+    }
+    if (line.startsWith("## ") || line.startsWith("##")) {
+      const cleanLine = line.startsWith("## ") ? line.substring(3) : line.substring(2);
+      return (
+        <h4 key={lineIndex} className={`font-bold text-base mt-4 mb-2 ${headerColor}`}>
+          {parseInlineFormatting(cleanLine, isUser)}
+        </h4>
+      );
+    }
+    if (line.startsWith("# ")) {
+      return (
+        <h3 key={lineIndex} className={`font-bold text-lg mt-4 mb-2 ${headerColor} border-b ${isUser ? 'border-white/20' : 'border-gray-100'} pb-1`}>
+          {parseInlineFormatting(line.substring(2), isUser)}
+        </h3>
+      );
+    }
+
+    // 2. Handle Bullet Lists
+    if (line.startsWith("* ") || line.startsWith("- ")) {
+      return (
+        <li key={lineIndex} className={`list-disc list-inside ml-3.5 my-1 ${listDotColor}`}>
+          {parseInlineFormatting(line.substring(2), isUser)}
+        </li>
+      );
+    }
+
+    // 3. Handle standard paragraphs
+    if (line.trim() === "") {
+      return <div key={lineIndex} className="h-2" />;
+    }
+
+    return (
+      <p key={lineIndex} className={`my-1.5 ${textColor} leading-relaxed`}>
+        {parseInlineFormatting(line, isUser)}
+      </p>
+    );
+  });
+}
+
+function parseInlineFormatting(text, isUser) {
+  const tokens = [];
+  let remaining = text;
+
+  while (remaining) {
+    const boldMatch = remaining.match(/(\*\*|__)(.*?)\1/);
+    const italicMatch = remaining.match(/(\*|_)(.*?)\1/);
+    const underlineMatch = remaining.match(/<u>(.*?)<\/u>/i);
+
+    let firstMatch = null;
+    let type = null;
+
+    if (boldMatch && (!firstMatch || boldMatch.index < firstMatch.index)) {
+      firstMatch = boldMatch;
+      type = "bold";
+    }
+    if (italicMatch && (!firstMatch || italicMatch.index < firstMatch.index)) {
+      firstMatch = italicMatch;
+      type = "italic";
+    }
+    if (underlineMatch && (!firstMatch || underlineMatch.index < firstMatch.index)) {
+      firstMatch = underlineMatch;
+      type = "underline";
+    }
+
+    if (!firstMatch) {
+      tokens.push({ type: "text", content: remaining });
+      break;
+    }
+
+    if (firstMatch.index > 0) {
+      tokens.push({
+        type: "text",
+        content: remaining.substring(0, firstMatch.index),
+      });
+    }
+
+    tokens.push({
+      type: type,
+      content: firstMatch[2] || firstMatch[1],
+    });
+
+    remaining = remaining.substring(firstMatch.index + firstMatch[0].length);
+  }
+
+  return tokens.map((token, index) => {
+    switch (token.type) {
+      case "bold":
+        return <strong key={index} className={`font-extrabold ${isUser ? "text-white" : "text-gray-900"}`}>{token.content}</strong>;
+      case "italic":
+        return <em key={index} className={`italic ${isUser ? "text-white" : "text-gray-800"}`}>{token.content}</em>;
+      case "underline":
+        return <span key={index} className={`underline ${isUser ? "decoration-white" : "decoration-indigo-400"} decoration-2`}>{token.content}</span>;
+      default:
+        return token.content;
+    }
+  });
 }

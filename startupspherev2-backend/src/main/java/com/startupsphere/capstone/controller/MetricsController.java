@@ -57,6 +57,13 @@ public class MetricsController {
         metrics.put("si", si);
         metrics.put("ebs", ebs);
         metrics.put("egs", egs);
+        metrics.put("totalStartups", totalStartups);
+        metrics.put("totalSmes", totalSme);
+        metrics.put("totalSupport", totalSupport);
+        metrics.put("totalHei", totalHei);
+        metrics.put("totalGov", totalGov);
+        metrics.put("totalResearch", totalResearch);
+        metrics.put("totalSupportEntities", totalSupportEntities);
 
         return ResponseEntity.ok(metrics);
     }
