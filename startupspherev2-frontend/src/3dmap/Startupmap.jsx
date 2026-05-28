@@ -1015,7 +1015,7 @@ export default function Startupmap({
               const prompt = `${systemInstruction}\\n\\n=== STARTUP DATABASE DETAILS ===\\n${JSON.stringify(details, null, 2)}\\n\\nAnalysis:`;
 
               const aiRes = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

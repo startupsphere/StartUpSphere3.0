@@ -107,7 +107,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         const fullPrompt = `${systemInstruction}\n\n${detailContext}\n\nUser: Describe what the pinpointed startup "${companyName}" on the heatmap is all about.\nAssistant:`;
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
           {
             method: "POST",
             headers: {
@@ -286,7 +286,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
       const fullPrompt = `${systemInstruction}\n\n${dbContext}\n\nChat History:\n${chatContext}\nUser: ${userMessage}\nAssistant:`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
