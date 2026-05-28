@@ -616,6 +616,18 @@ export default function Startupmap({
     const features = startupsWithLocation.map((s) => {
       const lat = typeof s.locationLat === "string" ? parseFloat(s.locationLat) : s.locationLat;
       const lng = typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng;
+      
+      let trlScore = 0;
+      if (s.trlLevel && typeof s.trlLevel === 'string') {
+        const match = s.trlLevel.match(/TRL\s*(\d)/i);
+        if (match) trlScore = parseInt(match[1], 10);
+      }
+      
+      let colorClass = 1; // Default Green
+      if (trlScore >= 1 && trlScore <= 3) colorClass = 1; // Green
+      else if (trlScore >= 4 && trlScore <= 6) colorClass = 2; // Yellow
+      else if (trlScore >= 7 && trlScore <= 9) colorClass = 3; // Red
+
       return {
         type: "Feature",
         id: s.id,
@@ -623,7 +635,8 @@ export default function Startupmap({
           id: s.id,
           name: s.companyName || s.name || "Startup",
           locationName: s.locationName || "",
-          role: s.role || "ROLE_STARTUP"
+          role: s.role || "ROLE_STARTUP",
+          colorClass: colorClass
         },
         geometry: { type: "Point", coordinates: [lng, lat] },
       };
@@ -639,7 +652,10 @@ export default function Startupmap({
         data,
         cluster: true,
         clusterMaxZoom: 14,
-        clusterRadius: 60 // Slightly larger radius to group zones better
+        clusterRadius: 60, // Slightly larger radius to group zones better
+        clusterProperties: {
+          maxColorClass: ["max", ["get", "colorClass"]]
+        }
       });
     }
 
@@ -691,12 +707,12 @@ export default function Startupmap({
           },
           paint: {
             "circle-color": [
-              "step",
-              ["get", "point_count"],
-              "#22c55e", // Green (1-3)
-              4, "#eab308", // Yellow (4-9)
-              10, "#3b82f6", // Blue (10-20)
-              21, "#ef4444" // Red (21+)
+              "match",
+              ["get", "maxColorClass"],
+              1, "#22c55e", // Green
+              2, "#eab308", // Yellow
+              3, "#ef4444", // Red
+              "#22c55e" // Default
             ],
             "circle-radius": [
               "step",
@@ -723,12 +739,12 @@ export default function Startupmap({
           },
           paint: {
             "circle-color": [
-              "step",
-              ["get", "point_count"],
-              "#16a34a", // Darker Green
-              4, "#ca8a04", // Darker Yellow
-              10, "#2563eb", // Darker Blue
-              21, "#dc2626" // Darker Red
+              "match",
+              ["get", "maxColorClass"],
+              1, "#16a34a", // Darker Green
+              2, "#ca8a04", // Darker Yellow
+              3, "#dc2626", // Darker Red
+              "#16a34a" // Default
             ],
             "circle-radius": [
               "step",
@@ -770,7 +786,14 @@ export default function Startupmap({
             visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
-            "circle-color": "#22c55e",
+            "circle-color": [
+              "match",
+              ["get", "colorClass"],
+              1, "#22c55e",
+              2, "#eab308",
+              3, "#ef4444",
+              "#22c55e"
+            ],
             "circle-radius": 30,
             "circle-blur": 0.8,
             "circle-opacity": 0.7
@@ -786,7 +809,14 @@ export default function Startupmap({
             visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
-            "circle-color": "#16a34a",
+            "circle-color": [
+              "match",
+              ["get", "colorClass"],
+              1, "#16a34a",
+              2, "#ca8a04",
+              3, "#dc2626",
+              "#16a34a"
+            ],
             "circle-radius": 12,
             "circle-blur": 0.2,
             "circle-opacity": 0.9
@@ -3588,22 +3618,27 @@ export default function Startupmap({
         style={{ width: "220px" }}
       >
         <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Heatmap Legend</h3>
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm border border-red-200"></span>
-            <span className="text-gray-700 font-medium">High innovation areas</span>
+        <div className="space-y-3 text-xs">
+          <div className="flex items-start gap-2">
+            <span className="w-3 h-3 mt-0.5 rounded-full bg-red-500 shadow-sm border border-red-200 shrink-0"></span>
+            <div className="flex flex-col">
+              <span className="text-gray-800 font-bold">Red (High)</span>
+              <span className="text-gray-600">TRL 7-9: Market-ready / Deployed</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm border border-blue-200"></span>
-            <span className="text-gray-700 font-medium">Strong support zones</span>
+          <div className="flex items-start gap-2">
+            <span className="w-3 h-3 mt-0.5 rounded-full bg-yellow-500 shadow-sm border border-yellow-200 shrink-0"></span>
+            <div className="flex flex-col">
+              <span className="text-gray-800 font-bold">Yellow (Mid)</span>
+              <span className="text-gray-600">TRL 4-6: Prototype / Testing</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm border border-yellow-200"></span>
-            <span className="text-gray-700 font-medium">Imbalanced ecosystems</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-green-200"></span>
-            <span className="text-gray-700 font-medium">Balanced regions</span>
+          <div className="flex items-start gap-2">
+            <span className="w-3 h-3 mt-0.5 rounded-full bg-green-500 shadow-sm border border-green-200 shrink-0"></span>
+            <div className="flex flex-col">
+              <span className="text-gray-800 font-bold">Green (Low)</span>
+              <span className="text-gray-600">TRL 1-3: Basic Research / Concept</span>
+            </div>
           </div>
         </div>
       </div>

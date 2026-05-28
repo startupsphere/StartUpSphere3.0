@@ -525,12 +525,12 @@ public class StartupController {
     }
 
     @PostMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestBody VerificationRequest request) {
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestBody VerificationRequest request) {
         try {
             startupService.verifyEmail(request.getStartupId(), request.getEmail(), request.getCode());
-            return ResponseEntity.ok("Email verified successfully.");
+            return ResponseEntity.ok(Map.of("message", "Email verified successfully."));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Error verifying email: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

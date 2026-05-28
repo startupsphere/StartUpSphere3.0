@@ -42,6 +42,12 @@ public class StartupDTO {
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdated;
 
+    private String trlLevel;
+    private String verifiedCredentials;
+    private String hasSupports;
+    private String supportProvider;
+    private String supportProgram;
+
     private List<StakeholderDTO> associatedStakeholders;
 
     // Constructors, getters, and setters
@@ -84,6 +90,11 @@ public class StartupDTO {
         this.emailVerified = startup.getEmailVerified();
         this.isDraft = startup.getIsDraft();
         this.role = startup.getRole();
+        this.trlLevel = startup.getTrlLevel();
+        this.verifiedCredentials = startup.getVerifiedCredentials();
+        this.hasSupports = startup.getHasSupports();
+        this.supportProvider = startup.getSupportProvider();
+        this.supportProgram = startup.getSupportProgram();
         this.createdAt = startup.getCreatedAt();
         this.lastUpdated = startup.getLastUpdated();
         if (includeStakeholders) {
@@ -373,5 +384,45 @@ public class StartupDTO {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getTrlLevel() {
+        return trlLevel;
+    }
+
+    public void setTrlLevel(String trlLevel) {
+        this.trlLevel = trlLevel;
+    }
+
+    public String getVerifiedCredentials() {
+        return verifiedCredentials;
+    }
+
+    public void setVerifiedCredentials(String verifiedCredentials) {
+        this.verifiedCredentials = verifiedCredentials;
+    }
+
+    public String getHasSupports() {
+        return hasSupports;
+    }
+
+    public void setHasSupports(String hasSupports) {
+        this.hasSupports = hasSupports;
+    }
+
+    public String getSupportProvider() {
+        return supportProvider;
+    }
+
+    public void setSupportProvider(String supportProvider) {
+        this.supportProvider = supportProvider;
+    }
+
+    public String getSupportProgram() {
+        return supportProgram;
+    }
+
+    public void setSupportProgram(String supportProgram) {
+        this.supportProgram = supportProgram;
     }
 }

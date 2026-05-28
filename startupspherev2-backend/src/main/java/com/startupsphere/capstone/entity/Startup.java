@@ -150,6 +150,12 @@ public class Startup {
     @Column(name = "role")
     private String role;
 
+    private String trlLevel;
+    private String verifiedCredentials;
+    private String hasSupports;
+    private String supportProvider;
+    private String supportProgram;
+
     // Registration certificate as file (image, any extension)
     @Column(name = "registration_certificate", columnDefinition = "bytea")
     private byte[] registrationCertificate;
@@ -763,5 +769,45 @@ public class Startup {
 
     public void setRecents(List<Recents> recents) {
         this.recents = recents;
+    }
+
+    public String getTrlLevel() {
+        return trlLevel;
+    }
+
+    public void setTrlLevel(String trlLevel) {
+        this.trlLevel = trlLevel;
+    }
+
+    public String getVerifiedCredentials() {
+        return verifiedCredentials;
+    }
+
+    public void setVerifiedCredentials(String verifiedCredentials) {
+        this.verifiedCredentials = verifiedCredentials;
+    }
+
+    public String getHasSupports() {
+        return hasSupports;
+    }
+
+    public void setHasSupports(String hasSupports) {
+        this.hasSupports = hasSupports;
+    }
+
+    public String getSupportProvider() {
+        return supportProvider;
+    }
+
+    public void setSupportProvider(String supportProvider) {
+        this.supportProvider = supportProvider;
+    }
+
+    public String getSupportProgram() {
+        return supportProgram;
+    }
+
+    public void setSupportProgram(String supportProgram) {
+        this.supportProgram = supportProgram;
     }
 }

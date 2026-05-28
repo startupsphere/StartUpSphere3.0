@@ -2320,11 +2320,7 @@ export default function Sidebar({
                   <option value="All">All Innovation Types</option>
                   <option value="ROLE_STARTUP">Startup</option>
                   <option value="ROLE_HEI">University / HEI</option>
-                  <option value="ROLE_SME">SME / Business</option>
                   <option value="ROLE_RESEARCH">Research Institution</option>
-                  <option value="ROLE_INNOVATION">Innovation Output</option>
-                  <option value="ROLE_SUPPORT">Support Organization</option>
-                  <option value="ROLE_GOVERNMENT">Government / Funding</option>
                 </select>
               </div>
             )}

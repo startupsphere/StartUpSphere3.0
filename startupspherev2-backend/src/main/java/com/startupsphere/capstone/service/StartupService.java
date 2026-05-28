@@ -188,6 +188,11 @@ public class StartupService {
                             updatedStartup.getPublicPrivatePartnershipsInvolvingStartups());
                     startup.setVerificationCode(updatedStartup.getVerificationCode());
                     startup.setEmailVerified(updatedStartup.getEmailVerified());
+                    startup.setTrlLevel(updatedStartup.getTrlLevel());
+                    startup.setVerifiedCredentials(updatedStartup.getVerifiedCredentials());
+                    startup.setHasSupports(updatedStartup.getHasSupports());
+                    startup.setSupportProvider(updatedStartup.getSupportProvider());
+                    startup.setSupportProgram(updatedStartup.getSupportProgram());
 
                     // Registration & Compliance fields
                     startup.setIsGovernmentRegistered(updatedStartup.getIsGovernmentRegistered());
@@ -436,6 +441,11 @@ public class StartupService {
         existingDraft.setOtherRegistrationAgency(updatedDraft.getOtherRegistrationAgency());
         existingDraft.setBusinessLicenseNumber(updatedDraft.getBusinessLicenseNumber());
         existingDraft.setTin(updatedDraft.getTin());
+        existingDraft.setTrlLevel(updatedDraft.getTrlLevel());
+        existingDraft.setVerifiedCredentials(updatedDraft.getVerifiedCredentials());
+        existingDraft.setHasSupports(updatedDraft.getHasSupports());
+        existingDraft.setSupportProvider(updatedDraft.getSupportProvider());
+        existingDraft.setSupportProgram(updatedDraft.getSupportProgram());
         
         // Keep draft status and draft flag
         existingDraft.setIsDraft(true);
@@ -528,14 +538,11 @@ public class StartupService {
 
     @Transactional
     public void verifyEmail(Long startupId, String email, String code) {
-        Optional<Startup> startupOpt = startupRepository.findByContactEmailAndVerificationCode(email, code);
-        if (startupOpt.isEmpty()) {
-            throw new RuntimeException("Invalid verification code");
-        }
+        Startup startup = startupRepository.findById(startupId)
+                .orElseThrow(() -> new RuntimeException("Startup not found"));
 
-        Startup startup = startupOpt.get();
-        if (!startup.getId().equals(startupId)) {
-            throw new RuntimeException("Startup ID does not match the provided email and code");
+        if (startup.getVerificationCode() == null || !startup.getVerificationCode().equals(code)) {
+            throw new RuntimeException("Invalid verification code");
         }
 
         startup.setEmailVerified(true);

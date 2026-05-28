@@ -259,6 +259,11 @@ export default function Startupadd() {
     companyName: "",
     companyDescription: "",
     foundedDate: null,
+    trlLevel: "",
+    verifiedCredentials: "",
+    hasSupports: "",
+    supportProvider: "",
+    supportProgram: "",
     typeOfCompany: "",
     numberOfEmployees: "",
     industry: "",
@@ -332,6 +337,11 @@ export default function Startupadd() {
     companyName: "",
     companyDescription: "",
     foundedDate: "",
+    trlLevel: "",
+    verifiedCredentials: "",
+    hasSupports: "",
+    supportProvider: "",
+    supportProgram: "",
     numberOfEmployees: "",
     typeOfCompany: "",
     industry: "",
@@ -369,6 +379,11 @@ export default function Startupadd() {
       companyName: "",
       companyDescription: "",
       foundedDate: null,
+      trlLevel: "",
+      verifiedCredentials: "",
+      hasSupports: "",
+      supportProvider: "",
+      supportProgram: "",
       typeOfCompany: "",
       numberOfEmployees: "",
       industry: "",
@@ -757,6 +772,11 @@ const fetchDraftData = async (id) => {
       companyName: data.companyName || "",
       companyDescription: data.companyDescription || "",
       foundedDate: data.foundedDate ? new Date(data.foundedDate) : null,
+      trlLevel: data.trlLevel || "",
+      verifiedCredentials: data.verifiedCredentials || "",
+      hasSupports: data.hasSupports || "",
+      supportProvider: data.supportProvider || "",
+      supportProgram: data.supportProgram || "",
       typeOfCompany: data.typeOfCompany || "",
       numberOfEmployees: data.numberOfEmployees || "",
       industry: data.industry || "",
@@ -1127,6 +1147,28 @@ const fetchDraftData = async (id) => {
       errors.foundedDate = `${labels.foundedLabel} is required.`;
       toast.error(`${labels.foundedLabel} is required.`);
     }
+    if (!formData.trlLevel) {
+      errors.trlLevel = "TRL Level is required.";
+      toast.error("TRL Level is required.");
+    }
+    if (!formData.verifiedCredentials) {
+      errors.verifiedCredentials = "Verified credentials are required.";
+      toast.error("Verified credentials are required.");
+    }
+    if (!formData.hasSupports) {
+      errors.hasSupports = "Please indicate if you have supports.";
+      toast.error("Please indicate if you have supports.");
+    }
+    if (formData.hasSupports === "yes") {
+      if (!formData.supportProvider) {
+        errors.supportProvider = "Support provider is required.";
+        toast.error("Support provider is required.");
+      }
+      if (!formData.supportProgram) {
+        errors.supportProgram = "Support program is required.";
+        toast.error("Support program is required.");
+      }
+    }
     if (!formData.numberOfEmployees) {
       errors.numberOfEmployees = "Number of Employees is required.";
       toast.error("Number of Employees is required.");
@@ -1410,6 +1452,11 @@ const fetchDraftData = async (id) => {
         companyName: formData.companyName,
         companyDescription: formData.companyDescription,
         foundedDate: formData.foundedDate,
+        trlLevel: formData.trlLevel,
+        verifiedCredentials: formData.verifiedCredentials,
+        hasSupports: formData.hasSupports,
+        supportProvider: formData.supportProvider,
+        supportProgram: formData.supportProgram,
         typeOfCompany: formData.typeOfCompany,
         numberOfEmployees: formData.numberOfEmployees,
         phoneNumber: formData.phoneNumber,
@@ -1643,6 +1690,11 @@ const handleSubmit = async () => {
         companyName: formData.companyName,
         companyDescription: formData.companyDescription,
         foundedDate: formData.foundedDate,
+        trlLevel: formData.trlLevel,
+        verifiedCredentials: formData.verifiedCredentials,
+        hasSupports: formData.hasSupports,
+        supportProvider: formData.supportProvider,
+        supportProgram: formData.supportProgram,
         typeOfCompany: formData.typeOfCompany,
         numberOfEmployees: formData.numberOfEmployees,
         phoneNumber: formData.phoneNumber,
@@ -2729,6 +2781,206 @@ const handleSubmit = async () => {
                 </svg>
                 Select the month and year your {(ACTOR_LABELS[actor]?.name || "Company").toLowerCase()} was founded
               </p>
+            </div>
+
+            {/* New Fields: TRL Level & Verified Credentials */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  TRL Level
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <select
+                    name="trlLevel"
+                    className={`w-full border-2 rounded-lg px-4 py-3 appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
+                      fieldErrors.trlLevel 
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
+                    value={formData.trlLevel}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select TRL Level</option>
+                    <option value="TRL 1">TRL 1 - Basic principles observed</option>
+                    <option value="TRL 2">TRL 2 - Technology concept formulated</option>
+                    <option value="TRL 3">TRL 3 - Experimental proof of concept</option>
+                    <option value="TRL 4">TRL 4 - Technology validated in lab</option>
+                    <option value="TRL 5">TRL 5 - Technology validated in relevant environment</option>
+                    <option value="TRL 6">TRL 6 - Technology demonstrated in relevant environment</option>
+                    <option value="TRL 7">TRL 7 - System prototype demonstration in operational environment</option>
+                    <option value="TRL 8">TRL 8 - System complete and qualified</option>
+                    <option value="TRL 9">TRL 9 - Actual system proven in operational environment</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {fieldErrors.trlLevel && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {fieldErrors.trlLevel}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Verified Credentials
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    name="verifiedCredentials"
+                    placeholder="e.g., ISO Certification, Awards, Degrees"
+                    className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 ${
+                      fieldErrors.verifiedCredentials 
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
+                    value={formData.verifiedCredentials}
+                    onChange={handleChange}
+                  />
+                </div>
+                {fieldErrors.verifiedCredentials && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {fieldErrors.verifiedCredentials}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* New Fields: Has Supports */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Has Supports?
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-6 mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.hasSupports === "yes" ? "border-blue-600" : "border-gray-300 group-hover:border-blue-400"}`}>
+                      {formData.hasSupports === "yes" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
+                    </div>
+                    <input
+                      type="radio"
+                      name="hasSupports"
+                      value="yes"
+                      checked={formData.hasSupports === "yes"}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span className="text-gray-700">Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.hasSupports === "no" ? "border-blue-600" : "border-gray-300 group-hover:border-blue-400"}`}>
+                      {formData.hasSupports === "no" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
+                    </div>
+                    <input
+                      type="radio"
+                      name="hasSupports"
+                      value="no"
+                      checked={formData.hasSupports === "no"}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span className="text-gray-700">No</span>
+                  </label>
+                </div>
+                {fieldErrors.hasSupports && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {fieldErrors.hasSupports}
+                  </p>
+                )}
+              </div>
+
+              {formData.hasSupports === "yes" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50/50 p-5 rounded-xl border border-blue-100 mt-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Supported By (Whom)
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        name="supportProvider"
+                        placeholder="e.g., DOST, DTI, University"
+                        className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 ${
+                          fieldErrors.supportProvider 
+                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
+                        value={formData.supportProvider}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {fieldErrors.supportProvider && (
+                      <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {fieldErrors.supportProvider}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      What Program
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        name="supportProgram"
+                        placeholder="e.g., TBI Incubation, Startup Grant"
+                        className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 ${
+                          fieldErrors.supportProgram 
+                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
+                        value={formData.supportProgram}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {fieldErrors.supportProgram && (
+                      <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {fieldErrors.supportProgram}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Company Details Grid */}

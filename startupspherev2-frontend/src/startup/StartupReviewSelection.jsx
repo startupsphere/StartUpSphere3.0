@@ -1486,6 +1486,47 @@ export default function EnhancedStartupReviewSection({
                           {selectedStartup.operatingHours || "N/A"}
                         </p>
                       </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          TRL Level
+                        </p>
+                        <p className="text-gray-800">
+                          {selectedStartup.trlLevel || "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          Verified Credentials
+                        </p>
+                        <p className="text-gray-800">
+                          {selectedStartup.verifiedCredentials || "N/A"}
+                        </p>
+                      </div>
+
+                      <div className="md:col-span-2 mt-2">
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                          <p className="text-sm font-medium text-blue-800 mb-1">
+                            Has Supports?
+                          </p>
+                          <p className="text-blue-900 font-medium mb-2">
+                            {selectedStartup.hasSupports === "Yes" ? "Yes" : "No"}
+                          </p>
+                          {selectedStartup.hasSupports === "Yes" && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 border-t border-blue-200 pt-2">
+                              <div>
+                                <p className="text-xs font-medium text-blue-700">Support Provider</p>
+                                <p className="text-sm text-blue-900">{selectedStartup.supportProvider || "N/A"}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-blue-700">Support Program</p>
+                                <p className="text-sm text-blue-900">{selectedStartup.supportProgram || "N/A"}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 

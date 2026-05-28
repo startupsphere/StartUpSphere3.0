@@ -5,11 +5,7 @@ import {
   Edit, 
   Rocket, 
   GraduationCap, 
-  Briefcase, 
   FlaskConical, 
-  Lightbulb, 
-  Handshake, 
-  Landmark, 
   ArrowLeft,
   X
 } from 'lucide-react';
@@ -38,16 +34,6 @@ const ECOSYSTEM_ACTORS = [
     bgLight: "bg-emerald-50/70 hover:bg-emerald-50"
   },
   {
-    id: "ROLE_SME",
-    name: "SME / Business",
-    desc: "Small & medium enterprises driving regional trade",
-    icon: Briefcase,
-    color: "from-orange-600 to-amber-600",
-    gradStart: "#ea580c",
-    gradEnd: "#d97706",
-    bgLight: "bg-amber-50/70 hover:bg-amber-50"
-  },
-  {
     id: "ROLE_RESEARCH",
     name: "Research Institution",
     desc: "Organizations focused on scientific research and labs",
@@ -56,36 +42,6 @@ const ECOSYSTEM_ACTORS = [
     gradStart: "#9333ea",
     gradEnd: "#db2777",
     bgLight: "bg-purple-50/70 hover:bg-purple-50"
-  },
-  {
-    id: "ROLE_INNOVATION",
-    name: "Innovation Output",
-    desc: "Patented tech, intellectual property, and spinoffs",
-    icon: Lightbulb,
-    color: "from-amber-500 to-orange-600",
-    gradStart: "#f59e0b",
-    gradEnd: "#ea580c",
-    bgLight: "bg-yellow-50/70 hover:bg-yellow-50"
-  },
-  {
-    id: "ROLE_SUPPORT",
-    name: "Support Organization",
-    desc: "Incubators, accelerators, and business support systems",
-    icon: Handshake,
-    color: "from-red-600 to-rose-600",
-    gradStart: "#dc2626",
-    gradEnd: "#e11d48",
-    bgLight: "bg-red-50/70 hover:bg-red-50"
-  },
-  {
-    id: "ROLE_GOVERNMENT",
-    name: "Government / Funding",
-    desc: "State bodies providing grants, policies, and funds",
-    icon: Landmark,
-    color: "from-sky-600 to-blue-700",
-    gradStart: "#0284c7",
-    gradEnd: "#1d4ed8",
-    bgLight: "bg-sky-50/70 hover:bg-sky-50"
   }
 ];
 
@@ -146,7 +102,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Actors Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-1 overflow-y-auto max-h-[55vh] flex-1 pr-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-2 overflow-y-auto max-h-[55vh] flex-1 max-w-4xl mx-auto w-full">
               {ECOSYSTEM_ACTORS.map((actor) => {
                 const IconComponent = actor.icon;
                 return (
