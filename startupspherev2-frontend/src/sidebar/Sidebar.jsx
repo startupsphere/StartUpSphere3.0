@@ -3507,6 +3507,245 @@ export default function Sidebar({
               </p>
             </div>
 
+            {/* TRL Stage Details */}
+            {startup.trlLevel && (
+              <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <Award className="h-4 w-4 text-indigo-600" />
+                  TRL (Technology Readiness Level)
+                </h2>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-semibold text-indigo-800 px-2 py-0.5 bg-indigo-100 rounded-full">
+                      {startup.trlLevel}
+                    </span>
+                    {(() => {
+                      const match = startup.trlLevel.match(/TRL\s*(\d)/i);
+                      const trlValue = match ? parseInt(match[1], 10) : 0;
+                      if (trlValue > 0) {
+                        return <span className="text-xs text-indigo-700 font-medium">Stage {trlValue}/9</span>;
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  {(() => {
+                    const match = startup.trlLevel.match(/TRL\s*(\d)/i);
+                    const trlValue = match ? parseInt(match[1], 10) : 0;
+                    if (trlValue > 0) {
+                      return (
+                        <div className="flex gap-1.5 mt-2">
+                          {Array.from({ length: 9 }).map((_, idx) => {
+                            const active = idx < trlValue;
+                            let color = 'bg-gray-200';
+                            if (active) {
+                              if (trlValue <= 3) color = 'bg-green-500';
+                              else if (trlValue <= 6) color = 'bg-amber-500';
+                              else color = 'bg-red-500';
+                            }
+                            return (
+                              <div
+                                key={idx}
+                                className={`h-2 flex-1 rounded-sm transition-all duration-300 ${color}`}
+                                title={`TRL Level ${idx + 1}`}
+                              ></div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <p className="text-xs text-gray-500 mt-2.5">
+                    Provides an indication of the technology readiness and maturity of this business innovation.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Support Organization Details */}
+            {(startup.hasSupports === "Yes" || startup.supportProvider || startup.supportProgram) && (
+              <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    className="h-4 w-4 text-emerald-600"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                  Support Organization & Programs
+                </h2>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 space-y-3">
+                  {startup.supportProvider && (
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-800">Support Provider / Enabler</p>
+                      <p className="text-sm font-medium text-gray-800">{startup.supportProvider}</p>
+                    </div>
+                  )}
+                  {startup.supportProgram && (
+                    <div className="border-t border-emerald-100/50 pt-2">
+                      <p className="text-xs font-semibold text-emerald-800">Support Program / Scholarship</p>
+                      <p className="text-sm font-medium text-gray-800">{startup.supportProgram}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Company Information */}
+            <div className="space-y-3 mb-6 border-t border-gray-100 pt-4">
+              <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <BsBriefcase className="h-4 w-4 text-blue-600" />
+                Company Details
+              </h2>
+              
+              <div className="grid grid-cols-1 gap-3 bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm">
+                {startup.businessActivity && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Business Activity Focus</p>
+                    <p className="text-gray-800 font-medium">{startup.businessActivity}</p>
+                  </div>
+                )}
+
+                {startup.typeOfCompany && (
+                  <div className="border-t border-gray-200/50 pt-2 flex justify-between">
+                    <span className="text-xs text-gray-500 font-medium">Organization Type</span>
+                    <span className="text-gray-800 font-medium">{startup.typeOfCompany}</span>
+                  </div>
+                )}
+
+                {startup.numberOfEmployees && (
+                  <div className="border-t border-gray-200/50 pt-2 flex justify-between">
+                    <span className="text-xs text-gray-500 font-medium">Team Scale</span>
+                    <span className="text-gray-800 font-medium">{startup.numberOfEmployees} employees</span>
+                  </div>
+                )}
+
+                {startup.isGovernmentRegistered !== undefined && (
+                  <div className="border-t border-gray-200/50 pt-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      }`}>
+                        {startup.isGovernmentRegistered ? "Yes" : "No"}
+                      </span>
+                    </div>
+                    
+                    {startup.isGovernmentRegistered && (
+                      <div className="mt-2 bg-white rounded p-2.5 border border-gray-200/60 space-y-1.5 text-xs text-gray-600">
+                        {startup.registrationAgency && (
+                          <div className="flex justify-between">
+                            <span>Agency:</span>
+                            <span className="font-semibold text-gray-800">{startup.registrationAgency}</span>
+                          </div>
+                        )}
+                        {startup.registrationNumber && (
+                          <div className="flex justify-between">
+                            <span>Reg. Number:</span>
+                            <span className="font-mono font-medium text-gray-800">{startup.registrationNumber}</span>
+                          </div>
+                        )}
+                        {startup.businessLicenseNumber && (
+                          <div className="flex justify-between">
+                            <span>License Number:</span>
+                            <span className="font-mono font-medium text-gray-800">{startup.businessLicenseNumber}</span>
+                          </div>
+                        )}
+                        {startup.tin && (
+                          <div className="flex justify-between">
+                            <span>TIN:</span>
+                            <span className="font-mono font-medium text-gray-800">{startup.tin}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Funding & Financials */}
+            {(startup.fundingStage || startup.revenue || startup.numberOfFundingRounds) && (
+              <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    className="h-4 w-4 text-amber-600"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Funding & Financials
+                </h2>
+                <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-3 text-sm">
+                  {startup.fundingStage && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-amber-800 font-semibold">Funding Stage</span>
+                      <span className="font-semibold text-amber-900">{startup.fundingStage}</span>
+                    </div>
+                  )}
+                  {startup.revenue && (
+                    <div className="border-t border-amber-100/50 pt-2 flex justify-between items-center">
+                      <span className="text-xs text-amber-800 font-semibold">Annual Revenue</span>
+                      <span className="font-bold text-gray-950">PHP {Number(startup.revenue).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {startup.numberOfFundingRounds && (
+                    <div className="border-t border-amber-100/50 pt-2 flex justify-between">
+                      <span className="text-xs text-amber-800 font-semibold">Funding Rounds</span>
+                      <span className="font-medium text-gray-800">{startup.numberOfFundingRounds} rounds</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Ecosystem Information */}
+            {(startup.numberOfMentorsOrAdvisorsInvolved || startup.numberOfStartupsInIncubationPrograms || startup.publicPrivatePartnershipsInvolvingStartups) && (
+              <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    className="h-4 w-4 text-purple-600"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9s2.015-9 4.5-9m0 0a9.003 9.003 0 018.716 5.253M12 3a9.003 9.003 0 00-8.716 5.253M21 9a9 9 0 01-9 9m9-9a9 9 0 00-9-9m0 18a9 9 0 01-9-9M3 9h18" />
+                  </svg>
+                  Ecosystem Integration Info
+                </h2>
+                <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 space-y-3 text-sm">
+                  {startup.numberOfMentorsOrAdvisorsInvolved && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-purple-800 font-semibold">Mentors/Advisors Involved</span>
+                      <span className="font-medium text-gray-800">{startup.numberOfMentorsOrAdvisorsInvolved}</span>
+                    </div>
+                  )}
+                  {startup.numberOfStartupsInIncubationPrograms && (
+                    <div className="border-t border-purple-100/50 pt-2 flex justify-between">
+                      <span className="text-xs text-purple-800 font-semibold">Incubation Startups count</span>
+                      <span className="font-medium text-gray-800">{startup.numberOfStartupsInIncubationPrograms}</span>
+                    </div>
+                  )}
+                  {startup.publicPrivatePartnershipsInvolvingStartups && (
+                    <div className="border-t border-purple-100/50 pt-2 flex justify-between">
+                      <span className="text-xs text-purple-800 font-semibold">PPP Partnerships</span>
+                      <span className="font-medium text-gray-800">{startup.publicPrivatePartnershipsInvolvingStartups}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Contact and Links Section - optional content */}
             {(startup.website || startup.email) && (
               <div className="space-y-2 mb-6 border-t border-gray-200 pt-4">
