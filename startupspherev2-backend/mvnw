@@ -43,6 +43,11 @@ esac
 
 # set JAVACMD and JAVACCMD
 set_java_home() {
+  # locate local .jdk directory
+  if [ -z "${JAVA_HOME-}" ] && [ -d "${0%/*}/.jdk" ]; then
+    JAVA_HOME="${0%/*}/.jdk"
+  fi
+
   # For Cygwin and MinGW, ensure paths are in Unix format before anything is touched
   if [ -n "${JAVA_HOME-}" ]; then
     if [ -x "$JAVA_HOME/jre/sh/java" ]; then

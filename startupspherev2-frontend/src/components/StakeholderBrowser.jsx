@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Search, X, UserPlus, Users, Mail, Phone, MapPin, ChevronRight, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
-const StakeholderBrowser = ({ 
-  isOpen, 
-  onClose, 
-  onSelectStakeholder, 
+const StakeholderBrowser = ({
+  isOpen,
+  onClose,
+  onSelectStakeholder,
   onCreateNew,
-  startupId 
+  startupId
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [stakeholders, setStakeholders] = useState([]);
@@ -123,10 +123,10 @@ const StakeholderBrowser = ({
 
   const confirmAssociation = async () => {
     if (!pendingStakeholder) return;
-    
+
     setSelectedStakeholder(pendingStakeholder);
     setIsAssociating(true);
-    
+
     try {
       // Associate the selected stakeholder with the startup
       const token = localStorage.getItem("token");
@@ -167,13 +167,13 @@ const StakeholderBrowser = ({
       handleClose();
     } catch (error) {
       console.error("Error associating stakeholder:", error);
-      
+
       // Show professional error notification
       setShowRoleModal(false);
       setPendingStakeholder(null);
       setSelectedStakeholder(null);
       setIsAssociating(false);
-      
+
       // Display error in a modal instead of alert
       setErrorModal({
         isOpen: true,
@@ -241,7 +241,7 @@ const StakeholderBrowser = ({
                 className="w-full pl-10 pr-4 text-gray-800 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             {/* Create New Button */}
             <button
               type="button"
@@ -256,7 +256,7 @@ const StakeholderBrowser = ({
               Create New
             </button>
           </div>
-          
+
           {/* Results count */}
           <div className="mt-3 text-sm text-gray-600">
             {loading ? (
@@ -303,88 +303,86 @@ const StakeholderBrowser = ({
               {filteredStakeholders.map((stakeholder) => {
                 const isAlreadyAssociated = associatedStakeholderIds.has(stakeholder.id);
                 return (
-                <div
-                  key={stakeholder.id}
-                  className={`border rounded-lg p-4 transition-all bg-white ${
-                    isAlreadyAssociated
-                      ? "border-green-300 bg-green-50/30 cursor-not-allowed opacity-75"
-                      : "border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer"
-                  }`}
-                  onClick={() => !isAssociating && !isAlreadyAssociated && handleSelectAndAssociate(stakeholder)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {stakeholder.name}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isAlreadyAssociated && (
-                            <span className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-sm">
-                              <CheckCircle2 size={14} className="mr-1.5" />
-                              ASSOCIATED
+                  <div
+                    key={stakeholder.id}
+                    className={`border rounded-lg p-4 transition-all bg-white ${isAlreadyAssociated
+                        ? "border-green-300 bg-green-50/30 cursor-not-allowed opacity-75"
+                        : "border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer"
+                      }`}
+                    onClick={() => !isAssociating && !isAlreadyAssociated && handleSelectAndAssociate(stakeholder)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {stakeholder.name}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isAlreadyAssociated && (
+                              <span className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-sm">
+                                <CheckCircle2 size={14} className="mr-1.5" />
+                                ASSOCIATED
+                              </span>
+                            )}
+                            <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                              {stakeholder.role || "Stakeholder"}
                             </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                          {stakeholder.email && (
+                            <div className="flex items-center">
+                              <Mail size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{stakeholder.email}</span>
+                            </div>
                           )}
-                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {stakeholder.role || "Stakeholder"}
-                          </span>
+
+                          {stakeholder.phoneNumber && (
+                            <div className="flex items-center">
+                              <Phone size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                              <span>{stakeholder.phoneNumber}</span>
+                            </div>
+                          )}
+
+                          {(stakeholder.city || stakeholder.province) && (
+                            <div className="flex items-center md:col-span-2">
+                              <MapPin size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">
+                                {[stakeholder.city, stakeholder.province]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                        {stakeholder.email && (
-                          <div className="flex items-center">
-                            <Mail size={14} className="mr-2 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{stakeholder.email}</span>
-                          </div>
-                        )}
-                        
-                        {stakeholder.phoneNumber && (
-                          <div className="flex items-center">
-                            <Phone size={14} className="mr-2 text-gray-400 flex-shrink-0" />
-                            <span>{stakeholder.phoneNumber}</span>
-                          </div>
-                        )}
-                        
-                        {(stakeholder.city || stakeholder.province) && (
-                          <div className="flex items-center md:col-span-2">
-                            <MapPin size={14} className="mr-2 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">
-                              {[stakeholder.city, stakeholder.province]
-                                .filter(Boolean)
-                                .join(", ")}
+
+                        {stakeholder.status && (
+                          <div className="mt-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stakeholder.status === "Active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                              }`}>
+                              {stakeholder.status}
                             </span>
                           </div>
                         )}
                       </div>
-                      
-                      {stakeholder.status && (
-                        <div className="mt-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            stakeholder.status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {stakeholder.status}
-                          </span>
+
+                      {isAssociating && selectedStakeholder?.id === stakeholder.id ? (
+                        <div className="ml-4 flex items-center text-blue-600">
+                          <Loader2 className="animate-spin" size={20} />
                         </div>
-                      )}
+                      ) : !isAlreadyAssociated ? (
+                        <div className="ml-4 flex items-center text-gray-400">
+                          <ChevronRight size={20} />
+                        </div>
+                      ) : null}
                     </div>
-                    
-                    {isAssociating && selectedStakeholder?.id === stakeholder.id ? (
-                      <div className="ml-4 flex items-center text-blue-600">
-                        <Loader2 className="animate-spin" size={20} />
-                      </div>
-                    ) : !isAlreadyAssociated ? (
-                      <div className="ml-4 flex items-center text-gray-400">
-                        <ChevronRight size={20} />
-                      </div>
-                    ) : null}
                   </div>
-                </div>
-              );
+                );
               })}
             </div>
           )}
@@ -468,7 +466,7 @@ const StakeholderBrowser = ({
               {/* Info box */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> The role and status you select here will be specific to this startup. 
+                  <strong>Note:</strong> The role and status you select here will be specific to this startup.
                   The stakeholder's general profile will remain unchanged.
                 </p>
               </div>
@@ -542,10 +540,10 @@ const StakeholderBrowser = ({
                   {errorModal.message}
                 </p>
               </div>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-blue-800">
-                  <strong>Tip:</strong> This stakeholder is already associated with this startup. 
+                  <strong>Tip:</strong> This stakeholder is already associated with this startup.
                   You can view or edit their details in the stakeholders list.
                 </p>
               </div>

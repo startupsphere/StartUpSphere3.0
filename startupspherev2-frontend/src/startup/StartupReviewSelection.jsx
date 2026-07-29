@@ -222,7 +222,7 @@ export default function EnhancedStartupReviewSection({
       // Fetch startups with filters
       const apiUrl = startupId
         ? `${import.meta.env.VITE_BACKEND_URL}/startups/submitted?${queryParams.toString()}`
-        : `${import.meta.env.VITE_BACKEND_URL}/startups/review?${queryParams.toString()}`; 
+        : `${import.meta.env.VITE_BACKEND_URL}/startups/review?${queryParams.toString()}`;
 
       const response = await fetch(apiUrl, { credentials: "include" });
 
@@ -231,7 +231,7 @@ export default function EnhancedStartupReviewSection({
       }
 
       const responseData = await response.json();
-      
+
       // Extract startups from paginated response
       const data = responseData.content || responseData || [];
 
@@ -432,8 +432,7 @@ export default function EnhancedStartupReviewSection({
       };
 
       const response = await fetch(
-        `${
-          import.meta.env.VITE_BACKEND_URL
+        `${import.meta.env.VITE_BACKEND_URL
         }/notifications/startups/${id}/${action}`,
         requestOptions
       );
@@ -508,9 +507,8 @@ export default function EnhancedStartupReviewSection({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `startups-export-${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    link.download = `startups-export-${new Date().toISOString().split("T")[0]
+      }.csv`;
     link.click();
 
     toast.success("Export completed successfully");
@@ -894,7 +892,7 @@ export default function EnhancedStartupReviewSection({
             </span>
             {" "}startups
           </span>
-          
+
           <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
             <span className="text-sm text-gray-600 font-medium">Show:</span>
             <div className="relative">
@@ -925,11 +923,10 @@ export default function EnhancedStartupReviewSection({
 
       {actionVisible && (
         <div
-          className={`transition-all duration-300 fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
-            actionResult.success
+          className={`transition-all duration-300 fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${actionResult.success
               ? "bg-green-100 border-l-4 border-green-500"
               : "bg-red-100 border-l-4 border-red-500"
-          }`}
+            }`}
         >
           <div className="flex">
             <div className="flex-shrink-0">
@@ -941,9 +938,8 @@ export default function EnhancedStartupReviewSection({
             </div>
             <div className="ml-3">
               <p
-                className={`text-sm font-medium ${
-                  actionResult.success ? "text-green-800" : "text-red-800"
-                }`}
+                className={`text-sm font-medium ${actionResult.success ? "text-green-800" : "text-red-800"
+                  }`}
               >
                 {actionResult.message}
               </p>
@@ -970,11 +966,11 @@ export default function EnhancedStartupReviewSection({
             Try adjusting your filters or search terms.
           </p>
           {filters.search ||
-          filters.industry ||
-          filters.status ||
-          filters.region ||
-          filters.dateRange.start ||
-          filters.dateRange.end ? (
+            filters.industry ||
+            filters.status ||
+            filters.region ||
+            filters.dateRange.start ||
+            filters.dateRange.end ? (
             <button
               onClick={resetFilters}
               className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors inline-flex items-center"
@@ -1000,11 +996,10 @@ export default function EnhancedStartupReviewSection({
                     Company
                     <ArrowUpDown
                       size={14}
-                      className={`ml-1 ${
-                        sortConfig.key === "companyName"
+                      className={`ml-1 ${sortConfig.key === "companyName"
                           ? "text-blue-600"
                           : "text-gray-400 group-hover:text-gray-600"
-                      }`}
+                        }`}
                     />
                   </div>
                 </th>
@@ -1016,11 +1011,10 @@ export default function EnhancedStartupReviewSection({
                     Industry
                     <ArrowUpDown
                       size={14}
-                      className={`ml-1 ${
-                        sortConfig.key === "industry"
+                      className={`ml-1 ${sortConfig.key === "industry"
                           ? "text-blue-600"
                           : "text-gray-400 group-hover:text-gray-600"
-                      }`}
+                        }`}
                     />
                   </div>
                 </th>
@@ -1032,11 +1026,10 @@ export default function EnhancedStartupReviewSection({
                     Founded
                     <ArrowUpDown
                       size={14}
-                      className={`ml-1 ${
-                        sortConfig.key === "foundedDate"
+                      className={`ml-1 ${sortConfig.key === "foundedDate"
                           ? "text-blue-600"
                           : "text-gray-400 group-hover:text-gray-600"
-                      }`}
+                        }`}
                     />
                   </div>
                 </th>
@@ -1048,11 +1041,10 @@ export default function EnhancedStartupReviewSection({
                     Status
                     <ArrowUpDown
                       size={14}
-                      className={`ml-1 ${
-                        sortConfig.key === "status"
+                      className={`ml-1 ${sortConfig.key === "status"
                           ? "text-blue-600"
                           : "text-gray-400 group-hover:text-gray-600"
-                      }`}
+                        }`}
                     />
                   </div>
                 </th>
@@ -1064,11 +1056,10 @@ export default function EnhancedStartupReviewSection({
                     Location
                     <ArrowUpDown
                       size={14}
-                      className={`ml-1 ${
-                        sortConfig.key === "city"
+                      className={`ml-1 ${sortConfig.key === "city"
                           ? "text-blue-600"
                           : "text-gray-400 group-hover:text-gray-600"
-                      }`}
+                        }`}
                     />
                   </div>
                 </th>
@@ -1097,7 +1088,7 @@ export default function EnhancedStartupReviewSection({
                           e.target.nextSibling.style.display = 'flex';
                         }}
                       />
-                      <div style={{display: 'none'}} className="w-full h-full flex items-center justify-center">
+                      <div style={{ display: 'none' }} className="w-full h-full flex items-center justify-center">
                         <Building size={20} className="text-gray-400" />
                       </div>
                     </div>
@@ -1169,35 +1160,35 @@ export default function EnhancedStartupReviewSection({
 
                       {(startup.status === "In Review" ||
                         startup.status === "Pending") && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(startup.id)}
-                            className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                            title="Approve"
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading &&
-                            selectedStartup?.id === startup.id ? (
-                              <Loader size={16} className="animate-spin" />
-                            ) : (
-                              <Check size={16} />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleInitiateReject(startup.id)}
-                            className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                            title="Reject"
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading &&
-                            selectedStartup?.id === startup.id ? (
-                              <Loader size={16} className="animate-spin" />
-                            ) : (
-                              <X size={16} />
-                            )}
-                          </button>
-                        </>
-                      )}
+                          <>
+                            <button
+                              onClick={() => handleApprove(startup.id)}
+                              className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                              title="Approve"
+                              disabled={isActionLoading}
+                            >
+                              {isActionLoading &&
+                                selectedStartup?.id === startup.id ? (
+                                <Loader size={16} className="animate-spin" />
+                              ) : (
+                                <Check size={16} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleInitiateReject(startup.id)}
+                              className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                              title="Reject"
+                              disabled={isActionLoading}
+                            >
+                              {isActionLoading &&
+                                selectedStartup?.id === startup.id ? (
+                                <Loader size={16} className="animate-spin" />
+                              ) : (
+                                <X size={16} />
+                              )}
+                            </button>
+                          </>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -1217,11 +1208,10 @@ export default function EnhancedStartupReviewSection({
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className={`p-2 rounded ${
-                currentPage === 1
+              className={`p-2 rounded ${currentPage === 1
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-blue-600 hover:bg-blue-50"
-              }`}
+                }`}
               aria-label="First page"
             >
               <ChevronLeft size={16} className="ml-[-14px]" />
@@ -1230,11 +1220,10 @@ export default function EnhancedStartupReviewSection({
             <button
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className={`p-2 rounded ${
-                currentPage === 1
+              className={`p-2 rounded ${currentPage === 1
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-blue-600 hover:bg-blue-50"
-              }`}
+                }`}
               aria-label="Previous page"
             ></button>
 
@@ -1255,11 +1244,10 @@ export default function EnhancedStartupReviewSection({
                   <button
                     key={i}
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 flex items-center justify-center rounded ${
-                      currentPage === pageNum
+                    className={`w-8 h-8 flex items-center justify-center rounded ${currentPage === pageNum
                         ? "bg-blue-600 text-white"
                         : "hover:bg-blue-50 text-gray-700"
-                    }`}
+                      }`}
                     aria-label={`Page ${pageNum}`}
                     aria-current={currentPage === pageNum ? "page" : undefined}
                   >
@@ -1272,22 +1260,20 @@ export default function EnhancedStartupReviewSection({
             <button
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className={`p-2 rounded ${
-                currentPage === totalPages
+              className={`p-2 rounded ${currentPage === totalPages
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-blue-600 hover:bg-blue-50"
-              }`}
+                }`}
               aria-label="Next page"
             ></button>
 
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className={`p-2 rounded ${
-                currentPage === totalPages
+              className={`p-2 rounded ${currentPage === totalPages
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-blue-600 hover:bg-blue-50"
-              }`}
+                }`}
               aria-label="Last page"
             >
               <ChevronRight size={16} className="ml-[-14px]" />
@@ -1307,33 +1293,33 @@ export default function EnhancedStartupReviewSection({
               <div className="flex items-center space-x-3">
                 {(selectedStartup.status === "In Review" ||
                   selectedStartup.status === "Pending") && (
-                  <>
-                    <button
-                      onClick={() => handleInitiateReject(selectedStartup.id)}
-                      disabled={isActionLoading}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center text-sm disabled:opacity-50"
-                    >
-                      {isActionLoading ? (
-                        <Loader size={16} className="mr-1 animate-spin" />
-                      ) : (
-                        <X size={16} className="mr-1" />
-                      )}
-                      <span>Reject</span>
-                    </button>
-                    <button
-                      onClick={() => handleApprove(selectedStartup.id)}
-                      disabled={isActionLoading}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center text-sm disabled:opacity-50"
-                    >
-                      {isActionLoading ? (
-                        <Loader size={16} className="mr-1 animate-spin" />
-                      ) : (
-                        <Check size={16} className="mr-1" />
-                      )}
-                      <span>Approve</span>
-                    </button>
-                  </>
-                )}
+                    <>
+                      <button
+                        onClick={() => handleInitiateReject(selectedStartup.id)}
+                        disabled={isActionLoading}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center text-sm disabled:opacity-50"
+                      >
+                        {isActionLoading ? (
+                          <Loader size={16} className="mr-1 animate-spin" />
+                        ) : (
+                          <X size={16} className="mr-1" />
+                        )}
+                        <span>Reject</span>
+                      </button>
+                      <button
+                        onClick={() => handleApprove(selectedStartup.id)}
+                        disabled={isActionLoading}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center text-sm disabled:opacity-50"
+                      >
+                        {isActionLoading ? (
+                          <Loader size={16} className="mr-1 animate-spin" />
+                        ) : (
+                          <Check size={16} className="mr-1" />
+                        )}
+                        <span>Approve</span>
+                      </button>
+                    </>
+                  )}
                 <button
                   onClick={() => setIsPreviewOpen(false)}
                   className="p-1 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
@@ -1383,13 +1369,12 @@ export default function EnhancedStartupReviewSection({
                 <div className="flex items-center">
                   <Info size={18} className="text-blue-700 mr-2" />
                   <span
-                    className={`text-sm font-medium ${
-                      selectedStartup.status === "Approved"
+                    className={`text-sm font-medium ${selectedStartup.status === "Approved"
                         ? "text-green-700"
                         : selectedStartup.status === "Rejected"
-                        ? "text-red-700"
-                        : "text-blue-800"
-                    }`}
+                          ? "text-red-700"
+                          : "text-blue-800"
+                      }`}
                   >
                     Status:{" "}
                     <strong>{selectedStartup.status || "Pending"}</strong>
@@ -1680,7 +1665,7 @@ export default function EnhancedStartupReviewSection({
                             </svg>
                             Registration Certificate
                           </h4>
-                          
+
                           {loadingCertificate ? (
                             <div className="flex items-center justify-center py-8">
                               <Loader className="animate-spin text-purple-600 mr-2" size={20} />
@@ -1948,7 +1933,7 @@ export default function EnhancedStartupReviewSection({
                           <p className="text-xs text-gray-500">
                             {formatDate(
                               selectedStartup.createdAt ||
-                                selectedStartup.foundedDate
+                              selectedStartup.foundedDate
                             )}
                           </p>
                         </div>
@@ -1965,7 +1950,7 @@ export default function EnhancedStartupReviewSection({
                           <p className="text-xs text-gray-500">
                             {formatDate(
                               selectedStartup.emailVerifiedAt ||
-                                selectedStartup.foundedDate
+                              selectedStartup.foundedDate
                             )}
                           </p>
                         </div>
@@ -1973,13 +1958,12 @@ export default function EnhancedStartupReviewSection({
 
                       <div className="flex items-start">
                         <div
-                          className={`${
-                            selectedStartup.status === "Approved"
+                          className={`${selectedStartup.status === "Approved"
                               ? "bg-green-100"
                               : selectedStartup.status === "Rejected"
-                              ? "bg-red-100"
-                              : "bg-gray-100"
-                          } rounded-full p-1 mr-3 mt-0.5`}
+                                ? "bg-red-100"
+                                : "bg-gray-100"
+                            } rounded-full p-1 mr-3 mt-0.5`}
                         >
                           {selectedStartup.status === "Approved" ? (
                             <Check size={14} className="text-green-700" />
@@ -1995,11 +1979,11 @@ export default function EnhancedStartupReviewSection({
                           </p>
                           <p className="text-xs text-gray-500">
                             {selectedStartup.status === "Approved" ||
-                            selectedStartup.status === "Rejected"
+                              selectedStartup.status === "Rejected"
                               ? formatDate(
-                                  selectedStartup.updatedAt ||
-                                    selectedStartup.foundedDate
-                                )
+                                selectedStartup.updatedAt ||
+                                selectedStartup.foundedDate
+                              )
                               : "Pending"}
                           </p>
                         </div>
@@ -2048,11 +2032,10 @@ export default function EnhancedStartupReviewSection({
                       <button
                         type="button"
                         onClick={() => setRejectionComment(reason)}
-                        className={`text-left text-gray-800 px-3 py-2 rounded-md w-full ${
-                          rejectionComment === reason
+                        className={`text-left text-gray-800 px-3 py-2 rounded-md w-full ${rejectionComment === reason
                             ? "bg-red-100 text-red-800"
                             : "hover:bg-gray-100"
-                        }`}
+                          }`}
                       >
                         {reason}
                       </button>
@@ -2067,7 +2050,7 @@ export default function EnhancedStartupReviewSection({
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
                   {rejectionComment === "Other (please specify)" ||
-                  !commonRejectionReasons.includes(rejectionComment)
+                    !commonRejectionReasons.includes(rejectionComment)
                     ? "Please specify:"
                     : "Additional comments (optional):"}
                 </label>

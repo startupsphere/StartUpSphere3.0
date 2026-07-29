@@ -84,49 +84,49 @@ export default function Startupmap({
   // Preload the stakeholder icon as soon as component mounts
 
   useEffect(() => {
-     const mockData = [];
-     const baseLng = 123.8907;
-     const baseLat = 10.3166;
-     const names = [
-       "TechHub Cebu Event", "Developers Meetup", "Startup Pitch Night", 
-       "AI Hackathon", "Founders Mixer", "Investor Panel", 
-       "Web3 Conference", "Design Sprint Workshop", "Cloud Computing Summit", 
-       "Local Tech Podcast Live", "University Tech Fair", "FinTech Forum",
-       "E-commerce Expo", "AgriTech Showcase", "HealthTech Symposium"
-     ];
-     for (let i = 0; i < 15; i++) {
-       const offsetLng = (Math.random() - 0.5) * 0.05;
-       const offsetLat = (Math.random() - 0.5) * 0.05;
-       const likes = Math.floor(Math.random() * 500) + 50;
-       const views = Math.floor(Math.random() * 2000) + 100;
-       const bookmarks = Math.floor(Math.random() * 80) + 5;
-       const engagementScore = likes + views + bookmarks;
-       mockData.push({
-         id: `engagement-mock-${i}`,
-         name: names[i],
-         locationLng: baseLng + offsetLng,
-         locationLat: baseLat + offsetLat,
-         likes, views, bookmarks, engagementScore
-       });
-     }
-     
-     // Add distinct blue zones (low engagement)
-     mockData.push({
-       id: 'engagement-mock-blue-1',
-       name: "Local Tech Meetup (Quiet Zone)",
-       locationLng: baseLng + 0.08,
-       locationLat: baseLat - 0.08,
-       likes: 2, views: 8, bookmarks: 1, engagementScore: 11
-     });
-     mockData.push({
-       id: 'engagement-mock-blue-2',
-       name: "New Founder Intro (Developing)",
-       locationLng: baseLng - 0.07,
-       locationLat: baseLat + 0.06,
-       likes: 0, views: 5, bookmarks: 0, engagementScore: 5
-     });
-     
-     setEngagementMarkers(mockData);
+    const mockData = [];
+    const baseLng = 123.8907;
+    const baseLat = 10.3166;
+    const names = [
+      "TechHub Cebu Event", "Developers Meetup", "Startup Pitch Night",
+      "AI Hackathon", "Founders Mixer", "Investor Panel",
+      "Web3 Conference", "Design Sprint Workshop", "Cloud Computing Summit",
+      "Local Tech Podcast Live", "University Tech Fair", "FinTech Forum",
+      "E-commerce Expo", "AgriTech Showcase", "HealthTech Symposium"
+    ];
+    for (let i = 0; i < 15; i++) {
+      const offsetLng = (Math.random() - 0.5) * 0.05;
+      const offsetLat = (Math.random() - 0.5) * 0.05;
+      const likes = Math.floor(Math.random() * 500) + 50;
+      const views = Math.floor(Math.random() * 2000) + 100;
+      const bookmarks = Math.floor(Math.random() * 80) + 5;
+      const engagementScore = likes + views + bookmarks;
+      mockData.push({
+        id: `engagement-mock-${i}`,
+        name: names[i],
+        locationLng: baseLng + offsetLng,
+        locationLat: baseLat + offsetLat,
+        likes, views, bookmarks, engagementScore
+      });
+    }
+
+    // Add distinct blue zones (low engagement)
+    mockData.push({
+      id: 'engagement-mock-blue-1',
+      name: "Local Tech Meetup (Quiet Zone)",
+      locationLng: baseLng + 0.08,
+      locationLat: baseLat - 0.08,
+      likes: 2, views: 8, bookmarks: 1, engagementScore: 11
+    });
+    mockData.push({
+      id: 'engagement-mock-blue-2',
+      name: "New Founder Intro (Developing)",
+      locationLng: baseLng - 0.07,
+      locationLat: baseLat + 0.06,
+      likes: 0, views: 5, bookmarks: 0, engagementScore: 5
+    });
+
+    setEngagementMarkers(mockData);
   }, []);
 
   useEffect(() => {
@@ -664,16 +664,16 @@ export default function Startupmap({
       return;
     }
     const sourceId = "engagement-src";
-    
+
     const features = markers.map(s => ({
       type: "Feature",
       id: s.id,
       properties: s,
       geometry: { type: "Point", coordinates: [s.locationLng, s.locationLat] }
     }));
-    
+
     const data = { type: "FeatureCollection", features };
-    
+
     if (map.getSource(sourceId)) {
       try { map.getSource(sourceId).setData(data); } catch { }
     } else {
@@ -790,13 +790,13 @@ export default function Startupmap({
     const features = startupsWithLocation.map((s) => {
       const lat = typeof s.locationLat === "string" ? parseFloat(s.locationLat) : s.locationLat;
       const lng = typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng;
-      
+
       let trlScore = 0;
       if (s.trlLevel && typeof s.trlLevel === 'string') {
         const match = s.trlLevel.match(/TRL\s*(\d)/i);
         if (match) trlScore = parseInt(match[1], 10);
       }
-      
+
       let colorClass = 1; // Default Green
       if (trlScore >= 1 && trlScore <= 3) colorClass = 1; // Green
       else if (trlScore >= 4 && trlScore <= 6) colorClass = 2; // Yellow
@@ -1000,7 +1000,7 @@ export default function Startupmap({
         // Add click event to expand zones (making gradients, core, and text count all clickable)
         if (!map.__zoneEventsAdded) {
           map.__zoneEventsAdded = true;
-          
+
           const handleClusterClick = (e, layerName) => {
             const features = map.queryRenderedFeatures(e.point, {
               layers: [layerName]
@@ -1091,7 +1091,7 @@ export default function Startupmap({
           map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), speed: 0.8, curve: 1.2, essential: true });
 
           const props = f.properties || {};
-          
+
           // Initial popup with Loading State
           const initialHtml = `
             <style>
@@ -1152,7 +1152,7 @@ export default function Startupmap({
           try {
             const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            
+
             // 1. Fetch live database details, likes, bookmarks, and views concurrently
             const [detailRes, likesRes, bookmarksRes, viewsRes] = await Promise.all([
               fetch(`${backendUrl}/startups/${id}`, { credentials: "include" }),
@@ -1181,7 +1181,7 @@ export default function Startupmap({
             // 2. Fetch summary from Gemini
             let aiText = "AI analysis could not be generated at this time.";
             if (apiKey) {
-              const systemInstruction = 
+              const systemInstruction =
                 "You are the StartUpSphere AI Analyst. Summarize this startup's business model, technology readiness level (TRL), and potential strength in 2-3 sentences or clear bullet points.\\n" +
                 "Keep it simple and direct. Do NOT include preambles, introductory phrases, or conversational filler (e.g. do not say 'Sure! Here is...', or 'Based on the details...'). Start your response directly with the business insights.\\n" +
                 "Limit the summary to exactly 70-90 words to fit cleanly in a map popup bubble.";
@@ -1282,15 +1282,15 @@ export default function Startupmap({
                       </div>
                       <div style="display: flex; gap: 3px; width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; box-sizing: border-box;">
                         ${Array.from({ length: 9 }).map((_, idx) => {
-                          const active = idx < trlValue;
-                          let color = '#e2e8f0';
-                          if (active) {
-                            if (trlValue <= 3) color = '#10b981'; // Green
-                            else if (trlValue <= 6) color = '#f59e0b'; // Amber/Yellow
-                            else color = '#ef4444'; // Red
-                          }
-                          return '<div style="flex: 1; height: 100%; background: ' + color + '; border-radius: 1px; transition: background 0.3s ease;"></div>';
-                        }).join('')}
+                const active = idx < trlValue;
+                let color = '#e2e8f0';
+                if (active) {
+                  if (trlValue <= 3) color = '#10b981'; // Green
+                  else if (trlValue <= 6) color = '#f59e0b'; // Amber/Yellow
+                  else color = '#ef4444'; // Red
+                }
+                return '<div style="flex: 1; height: 100%; background: ' + color + '; border-radius: 1px; transition: background 0.3s ease;"></div>';
+              }).join('')}
                       </div>
                     </div>` : ''}
 
@@ -1692,7 +1692,7 @@ export default function Startupmap({
     setShowHeatmap((prev) => {
       const next = !prev;
       const layers = [
-        "startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count", 
+        "startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count",
         "startups-unclustered-gradient", "startups-unclustered-core",
         "engagement-heatmap-layer", "engagement-click-zone"
       ];
@@ -1700,7 +1700,7 @@ export default function Startupmap({
         if (map.getLayer(layerId)) {
           try {
             map.setLayoutProperty(layerId, "visibility", next ? "visible" : "none");
-          } catch (e) {}
+          } catch (e) { }
         }
       });
       return next;
@@ -1730,13 +1730,13 @@ export default function Startupmap({
 
     trlLayers.forEach(layer => {
       if (map.getLayer(layer)) {
-        try { map.setLayoutProperty(layer, 'visibility', showHeatmap && heatmapMode === "TRL" ? 'visible' : 'none'); } catch (e) {}
+        try { map.setLayoutProperty(layer, 'visibility', showHeatmap && heatmapMode === "TRL" ? 'visible' : 'none'); } catch (e) { }
       }
     });
 
     engagementLayers.forEach(layer => {
       if (map.getLayer(layer)) {
-        try { map.setLayoutProperty(layer, 'visibility', showHeatmap && heatmapMode === "ENGAGEMENT" ? 'visible' : 'none'); } catch (e) {}
+        try { map.setLayoutProperty(layer, 'visibility', showHeatmap && heatmapMode === "ENGAGEMENT" ? 'visible' : 'none'); } catch (e) { }
       }
     });
   }, [heatmapMode, showHeatmap]);
@@ -4112,7 +4112,7 @@ export default function Startupmap({
         style={{ width: "260px" }}
       >
         <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Heatmap Mode</h3>
-        
+
         <div className="flex bg-gray-100 rounded-lg p-1 mb-4 pointer-events-auto cursor-pointer">
           <button
             onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
@@ -4176,9 +4176,9 @@ export default function Startupmap({
       </div>
 
       {selectedEngagementData && (
-        <EngagementChart 
-          data={selectedEngagementData} 
-          onClose={() => setSelectedEngagementData(null)} 
+        <EngagementChart
+          data={selectedEngagementData}
+          onClose={() => setSelectedEngagementData(null)}
         />
       )}
 

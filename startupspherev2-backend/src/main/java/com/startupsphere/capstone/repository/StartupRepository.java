@@ -19,7 +19,9 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
            "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.businessActivity) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.foundedDate) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.registrationDate) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<Startup> searchAllFields(@Param("query") String query, Pageable pageable);
 
     @Query("SELECT s FROM Startup s WHERE " +
@@ -28,7 +30,9 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
            "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.businessActivity) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+           "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.foundedDate) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(s.registrationDate) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Startup> searchAllFields(@Param("query") String query);
 
     Page<Startup> findByUser_Id(Integer userId, Pageable pageable);
@@ -102,11 +106,19 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
 
     @Query("SELECT s FROM Startup s WHERE " +
             "LOWER(s.companyName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(s.industry) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.foundedDate) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.registrationDate) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<Startup> searchByFields(@Param("query") String query, Pageable pageable);
     
     @Query("SELECT s FROM Startup s WHERE " +
             "LOWER(s.companyName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(s.industry) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.companyDescription) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.foundedDate) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.registrationDate) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Startup> searchByFields(@Param("query") String query);
 }

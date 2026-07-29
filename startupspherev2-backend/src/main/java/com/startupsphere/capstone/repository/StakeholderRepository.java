@@ -13,6 +13,10 @@ public interface StakeholderRepository extends JpaRepository<Stakeholder, Long> 
 
     @Query("SELECT s FROM Stakeholder s WHERE " +
             "LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(s.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.locationName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.region) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.province) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(s.city) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Stakeholder> searchByFields(@Param("query") String query);
 }

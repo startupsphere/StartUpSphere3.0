@@ -198,7 +198,7 @@ export default function Sidebar({
       try {
         // Immediate resize
         mapInstanceRef.current.resize();
-        
+
         // Periodic resize to smooth out the slide-in/out transitions
         const interval = setInterval(() => {
           try {
@@ -217,7 +217,7 @@ export default function Sidebar({
             if (mapInstanceRef.current) {
               mapInstanceRef.current.resize();
             }
-          } catch (e) {}
+          } catch (e) { }
         }, 350);
 
         return () => {
@@ -360,7 +360,7 @@ export default function Sidebar({
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   // Close all sidebar panels and the sidebar itself when navigating to a different page
   // Only close sidebar panels if the route actually changes
@@ -477,20 +477,20 @@ export default function Sidebar({
     }
   }, []);
 
-  const addToRecents = async(type,id) =>{
+  const addToRecents = async (type, id) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}/${id}`,{
-        method:'POST',
-        headers:{
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}/${id}`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json'
         },
-        credentials:'include'
+        credentials: 'include'
       })
       const data = await response.json();
-      if(response.ok){
-        console.log(`Startup with an id ${id} has successfully added to recents: `,data)
-      }else{
-        console.log(`Error adding startup with an id ${id}: `,data)
+      if (response.ok) {
+        console.log(`Startup with an id ${id} has successfully added to recents: `, data)
+      } else {
+        console.log(`Error adding startup with an id ${id}: `, data)
       }
     } catch (error) {
       console.log(error)
@@ -500,20 +500,20 @@ export default function Sidebar({
 
   const getRecents = async (type) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}`,{
-        credentials:'include'
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}`, {
+        credentials: 'include'
       })
 
       const data = await response.json();
-      if(response.ok){
-        console.log(`Fetched ${type} recents: `,data)
-        if(type === "stakeholders"){
+      if (response.ok) {
+        console.log(`Fetched ${type} recents: `, data)
+        if (type === "stakeholders") {
           setRecentStakeholders(data)
-        }else if(type === "startups"){
+        } else if (type === "startups") {
           setRecentStartups(data);
         }
-      }else{
-        console.log(`Error fetching ${type}: `,data)
+      } else {
+        console.log(`Error fetching ${type}: `, data)
       }
     } catch (error) {
       console.log(error)
@@ -537,7 +537,7 @@ export default function Sidebar({
         console.log("Logout successful");
         setShowLogoutConfirm(false);
         setShowLogoutSuccess(true);
-        
+
         setTimeout(() => {
           setIsAuthenticated(false);
           setUser(null);
@@ -602,8 +602,7 @@ export default function Sidebar({
       });
 
       const response = await fetch(
-        `${
-          import.meta.env.VITE_BACKEND_URL
+        `${import.meta.env.VITE_BACKEND_URL
         }/startups/approved?${params.toString()}`,
         {
           credentials: "include",
@@ -800,8 +799,7 @@ export default function Sidebar({
 
     // Increment views and other logic
     fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/startups/${
-        startup.id
+      `${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id
       }/increment-views`,
       {
         method: "PUT",
@@ -832,7 +830,7 @@ export default function Sidebar({
     }
 
     // Add the startup to recents and update the UI
-    addToRecents("startup",startup.id);
+    addToRecents("startup", startup.id);
     setStartup(startup);
     setShowSearchContainer(false);
   };
@@ -868,8 +866,7 @@ export default function Sidebar({
 
     // Increment views on the backend by sending a PUT request
     fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/stakeholders/${
-        stakeholder.id
+      `${import.meta.env.VITE_BACKEND_URL}/stakeholders/${stakeholder.id
       }/increment-views`,
       {
         method: "PUT",
@@ -932,7 +929,7 @@ export default function Sidebar({
     }
 
     // Add the stakeholder to recents and update the UI
-    addToRecents("stakeholder",stakeholder.id);
+    addToRecents("stakeholder", stakeholder.id);
     setStakeholder(stakeholder);
     setShowSearchContainer(false);
   };
@@ -1118,8 +1115,7 @@ export default function Sidebar({
 
           if (existingBookmark) {
             const deleteResponse = await fetch(
-              `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks/${
-                existingBookmark.id
+              `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks/${existingBookmark.id
               }`,
               {
                 method: "DELETE",
@@ -1248,11 +1244,50 @@ export default function Sidebar({
     // If no query, return all items
     if (!currentFilters.query && currentFilters.actorType === "All") return items;
 
-    // Helper function to safely check if a field contains the query
+    // Helper function to safely check if a field contains the query (with robust date & year matching)
     const safeFieldCheck = (fieldValue, query) => {
       try {
-        if (!fieldValue || typeof fieldValue !== "string") return false;
-        return fieldValue.toLowerCase().includes(query.toLowerCase());
+        if (fieldValue === null || fieldValue === undefined) return false;
+        const queryLower = query.trim().toLowerCase();
+        if (!queryLower) return true;
+
+        // Direct string or numeric check
+        const rawStr = String(fieldValue).toLowerCase();
+        if (rawStr.includes(queryLower)) return true;
+
+        // Enhanced Date & Year Parsing: match exact year (e.g. "2024"), ISO date ("2024-05"), or formatted date
+        const parsedDate = new Date(fieldValue);
+        if (!isNaN(parsedDate.getTime()) && (typeof fieldValue === "string" || fieldValue instanceof Date || typeof fieldValue === "number")) {
+          const year = parsedDate.getFullYear().toString();
+          const monthNum = (parsedDate.getMonth() + 1).toString();
+          const monthPadded = monthNum.padStart(2, "0");
+          const dayNum = parsedDate.getDate().toString();
+          const dayPadded = dayNum.padStart(2, "0");
+
+          const monthLong = parsedDate.toLocaleString("en-US", { month: "long" }).toLowerCase();
+          const monthShort = parsedDate.toLocaleString("en-US", { month: "short" }).toLowerCase();
+
+          const dateVariants = [
+            year,
+            `${year}-${monthPadded}-${dayPadded}`,
+            `${year}-${monthPadded}`,
+            `${monthPadded}/${dayPadded}/${year}`,
+            `${dayPadded}/${monthPadded}/${year}`,
+            `${monthNum}/${dayNum}/${year}`,
+            `${monthLong} ${dayNum}, ${year}`,
+            `${monthLong} ${year}`,
+            `${monthShort} ${dayNum}, ${year}`,
+            `${monthShort} ${year}`,
+            `${monthLong}`,
+            `${monthShort}`
+          ];
+
+          if (dateVariants.some((variant) => variant.includes(queryLower))) {
+            return true;
+          }
+        }
+
+        return false;
       } catch (error) {
         console.warn("Error checking field:", error);
         return false;
@@ -1268,16 +1303,44 @@ export default function Sidebar({
 
         const query = currentFilters.query.trim();
         const searchField = currentFilters.searchField || "All";
-        
-        const startupFields = ["companyName", "industry", "companyDescription", "city", "status", "businessActivity", "foundedDate"];
-        const stakeholderFields = ["name", "email", "region", "organization", "city", "province", "sector", "biography", "phoneNumber", "linkedIn", "facebook"];
-        
-        const fieldsToCheck = searchField === "All" 
-          ? (viewingType === "startups" ? startupFields : stakeholderFields) 
-          : [searchField];
+
+        const startupFields = [
+          "companyName",
+          "industry",
+          "companyDescription",
+          "city",
+          "status",
+          "businessActivity",
+          "foundedDate",
+          "registrationDate"
+        ];
+        const stakeholderFields = [
+          "name",
+          "email",
+          "region",
+          "organization",
+          "city",
+          "province",
+          "sector",
+          "biography",
+          "phoneNumber",
+          "linkedIn",
+          "facebook"
+        ];
+
+        let fieldsToCheck;
+        if (searchField === "All") {
+          fieldsToCheck = viewingType === "startups" ? startupFields : stakeholderFields;
+        } else if (searchField === "foundedDate") {
+          fieldsToCheck = ["foundedDate"];
+        } else if (searchField === "registrationDate") {
+          fieldsToCheck = ["registrationDate"];
+        } else {
+          fieldsToCheck = [searchField];
+        }
 
         const matchesQuery = !query || fieldsToCheck.some(f => safeFieldCheck(item[f], query));
-            
+
         const matchesActorType = currentFilters.actorType === "All" || (item.role || "ROLE_STARTUP") === currentFilters.actorType;
         return matchesQuery && matchesActorType;
       } catch (error) {
@@ -1541,11 +1604,10 @@ export default function Sidebar({
                 {/* Gemini AI Sparkles Icon */}
                 <li className="flex justify-center">
                   <button
-                    className={`group relative flex flex-col items-center justify-center rounded-lg p-3 transition-all duration-200 cursor-pointer ${
-                      showGeminiAi 
-                        ? "bg-indigo-50 text-indigo-600" 
-                        : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                    }`}
+                    className={`group relative flex flex-col items-center justify-center rounded-lg p-3 transition-all duration-200 cursor-pointer ${showGeminiAi
+                      ? "bg-indigo-50 text-indigo-600"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                      }`}
                     onClick={() => {
                       setShowSearchContainer(false);
                       setShowRecents(false);
@@ -1631,10 +1693,9 @@ export default function Sidebar({
                   {isAuthenticated === null
                     ? "?"
                     : isAuthenticated && currentUser
-                    ? `${currentUser.firstname?.[0] ?? ""}${
-                        currentUser.lastname?.[0] ?? ""
-                      }`.toUpperCase()
-                    : "G"}
+                      ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""
+                        }`.toUpperCase()
+                      : "G"}
                 </span>
               </div>
             </div>
@@ -1643,11 +1704,10 @@ export default function Sidebar({
               <div className="absolute top-14 right-0 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
                 {/* Header - Different for admin vs regular users */}
                 <div
-                  className={`px-4 py-3 border-b border-gray-100 ${
-                    currentUser?.role === "ROLE_ADMIN"
-                      ? "bg-gradient-to-r from-amber-50 to-white"
-                      : "bg-gradient-to-r from-blue-50 to-white"
-                  } flex justify-between items-center`}
+                  className={`px-4 py-3 border-b border-gray-100 ${currentUser?.role === "ROLE_ADMIN"
+                    ? "bg-gradient-to-r from-amber-50 to-white"
+                    : "bg-gradient-to-r from-blue-50 to-white"
+                    } flex justify-between items-center`}
                 >
                   <h3 className="text-sm font-semibold text-gray-900">
                     {currentUser?.role === "ROLE_ADMIN"
@@ -1658,15 +1718,14 @@ export default function Sidebar({
                     onClick={() =>
                       currentUser?.role === "ROLE_ADMIN"
                         ? navigate("/all-startup-dashboard", {
-                            state: { activeTab: "review" },
-                          })
+                          state: { activeTab: "review" },
+                        })
                         : navigate("/notifications")
                     }
-                    className={`text-xs ${
-                      currentUser?.role === "ROLE_ADMIN"
-                        ? "text-amber-600 hover:text-amber-800"
-                        : "text-blue-600 hover:text-blue-800"
-                    } hover:underline`}
+                    className={`text-xs ${currentUser?.role === "ROLE_ADMIN"
+                      ? "text-amber-600 hover:text-amber-800"
+                      : "text-blue-600 hover:text-blue-800"
+                      } hover:underline`}
                   >
                     {currentUser?.role === "ROLE_ADMIN"
                       ? "View all submissions"
@@ -1703,9 +1762,8 @@ export default function Sidebar({
                               <div className="relative">
                                 {startup.photo ? (
                                   <img
-                                    src={`${
-                                      import.meta.env.VITE_BACKEND_URL
-                                    }/startups/${startup.id}/photo`}
+                                    src={`${import.meta.env.VITE_BACKEND_URL
+                                      }/startups/${startup.id}/photo`}
                                     alt={startup.companyName}
                                     className="h-12 w-12 rounded-lg object-cover border border-gray-200"
                                     onError={(e) => {
@@ -1805,7 +1863,7 @@ export default function Sidebar({
                           >
                             <path
                               strokeLinecap="round"
-                              strokeLinejoin="round" 
+                              strokeLinejoin="round"
                               strokeWidth={2}
                               d="M5 13l4 4L19 7"
                             />
@@ -1825,9 +1883,8 @@ export default function Sidebar({
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-500">
                           {adminSubmissionsCount > 0
-                            ? `${adminSubmissionsCount} submission${
-                                adminSubmissionsCount !== 1 ? "s" : ""
-                              } awaiting review`
+                            ? `${adminSubmissionsCount} submission${adminSubmissionsCount !== 1 ? "s" : ""
+                            } awaiting review`
                             : "No pending submissions"}
                         </span>
                         <button
@@ -1858,12 +1915,11 @@ export default function Sidebar({
                               fetchNewNotifications();
                             }
                           }}
-                          className={`flex-1 py-2 text-sm font-medium text-center ${
-                            notificationActiveIndex === tab &&
+                          className={`flex-1 py-2 text-sm font-medium text-center ${notificationActiveIndex === tab &&
                             !notificationAdminTab
-                              ? "text-blue-600 border-b-2 border-blue-600"
-                              : "text-gray-500 hover:text-gray-700"
-                          }`}
+                            ? "text-blue-600 border-b-2 border-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                            }`}
                         >
                           {tab}
                           {tab === "New" && notificationsCount > 0 && (
@@ -1889,7 +1945,7 @@ export default function Sidebar({
                         notificationActiveIndex === "All" && (
                           <>
                             {Array.isArray(notifications) &&
-                            notifications.length > 0 ? (
+                              notifications.length > 0 ? (
                               <div className="divide-y divide-gray-100">
                                 {/* Existing notification mapping code */}
                                 {notifications.map((noti, index) => (
@@ -1900,20 +1956,17 @@ export default function Sidebar({
                                       if (!noti.viewed) markAsViewed(noti.id);
                                     }}
                                     key={index}
-                                    className={`p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer ${
-                                      !noti.viewed ? "bg-blue-50" : ""
-                                    }`}
+                                    className={`p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer ${!noti.viewed ? "bg-blue-50" : ""
+                                      }`}
                                   >
                                     {/* Avatar/Icon */}
                                     <div className="flex-shrink-0 mr-3">
                                       {noti.startup?.photo ? (
                                         <div className="relative">
                                           <img
-                                            src={`${
-                                              import.meta.env.VITE_BACKEND_URL
-                                            }/startups/${
-                                              noti.startup.id
-                                            }/photo`}
+                                            src={`${import.meta.env.VITE_BACKEND_URL
+                                              }/startups/${noti.startup.id
+                                              }/photo`}
                                             alt={noti.startup.companyName}
                                             className="h-10 w-10 rounded-full object-cover border border-gray-200"
                                             onError={(e) => {
@@ -2000,11 +2053,9 @@ export default function Sidebar({
                                       {noti.startup?.photo ? (
                                         <div className="relative">
                                           <img
-                                            src={`${
-                                              import.meta.env.VITE_BACKEND_URL
-                                            }/startups/${
-                                              noti.startup.id
-                                            }/photo`}
+                                            src={`${import.meta.env.VITE_BACKEND_URL
+                                              }/startups/${noti.startup.id
+                                              }/photo`}
                                             alt={noti.startup.companyName}
                                             className="h-10 w-10 rounded-full object-cover border border-gray-200"
                                             onError={(e) => {
@@ -2108,27 +2159,26 @@ export default function Sidebar({
                         </div>
                         {currentUser?.role && (
                           <div className="mt-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
-                              currentUser.role === 'ROLE_ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${currentUser.role === 'ROLE_ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
                               currentUser.role === 'ROLE_STARTUP' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                              currentUser.role === 'ROLE_HEI' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
-                              currentUser.role === 'ROLE_SME' ? 'bg-green-100 text-green-800 border border-green-200' :
-                              currentUser.role === 'ROLE_RESEARCH' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                              currentUser.role === 'ROLE_INNOVATION' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
-                              currentUser.role === 'ROLE_SUPPORT' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
-                              currentUser.role === 'ROLE_GOVERNMENT' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                              'bg-gray-100 text-gray-800 border border-gray-200'
-                            }`}>
+                                currentUser.role === 'ROLE_HEI' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
+                                  currentUser.role === 'ROLE_SME' ? 'bg-green-100 text-green-800 border border-green-200' :
+                                    currentUser.role === 'ROLE_RESEARCH' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                      currentUser.role === 'ROLE_INNOVATION' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
+                                        currentUser.role === 'ROLE_SUPPORT' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
+                                          currentUser.role === 'ROLE_GOVERNMENT' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                                            'bg-gray-100 text-gray-800 border border-gray-200'
+                              }`}>
                               {
                                 currentUser.role === 'ROLE_ADMIN' ? 'Admin' :
-                                currentUser.role === 'ROLE_STARTUP' ? 'Startup' :
-                                currentUser.role === 'ROLE_HEI' ? 'University / HEI' :
-                                currentUser.role === 'ROLE_SME' ? 'SME / Business' :
-                                currentUser.role === 'ROLE_RESEARCH' ? 'Research Institution' :
-                                currentUser.role === 'ROLE_INNOVATION' ? 'Innovation Output' :
-                                currentUser.role === 'ROLE_SUPPORT' ? 'Support Organization' :
-                                currentUser.role === 'ROLE_GOVERNMENT' ? 'Government / Funding' :
-                                'Standard User'
+                                  currentUser.role === 'ROLE_STARTUP' ? 'Startup' :
+                                    currentUser.role === 'ROLE_HEI' ? 'University / HEI' :
+                                      currentUser.role === 'ROLE_SME' ? 'SME / Business' :
+                                        currentUser.role === 'ROLE_RESEARCH' ? 'Research Institution' :
+                                          currentUser.role === 'ROLE_INNOVATION' ? 'Innovation Output' :
+                                            currentUser.role === 'ROLE_SUPPORT' ? 'Support Organization' :
+                                              currentUser.role === 'ROLE_GOVERNMENT' ? 'Government / Funding' :
+                                                'Standard User'
                               }
                             </span>
                           </div>
@@ -2274,8 +2324,8 @@ export default function Sidebar({
                   className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full pl-10 pr-4 py-2.5 shadow-sm"
                   placeholder={
                     viewingType === "startups"
-                      ? "Search by company name, industry, description, city, status, business activity, founded year..."
-                      : "Search stakeholders by name, organization, location..."
+                      ? "Search by company name, industry, description, city, status, establish date/year..."
+                      : "Search stakeholders by name, organization, location, date..."
                   }
                 />
               </div>
@@ -2285,39 +2335,35 @@ export default function Sidebar({
             <div className="flex gap-2 p-1 bg-blue-800/40 rounded-lg">
               <button
                 onClick={() => setViewingType("startups")}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                  viewingType === "startups"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white/90 hover:text-white hover:bg-white/10"
-                }`}
+                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${viewingType === "startups"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-white/90 hover:text-white hover:bg-white/10"
+                  }`}
               >
                 <div className="flex items-center justify-center">
                   <BsBriefcase
-                    className={`mr-2 h-4 w-4 ${
-                      viewingType === "startups"
-                        ? "text-blue-600"
-                        : "text-white/80"
-                    }`}
+                    className={`mr-2 h-4 w-4 ${viewingType === "startups"
+                      ? "text-blue-600"
+                      : "text-white/80"
+                      }`}
                   />
                   Innovations
                 </div>
               </button>
               <button
                 onClick={() => setViewingType("stakeholders")}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                  viewingType === "stakeholders"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white/90 hover:text-white hover:bg-white/10"
-                }`}
+                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${viewingType === "stakeholders"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-white/90 hover:text-white hover:bg-white/10"
+                  }`}
               >
                 <div className="flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`mr-2 h-4 w-4 ${
-                      viewingType === "stakeholders"
-                        ? "text-blue-600"
-                        : "text-white/80"
-                    }`}
+                    className={`mr-2 h-4 w-4 ${viewingType === "stakeholders"
+                      ? "text-blue-600"
+                      : "text-white/80"
+                      }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -2333,63 +2379,65 @@ export default function Sidebar({
                 </div>
               </button>
             </div>
-            
-            {viewingType === "startups" && (
-                <div className="mt-3">
-                  <select
-                    value={filters.startups.actorType || "All"}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFilters((prev) => ({
-                        ...prev,
-                        startups: { ...prev.startups, actorType: value },
-                      }));
-                    }}
-                    className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
-                  >
-                    <option value="All">All Innovation Types</option>
-                    <option value="ROLE_STARTUP">Startup</option>
-                    <option value="ROLE_HEI">University / HEI</option>
-                    <option value="ROLE_RESEARCH">Research Institution</option>
-                  </select>
-                </div>
-              )}
 
+            {viewingType === "startups" && (
               <div className="mt-3">
                 <select
-                  value={
-                    (viewingType === "startups"
-                      ? filters.startups.searchField
-                      : filters.stakeholders.searchField) || "All"
-                  }
+                  value={filters.startups.actorType || "All"}
                   onChange={(e) => {
                     const value = e.target.value;
                     setFilters((prev) => ({
                       ...prev,
-                      [viewingType]: { ...prev[viewingType], searchField: value },
+                      startups: { ...prev.startups, actorType: value },
                     }));
                   }}
                   className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
                 >
-                  <option value="All">Search In: All Fields</option>
-                  {viewingType === "startups" ? (
-                    <>
-                      <option value="companyName">Company Name</option>
-                      <option value="industry">Industry</option>
-                      <option value="companyDescription">Description</option>
-                      <option value="city">City</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="name">Name</option>
-                      <option value="organization">Organization</option>
-                      <option value="sector">Sector</option>
-                      <option value="biography">Biography</option>
-                    </>
-                  )}
+                  <option value="All">All Innovation Types</option>
+                  <option value="ROLE_STARTUP">Startup</option>
+                  <option value="ROLE_HEI">University / HEI</option>
+                  <option value="ROLE_RESEARCH">Research Institution</option>
                 </select>
               </div>
-            
+            )}
+
+            <div className="mt-3">
+              <select
+                value={
+                  (viewingType === "startups"
+                    ? filters.startups.searchField
+                    : filters.stakeholders.searchField) || "All"
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilters((prev) => ({
+                    ...prev,
+                    [viewingType]: { ...prev[viewingType], searchField: value },
+                  }));
+                }}
+                className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
+              >
+                <option value="All">Search In: All Fields</option>
+                {viewingType === "startups" ? (
+                  <>
+                    <option value="companyName">Company Name</option>
+                    <option value="industry">Industry</option>
+                    <option value="companyDescription">Description</option>
+                    <option value="city">City</option>
+                    <option value="foundedDate">Established / Founded Date (Year)</option>
+                    <option value="registrationDate">Registration Date</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="name">Name</option>
+                    <option value="organization">Organization</option>
+                    <option value="sector">Sector</option>
+                    <option value="biography">Biography</option>
+                  </>
+                )}
+              </select>
+            </div>
+
             {/* Search Input Container */}  </div>
 
           <div className="h-[calc(100vh-200px)] overflow-y-auto p-4 space-y-4">
@@ -2403,16 +2451,15 @@ export default function Sidebar({
                   applyFilters(startups).map((startup) => (
                     <div
                       key={startup.id}
-                      onClick={() => handleStartupClick(startup,'startup')}
+                      onClick={() => handleStartupClick(startup, 'startup')}
                       className="bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 cursor-pointer group"
                     >
                       <div className="flex items-start space-x-3">
                         {/* Startup Logo */}
                         <div className="flex-shrink-0">
                           <img
-                            src={`${
-                              import.meta.env.VITE_BACKEND_URL
-                            }/startups/${startup.id}/photo`}
+                            src={`${import.meta.env.VITE_BACKEND_URL
+                              }/startups/${startup.id}/photo`}
                             alt={startup.companyName}
                             className="h-12 w-12 rounded-md object-cover border border-gray-100 shadow-sm group-hover:shadow transition-shadow"
                             onError={(e) => {
@@ -2676,21 +2723,19 @@ export default function Sidebar({
             <div className="flex gap-2">
               <button
                 onClick={() => setViewingType("startups")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  viewingType === "startups"
-                    ? "bg-white text-blue-600"
-                    : "bg-white/20 text-white hover:bg-white/30"
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${viewingType === "startups"
+                  ? "bg-white text-blue-600"
+                  : "bg-white/20 text-white hover:bg-white/30"
+                  }`}
               >
                 Startups
               </button>
               <button
                 onClick={() => setViewingType("stakeholders")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  viewingType === "stakeholders"
-                    ? "bg-white text-blue-600"
-                    : "bg-white/20 text-white hover:bg-white/30"
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${viewingType === "stakeholders"
+                  ? "bg-white text-blue-600"
+                  : "bg-white/20 text-white hover:bg-white/30"
+                  }`}
               >
                 Stakeholders
               </button>
@@ -2711,9 +2756,8 @@ export default function Sidebar({
                       <div className="flex items-center mb-2">
                         {/* Add startup image */}
                         <img
-                          src={`${import.meta.env.VITE_BACKEND_URL}/startups/${
-                            startup?.id
-                          }/photo`}
+                          src={`${import.meta.env.VITE_BACKEND_URL}/startups/${startup?.id
+                            }/photo`}
                           alt={startup?.companyName}
                           className="h-10 w-10 rounded-lg object-cover border border-gray-200 mr-3"
                           onError={(e) => {
@@ -2822,9 +2866,8 @@ export default function Sidebar({
             <div className="flex items-center gap-1">
               <button
                 onClick={toggleBookmark}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${
-                  isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
-                }`}
+                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
+                  }`}
                 title={
                   isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
                 }
@@ -2837,11 +2880,10 @@ export default function Sidebar({
               </button>
               <button
                 onClick={() => toggleLike(user?.id, null, stakeholder.id)}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${
-                  likedStakeholders?.includes(stakeholder.id)
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
+                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${likedStakeholders?.includes(stakeholder.id)
+                  ? "text-red-500"
+                  : "text-gray-500"
+                  }`}
                 title={
                   likedStakeholders?.includes(stakeholder.id)
                     ? "Unlike"
@@ -2885,13 +2927,13 @@ export default function Sidebar({
               <div className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-3xl font-medium mr-4 border-2 border-white/50 shadow-lg">
                 {stakeholder.name
                   ? (() => {
-                      const names = stakeholder.name.split(" ");
-                      if (names.length === 1)
-                        return names[0].charAt(0).toUpperCase();
-                      return `${names[0].charAt(0)}${names[
-                        names.length - 1
-                      ].charAt(0)}`.toUpperCase();
-                    })()
+                    const names = stakeholder.name.split(" ");
+                    if (names.length === 1)
+                      return names[0].charAt(0).toUpperCase();
+                    return `${names[0].charAt(0)}${names[
+                      names.length - 1
+                    ].charAt(0)}`.toUpperCase();
+                  })()
                   : "S"}
               </div>
 
@@ -3121,7 +3163,7 @@ export default function Sidebar({
                           stakeholder.province,
                           stakeholder.region,
                           stakeholder.postalCode &&
-                            `Postal Code: ${stakeholder.postalCode}`,
+                          `Postal Code: ${stakeholder.postalCode}`,
                         ]
                           .filter(Boolean)
                           .join(", ")}
@@ -3357,9 +3399,8 @@ export default function Sidebar({
             <div className="flex items-center gap-1">
               <button
                 onClick={toggleBookmark}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${
-                  isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
-                }`}
+                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
+                  }`}
                 title={
                   isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
                 }
@@ -3372,11 +3413,10 @@ export default function Sidebar({
               </button>
               <button
                 onClick={() => toggleLike(user?.id, startup.id, null)}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${
-                  likedStartups?.includes(startup.id)
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
+                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${likedStartups?.includes(startup.id)
+                  ? "text-red-500"
+                  : "text-gray-500"
+                  }`}
                 title={likedStartups?.includes(startup.id) ? "Unlike" : "Like"}
               >
                 {likedStartups?.includes(startup.id) ? (
@@ -3426,9 +3466,8 @@ export default function Sidebar({
                 </div>
               ) : (
                 <img
-                  src={`${import.meta.env.VITE_BACKEND_URL}/startups/${
-                    startup.id
-                  }/photo`}
+                  src={`${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id
+                    }/photo`}
                   alt={startup.companyName}
                   className="w-full h-full object-contain rounded"
                   onError={(e) => {
@@ -3655,7 +3694,7 @@ export default function Sidebar({
                 <BsBriefcase className="h-4 w-4 text-blue-600" />
                 Company Details
               </h2>
-              
+
               <div className="grid grid-cols-1 gap-3 bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm">
                 {startup.businessActivity && (
                   <div>
@@ -3682,13 +3721,12 @@ export default function Sidebar({
                   <div className="border-t border-gray-200/50 pt-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                      }`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }`}>
                         {startup.isGovernmentRegistered ? "Yes" : "No"}
                       </span>
                     </div>
-                    
+
                     {startup.isGovernmentRegistered && (
                       <div className="mt-2 bg-white rounded p-2.5 border border-gray-200/60 space-y-1.5 text-xs text-gray-600">
                         {startup.registrationAgency && (
@@ -3837,7 +3875,7 @@ export default function Sidebar({
       )}
 
       {/* Main Content */}
-      <div 
+      <div
         className="flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out"
         style={{ marginLeft, marginRight }}
       >
