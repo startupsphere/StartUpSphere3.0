@@ -48,20 +48,10 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow your Vercel domain and local development
-        configuration.setAllowedOrigins(Arrays.asList(
-            "https://startupsphere-azure.vercel.app", // Replace with your actual Vercel domain
-            "https://localhost:3000",
-            "https://localhost:5173",
-                "https://localhost:5174",
-                "https://startupsphere-git-test-alprinces-projects.vercel.app/"
-
-
-        ));
-
-        // Or if you want to allow all Vercel subdomains temporarily for testing:
-        // configuration.addAllowedOriginPattern("https://*.vercel.app");
-        // configuration.addAllowedOriginPattern("http://localhost:*");
+        // Allow all Vercel subdomains and local development
+        configuration.addAllowedOriginPattern("https://*.vercel.app");
+        configuration.addAllowedOriginPattern("http://localhost:*");
+        configuration.addAllowedOriginPattern("https://localhost:*");
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
