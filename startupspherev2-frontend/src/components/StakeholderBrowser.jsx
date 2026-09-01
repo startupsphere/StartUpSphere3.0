@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, X, UserPlus, Users, Mail, Phone, MapPin, ChevronRight, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { getBackendUrl } from "../config/apiConfig";
 
 const StakeholderBrowser = ({
   isOpen,
@@ -56,7 +57,7 @@ const StakeholderBrowser = ({
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/stakeholders`, {
+      const response = await fetch(`${getBackendUrl()}/stakeholders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -80,7 +81,7 @@ const StakeholderBrowser = ({
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startup-stakeholders/startup/${startupId}/stakeholders`,
+        `${getBackendUrl()}/startup-stakeholders/startup/${startupId}/stakeholders`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -131,7 +132,7 @@ const StakeholderBrowser = ({
       // Associate the selected stakeholder with the startup
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startup-stakeholders`,
+        `${getBackendUrl()}/startup-stakeholders`,
         {
           method: "POST",
           headers: {
