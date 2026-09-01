@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import { useState, useEffect, useMemo } from "react";
 import {
   Check,
@@ -221,8 +222,8 @@ export default function EnhancedStartupReviewSection({
 
       // Fetch startups with filters
       const apiUrl = startupId
-        ? `${import.meta.env.VITE_BACKEND_URL}/startups/submitted?${queryParams.toString()}`
-        : `${import.meta.env.VITE_BACKEND_URL}/startups/review?${queryParams.toString()}`;
+        ? `${getBackendUrl()}/startups/submitted?${queryParams.toString()}`
+        : `${getBackendUrl()}/startups/review?${queryParams.toString()}`;
 
       const response = await fetch(apiUrl, { credentials: "include" });
 
@@ -298,7 +299,7 @@ export default function EnhancedStartupReviewSection({
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/registration-certificate`,
+        `${getBackendUrl()}/startups/${id}/registration-certificate`,
         {
           method: "GET",
           credentials: "include",
@@ -328,7 +329,7 @@ export default function EnhancedStartupReviewSection({
     try {
       setLoadingPhoto(true);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/photo`,
+        `${getBackendUrl()}/startups/${id}/photo`,
         {
           method: "GET",
           credentials: "include",
@@ -432,7 +433,7 @@ export default function EnhancedStartupReviewSection({
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL
+        `${getBackendUrl()
         }/notifications/startups/${id}/${action}`,
         requestOptions
       );
@@ -1080,7 +1081,7 @@ export default function EnhancedStartupReviewSection({
                   <td className="p-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       <img
-                        src={`${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id}/photo`}
+                        src={`${getBackendUrl()}/startups/${startup.id}/photo`}
                         alt={startup.companyName}
                         className="w-full h-full object-cover"
                         onError={(e) => {

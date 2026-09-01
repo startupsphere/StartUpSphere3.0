@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -93,7 +94,7 @@ export default function UpdateStartup() {
     try {
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           credentials: "include",
         }
@@ -191,7 +192,7 @@ export default function UpdateStartup() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           method: "PUT",
           headers: {
@@ -357,7 +358,7 @@ export default function UpdateStartup() {
       formData.append("headers", JSON.stringify(headers)); // Send headers to backend
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/upload-csv`,
+        `${getBackendUrl()}/startups/${id}/upload-csv`,
         {
           method: "PUT",
           body: formData,

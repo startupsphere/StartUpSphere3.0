@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
@@ -30,7 +31,7 @@ export default function Verification({ setVerificationModal, setSelectedTab, sta
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/startups/verify-email`, {
+      const response = await fetch(`${getBackendUrl()}/startups/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,7 +64,7 @@ export default function Verification({ setVerificationModal, setSelectedTab, sta
 
   const handleSendCode = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/startups/send-verification-email`, {
+      const response = await fetch(`${getBackendUrl()}/startups/send-verification-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

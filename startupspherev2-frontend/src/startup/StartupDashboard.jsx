@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { FaEye } from "react-icons/fa";
 import { BiLike } from "react-icons/bi";
@@ -69,7 +70,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
   const fetchGlobalMetrics = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/metrics/dashboard`, {
+      const response = await fetch(`${getBackendUrl()}/api/metrics/dashboard`, {
         credentials: "include"
       });
       if (response.ok) {
@@ -154,7 +155,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/photo`,
+        `${getBackendUrl()}/startups/${startupId}/photo`,
         {
           credentials: "include",
           // Add cache control for faster subsequent loads
@@ -189,7 +190,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const fetchDrafts = async () => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/my-drafts`,
+        `${getBackendUrl()}/startups/my-drafts`,
         {
           credentials: "include",
         }
@@ -327,7 +328,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}`,
+        `${getBackendUrl()}/startups/draft/${draftId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -372,7 +373,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -497,7 +498,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
     try {
       setError(null);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/my-startups`,
+        `${getBackendUrl()}/startups/my-startups`,
         {
           credentials: "include",
         }
@@ -530,7 +531,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
     try {
       setError(null);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/my-startups/details`,
+        `${getBackendUrl()}/startups/my-startups/details`,
         {
           credentials: "include",
         }
@@ -577,7 +578,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       for (const id of ids) {
         promises.push(
           fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/api/likes/count/startup/${id}`,
+            `${getBackendUrl()}/api/likes/count/startup/${id}`,
             {
               credentials: "include",
             }
@@ -599,7 +600,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         promises.push(
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/bookmarks/count/startup/${id}`,
             {
               credentials: "include",
@@ -621,7 +622,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       for (const id of ids) {
         promises.push(
           fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/view-count`,
+            `${getBackendUrl()}/startups/${id}/view-count`,
             {
               credentials: "include",
             }
@@ -740,7 +741,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               await Promise.all([
                 fetch(
                   `${
-                    import.meta.env.VITE_BACKEND_URL
+                    getBackendUrl()
                   }/api/likes/count/startup/${startup.id}`,
                   {
                     credentials: "include",
@@ -748,14 +749,14 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 ),
                 fetch(
                   `${
-                    import.meta.env.VITE_BACKEND_URL
+                    getBackendUrl()
                   }/api/bookmarks/count/startup/${startup.id}`,
                   {
                     credentials: "include",
                   }
                 ),
                 fetch(
-                  `${import.meta.env.VITE_BACKEND_URL}/startups/${
+                  `${getBackendUrl()}/startups/${
                     startup.id
                   }/view-count`,
                   {
@@ -802,7 +803,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         await Promise.all([
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/startups/${startupId}/view-count`,
             {
               credentials: "include",
@@ -810,7 +811,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/likes/count/startup/${startupId}`,
             {
               credentials: "include",
@@ -818,7 +819,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/bookmarks/count/startup/${startupId}`,
             {
               credentials: "include",
@@ -911,7 +912,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         await Promise.all([
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/views/grouped-by-month/logged-in-user-startups`,
             {
               credentials: "include",
@@ -919,7 +920,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/bookmarks/grouped-by-month/logged-in-user-startups`,
             {
               credentials: "include",
@@ -927,7 +928,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/likes/grouped-by-month/logged-in-user-startups`,
             {
               credentials: "include",
@@ -960,7 +961,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         await Promise.all([
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/views/count-by-month/${startupId}`,
             {
               credentials: "include",
@@ -968,7 +969,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/bookmarks/grouped-by-month/startup/${startupId}`,
             {
               credentials: "include",
@@ -976,7 +977,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           ),
           fetch(
             `${
-              import.meta.env.VITE_BACKEND_URL
+              getBackendUrl()
             }/api/likes/grouped-by-month/startup/${startupId}`,
             {
               credentials: "include",
@@ -1077,7 +1078,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
     setSubmitting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           method: "PUT",
           headers: {
@@ -1232,7 +1233,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const handleSendCode = async (id, email) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/send-verification-email`,
+        `${getBackendUrl()}/startups/send-verification-email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect } from 'react';
 import { CiLocationOn, CiGlobe } from 'react-icons/ci';
 import { FaBookmark } from 'react-icons/fa';
@@ -20,7 +21,7 @@ const Bookmarks = ({
       const bookmarkId = item.id;
       console.log("Using bookmarkId:", bookmarkId);
       
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/bookmarks/${bookmarkId}`, {
+      const response = await fetch(`${getBackendUrl()}/api/bookmarks/${bookmarkId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -52,7 +53,7 @@ const Bookmarks = ({
     console.log("Fetching bookmarks for user:", userId);
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/bookmarks`, {
+      const response = await fetch(`${getBackendUrl()}/api/bookmarks`, {
         method: 'GET',
         credentials: 'include',
         headers: {

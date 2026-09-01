@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import { useState, useRef, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -448,7 +449,7 @@ export default function Startupadd() {
   const fetchDraftLogo = async (id) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/photo`,
+        `${getBackendUrl()}/startups/${id}/photo`,
         {
           method: "GET",
           credentials: "include",
@@ -473,7 +474,7 @@ export default function Startupadd() {
   const fetchDraftCertificate = async (id) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/registration-certificate`,
+        `${getBackendUrl()}/startups/${id}/registration-certificate`,
         {
           method: "GET",
           credentials: "include",
@@ -564,7 +565,7 @@ export default function Startupadd() {
       setLoadingStatus("Uploading data...");
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-csv`,
+        `${getBackendUrl()}/startups/${startupId}/upload-csv`,
         {
           method: "PUT",
           headers: {
@@ -756,7 +757,7 @@ const fetchDraftData = async (id) => {
   setIsLoadingDraft(true);
 
   try {
-    const apiUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_REACT_APP_API_URL;
+    const apiUrl = getBackendUrl() || import.meta.env.VITE_REACT_APP_API_URL;
     const response = await fetch(`${apiUrl}/startups/draft/${id}`, {
       method: "GET",
       credentials: "include",
@@ -1005,7 +1006,7 @@ const fetchDraftData = async (id) => {
           }
 
           // Fetch approved listings and add heatmap layer
-          const apiUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_REACT_APP_API_URL;
+          const apiUrl = getBackendUrl() || import.meta.env.VITE_REACT_APP_API_URL;
           fetch(`${apiUrl}/startups/approved?page=0&size=1000`, {
             credentials: "include"
           })
@@ -1393,7 +1394,7 @@ const fetchDraftData = async (id) => {
       
       const token = localStorage.getItem("token");
       const imageResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${draftId}/upload-photo`,
+        `${getBackendUrl()}/startups/${draftId}/upload-photo`,
         {
           method: "PUT",
           headers: {
@@ -1429,7 +1430,7 @@ const fetchDraftData = async (id) => {
       
       const token = localStorage.getItem("token");
       const certResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${draftId}/upload-registration-certificate`,
+        `${getBackendUrl()}/startups/${draftId}/upload-registration-certificate`,
         {
           method: "PUT",
           headers: {
@@ -1515,7 +1516,7 @@ const fetchDraftData = async (id) => {
       if (draftId) {
         // Update existing draft
         response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}`,
+          `${getBackendUrl()}/startups/draft/${draftId}`,
           {
             method: "PUT",
             headers: {
@@ -1570,7 +1571,7 @@ const fetchDraftData = async (id) => {
       } else {
         // Create new draft
         response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/startups/draft`,
+          `${getBackendUrl()}/startups/draft`,
           {
             method: "POST",
             headers: {
@@ -1753,7 +1754,7 @@ const handleSubmit = async () => {
 
       // Update the draft with current form data
       const updateResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}`,
+        `${getBackendUrl()}/startups/draft/${draftId}`,
         {
           method: "PUT",
           headers: {
@@ -1789,7 +1790,7 @@ const handleSubmit = async () => {
       
       // Now submit the draft
       response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/draft/${draftId}/submit`,
+        `${getBackendUrl()}/startups/draft/${draftId}/submit`,
         {
           method: "PUT",
           headers: {
@@ -1832,7 +1833,7 @@ const handleSubmit = async () => {
       
       const { registrationCertificate, ...startupData } = formData;
 
-      response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/startups`, {
+      response = await fetch(`${getBackendUrl()}/startups`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1879,7 +1880,7 @@ const handleSubmit = async () => {
         certFormData.append("registrationCertificate", formData.registrationCertificate);
         try {
           const certResponse = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-registration-certificate`,
+            `${getBackendUrl()}/startups/${startupId}/upload-registration-certificate`,
             {
               method: "PUT",
               headers: {
@@ -1915,7 +1916,7 @@ const handleSubmit = async () => {
         imageFormData.append("photo", uploadedImage);
         try {
           const imageResponse = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}/upload-photo`,
+            `${getBackendUrl()}/startups/${startupId}/upload-photo`,
             {
               method: "PUT",
               headers: {
@@ -1954,7 +1955,7 @@ const handleSubmit = async () => {
       setSubmissionStatus("Sending verification email...");
       
       const emailResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/send-verification-email`,
+        `${getBackendUrl()}/startups/send-verification-email`,
         {
           method: "POST",
           headers: {
@@ -1986,7 +1987,7 @@ const handleSubmit = async () => {
         toast.success("Startup added successfully! Verification email sent.");
 
         try {
-          await fetch(`${import.meta.env.VITE_BACKEND_URL}/startups/draft`, {
+          await fetch(`${getBackendUrl()}/startups/draft`, {
             method: "DELETE",
             credentials: "include",
           });

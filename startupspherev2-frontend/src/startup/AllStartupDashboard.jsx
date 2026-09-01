@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect } from "react";
 import {
   LineChart,
@@ -122,7 +123,7 @@ export default function AllStartupDashboard() {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/users/me/role`,
+        `${getBackendUrl()}/users/me/role`,
         {
           headers: headers,
           credentials: "include",
@@ -154,7 +155,7 @@ export default function AllStartupDashboard() {
       setDashboardLoading(true);
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/rankings/dashboard-analytics`,
+          `${getBackendUrl()}/api/rankings/dashboard-analytics`,
 
           {
             credentials: "include",
@@ -216,7 +217,7 @@ export default function AllStartupDashboard() {
         }
         
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/rankings/top?${params.toString()}`,
+          `${getBackendUrl()}/api/rankings/top?${params.toString()}`,
           {
             credentials: "include",
           }
@@ -288,7 +289,7 @@ export default function AllStartupDashboard() {
           params.append("industry", selectedIndustry);
         }
         
-        const url = `${import.meta.env.VITE_BACKEND_URL}/api/rankings?${params.toString()}`;
+        const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
 
         // Parallel fetch: rankings + location cache (only if not cached)
         const fetchPromises = [fetch(url, { credentials: "include" })];
@@ -297,7 +298,7 @@ export default function AllStartupDashboard() {
         if (!startupLocationsCache) {
           fetchPromises.push(
             fetch(
-              `${import.meta.env.VITE_BACKEND_URL}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
+              `${getBackendUrl()}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
               { credentials: "include" }
             )
           );
@@ -349,7 +350,7 @@ export default function AllStartupDashboard() {
         if (selectedIndustry === "All" && !industriesCache) {
           // Fetch all rankings to get complete industry list (only once)
           const allRankingsResponse = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/api/rankings?page=0&size=1000&metric=${rankingMetric}`,
+            `${getBackendUrl()}/api/rankings?page=0&size=1000&metric=${rankingMetric}`,
             { credentials: "include" }
           );
           
@@ -1151,7 +1152,7 @@ export default function AllStartupDashboard() {
       queryParams.append("sortDir", "ASC");
       
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/review?${queryParams.toString()}`,
+        `${getBackendUrl()}/startups/review?${queryParams.toString()}`,
         {
           credentials: "include",
         }

@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
@@ -148,7 +149,7 @@ export default function Startupmap({
       });
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/approved?${params.toString()}`,
+        `${getBackendUrl()}/startups/approved?${params.toString()}`,
         {
           credentials: "include",
         }
@@ -279,7 +280,7 @@ export default function Startupmap({
     try {
       console.log("Loading stakeholders...");
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/stakeholders`,
+        `${getBackendUrl()}/stakeholders`,
         { credentials: "include" }
       );
       if (!response.ok) {
@@ -1150,7 +1151,7 @@ export default function Startupmap({
             .addTo(map);
 
           try {
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+            const backendUrl = getBackendUrl() || "http://localhost:8080";
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
             // 1. Fetch live database details, likes, bookmarks, and views concurrently
@@ -3666,7 +3667,7 @@ export default function Startupmap({
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startup-stakeholders`,
+        `${getBackendUrl()}/startup-stakeholders`,
         { credentials: "include" }
       );
 

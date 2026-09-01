@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -214,7 +215,7 @@ export default function UpdateStartup() {
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           credentials: "include",
         }
@@ -264,7 +265,7 @@ export default function UpdateStartup() {
     console.log("[fetchCurrentLogo] Starting logo fetch for startup ID:", id);
     setLogoLoading(true);
     try {
-      const url = `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/photo`;
+      const url = `${getBackendUrl()}/startups/${id}/photo`;
       console.log("[fetchCurrentLogo] Fetching from URL:", url);
       
       const response = await fetch(url, {
@@ -301,7 +302,7 @@ export default function UpdateStartup() {
     console.log("[fetchCurrentCertificate] Starting certificate fetch for startup ID:", id);
     setCertificateLoading(true);
     try {
-      const url = `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/registration-certificate`;
+      const url = `${getBackendUrl()}/startups/${id}/registration-certificate`;
       console.log("[fetchCurrentCertificate] Fetching from URL:", url);
       
       const response = await fetch(url, {
@@ -342,7 +343,7 @@ export default function UpdateStartup() {
       formData.append("photo", file);
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/upload-photo`,
+        `${getBackendUrl()}/startups/${id}/upload-photo`,
         {
           method: "PUT",
           body: formData,
@@ -379,7 +380,7 @@ export default function UpdateStartup() {
       formData.append("registrationCertificate", file);
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/upload-registration-certificate`,
+        `${getBackendUrl()}/startups/${id}/upload-registration-certificate`,
         {
           method: "PUT",
           body: formData,
@@ -475,7 +476,7 @@ export default function UpdateStartup() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+        `${getBackendUrl()}/startups/${id}`,
         {
           method: "PUT",
           headers: {
@@ -663,7 +664,7 @@ export default function UpdateStartup() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/upload-csv`,
+        `${getBackendUrl()}/startups/${id}/upload-csv`,
         {
           method: "PUT",
           body: formData,
@@ -714,7 +715,7 @@ export default function UpdateStartup() {
       formData.append("mode", uploadMode); // Send upload mode to backend
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/upload-csv`,
+        `${getBackendUrl()}/startups/${id}/upload-csv`,
         {
           method: "PUT",
           body: formData,
@@ -2293,7 +2294,7 @@ export default function UpdateStartup() {
                     try {
                       // Call API to delete logo if needed
                       const response = await fetch(
-                        `${import.meta.env.VITE_BACKEND_URL}/startups/${id}/photo`,
+                        `${getBackendUrl()}/startups/${id}/photo`,
                         {
                           method: "DELETE",
                           credentials: "include",

@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -196,7 +197,7 @@ function NotificationComponent() {
 
       // Use fetch instead of axios to call the API
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/my`,
+        `${getBackendUrl()}/notifications/my`,
         {
           method: "GET",
           credentials: "include", // Important for cookies/auth
@@ -486,7 +487,7 @@ function NotificationComponent() {
 
       // For marking as viewed - only available for unread notifications
       const endpoint = `${
-        import.meta.env.VITE_BACKEND_URL
+        getBackendUrl()
       }/notifications/${id}/view`;
 
       const response = await fetch(endpoint, {
@@ -533,7 +534,7 @@ function NotificationComponent() {
       setDeletingIds((prev) => [...prev, id]);
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/${id}`,
+        `${getBackendUrl()}/notifications/${id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -569,7 +570,7 @@ function NotificationComponent() {
   const markAllAsRead = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/my/markAllRead`,
+        `${getBackendUrl()}/notifications/my/markAllRead`,
         {
           method: "PUT",
           credentials: "include",
@@ -756,7 +757,7 @@ function NotificationComponent() {
         try {
           // Always mark as viewed when opening the notification
           const viewEndpoint = `${
-            import.meta.env.VITE_BACKEND_URL
+            getBackendUrl()
           }/notifications/${notification.id}/view`;
 
           console.log(`Marking notification ${notification.id} as viewed`);
@@ -893,7 +894,7 @@ function NotificationComponent() {
 
       // If we don't have the data in notifications, make an API call
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/${startupId}`,
+        `${getBackendUrl()}/startups/${startupId}`,
         {
           method: "GET",
           credentials: "include",
@@ -1542,7 +1543,7 @@ function NotificationComponent() {
                           typeof startupDetails.photo === "string" &&
                           startupDetails.photo.startsWith("/9j")
                             ? `data:image/jpeg;base64,${startupDetails.photo}`
-                            : `${import.meta.env.VITE_BACKEND_URL}/startups/${
+                            : `${getBackendUrl()}/startups/${
                                 startupDetails.id
                               }/photo`
                         }

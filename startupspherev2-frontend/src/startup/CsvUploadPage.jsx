@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
@@ -186,7 +187,7 @@ export default function CsvUploadPage() {
 
             setLoadingStatus("Uploading data...");
             const response = await fetch(
-                `${import.meta.env.VITE_BACKEND_URL}/startups/upload-startups`, 
+                `${getBackendUrl()}/startups/upload-startups`, 
                 {
                     method: "POST", 
                     body: formData,

@@ -234,7 +234,7 @@ export default function Sidebar({
   const markAsViewed = async (id) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/${id}/view`,
+        `${getBackendUrl()}/notifications/${id}/view`,
         {
           method: "PUT",
           credentials: "include",
@@ -259,7 +259,7 @@ export default function Sidebar({
     try {
       setLoadingNotification(true);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startups/submitted`,
+        `${getBackendUrl()}/startups/submitted`,
         {
           credentials: "include",
         }
@@ -320,7 +320,7 @@ export default function Sidebar({
     setLoadingNotification(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/my/new`,
+        `${getBackendUrl()}/notifications/my/new`,
         {
           credentials: "include",
         }
@@ -343,7 +343,7 @@ export default function Sidebar({
   const fetchNotificationsCount = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/new/count`,
+        `${getBackendUrl()}/notifications/new/count`,
         {
           credentials: "include",
         }
@@ -401,7 +401,7 @@ export default function Sidebar({
   const fetchNotifications = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications/my`,
+        `${getBackendUrl()}/notifications/my`,
         {
           credentials: "include",
         }
@@ -431,7 +431,7 @@ export default function Sidebar({
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/users/me`,
+          `${getBackendUrl()}/users/me`,
           {
             method: "GET",
             headers: headers,
@@ -480,7 +480,7 @@ export default function Sidebar({
 
   const addToRecents = async (type, id) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}/${id}`, {
+      const response = await fetch(`${getBackendUrl()}/recents/${type}/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -501,7 +501,7 @@ export default function Sidebar({
 
   const getRecents = async (type) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/recents/${type}`, {
+      const response = await fetch(`${getBackendUrl()}/recents/${type}`, {
         credentials: 'include'
       })
 
@@ -603,7 +603,7 @@ export default function Sidebar({
       });
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL
+        `${getBackendUrl()
         }/startups/approved?${params.toString()}`,
         {
           credentials: "include",
@@ -630,7 +630,7 @@ export default function Sidebar({
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/stakeholders`,
+        `${getBackendUrl()}/stakeholders`,
         {
           credentials: "include",
         }
@@ -660,8 +660,8 @@ export default function Sidebar({
     try {
       const endpoint =
         viewingType === "startups"
-          ? `${import.meta.env.VITE_BACKEND_URL}/startups/search`
-          : `${import.meta.env.VITE_BACKEND_URL}/stakeholders/search`;
+          ? `${getBackendUrl()}/startups/search`
+          : `${getBackendUrl()}/stakeholders/search`;
 
       const response = await fetch(
         `${endpoint}?query=${encodeURIComponent(currentQuery)}`,
@@ -719,7 +719,7 @@ export default function Sidebar({
   const addView = async (id) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/views`,
+        `${getBackendUrl()}/api/views`,
         {
           method: "POST",
           headers: {
@@ -761,7 +761,7 @@ export default function Sidebar({
     setLoadingImage(true); // Start loading animation
 
     // Fetch the startup image
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id}/photo`, {
+    fetch(`${getBackendUrl()}/startups/${startup.id}/photo`, {
       method: "GET",
       credentials: "include",
     })
@@ -800,7 +800,7 @@ export default function Sidebar({
 
     // Increment views and other logic
     fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id
+      `${getBackendUrl()}/startups/${startup.id
       }/increment-views`,
       {
         method: "PUT",
@@ -867,7 +867,7 @@ export default function Sidebar({
 
     // Increment views on the backend by sending a PUT request
     fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/stakeholders/${stakeholder.id
+      `${getBackendUrl()}/stakeholders/${stakeholder.id
       }/increment-views`,
       {
         method: "PUT",
@@ -963,7 +963,7 @@ export default function Sidebar({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/likes`,
+        `${getBackendUrl()}/api/likes`,
         {
           method: "GET",
           credentials: "include",
@@ -1001,7 +1001,7 @@ export default function Sidebar({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/likes`,
+        `${getBackendUrl()}/api/likes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1057,7 +1057,7 @@ export default function Sidebar({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks`,
+        `${getBackendUrl()}/api/bookmarks`,
         {
           method: "GET",
           credentials: "include",
@@ -1099,7 +1099,7 @@ export default function Sidebar({
       if (isCurrentItemBookmarked) {
         // If already bookmarked, remove it
         const checkResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks`,
+          `${getBackendUrl()}/api/bookmarks`,
           {
             method: "GET",
             credentials: "include",
@@ -1116,7 +1116,7 @@ export default function Sidebar({
 
           if (existingBookmark) {
             const deleteResponse = await fetch(
-              `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks/${existingBookmark.id
+              `${getBackendUrl()}/api/bookmarks/${existingBookmark.id
               }`,
               {
                 method: "DELETE",
@@ -1147,7 +1147,7 @@ export default function Sidebar({
       } else {
         // If not bookmarked, add it
         const addResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/bookmarks`,
+          `${getBackendUrl()}/api/bookmarks`,
           {
             method: "POST",
             headers: {
@@ -1181,7 +1181,7 @@ export default function Sidebar({
   const [stakeholderLikeCounts, setStakeholderLikeCounts] = useState({});
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/likes`, {
+    fetch(`${getBackendUrl()}/api/likes`, {
       credentials: "include",
     })
       .then((res) => res.json())
@@ -1763,7 +1763,7 @@ export default function Sidebar({
                               <div className="relative">
                                 {startup.photo ? (
                                   <img
-                                    src={`${import.meta.env.VITE_BACKEND_URL
+                                    src={`${getBackendUrl()
                                       }/startups/${startup.id}/photo`}
                                     alt={startup.companyName}
                                     className="h-12 w-12 rounded-lg object-cover border border-gray-200"
@@ -1965,7 +1965,7 @@ export default function Sidebar({
                                       {noti.startup?.photo ? (
                                         <div className="relative">
                                           <img
-                                            src={`${import.meta.env.VITE_BACKEND_URL
+                                            src={`${getBackendUrl()
                                               }/startups/${noti.startup.id
                                               }/photo`}
                                             alt={noti.startup.companyName}
@@ -2054,7 +2054,7 @@ export default function Sidebar({
                                       {noti.startup?.photo ? (
                                         <div className="relative">
                                           <img
-                                            src={`${import.meta.env.VITE_BACKEND_URL
+                                            src={`${getBackendUrl()
                                               }/startups/${noti.startup.id
                                               }/photo`}
                                             alt={noti.startup.companyName}
@@ -2459,7 +2459,7 @@ export default function Sidebar({
                         {/* Startup Logo */}
                         <div className="flex-shrink-0">
                           <img
-                            src={`${import.meta.env.VITE_BACKEND_URL
+                            src={`${getBackendUrl()
                               }/startups/${startup.id}/photo`}
                             alt={startup.companyName}
                             className="h-12 w-12 rounded-md object-cover border border-gray-100 shadow-sm group-hover:shadow transition-shadow"
@@ -2757,7 +2757,7 @@ export default function Sidebar({
                       <div className="flex items-center mb-2">
                         {/* Add startup image */}
                         <img
-                          src={`${import.meta.env.VITE_BACKEND_URL}/startups/${startup?.id
+                          src={`${getBackendUrl()}/startups/${startup?.id
                             }/photo`}
                           alt={startup?.companyName}
                           className="h-10 w-10 rounded-lg object-cover border border-gray-200 mr-3"
@@ -3467,7 +3467,7 @@ export default function Sidebar({
                 </div>
               ) : (
                 <img
-                  src={`${import.meta.env.VITE_BACKEND_URL}/startups/${startup.id
+                  src={`${getBackendUrl()}/startups/${startup.id
                     }/photo`}
                   alt={startup.companyName}
                   className="w-full h-full object-contain rounded"

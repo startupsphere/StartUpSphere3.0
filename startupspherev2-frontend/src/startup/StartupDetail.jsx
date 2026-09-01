@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import React, { useState, useEffect, useRef } from "react";
 import StakeholderLocationPicker from "../components/StakeholderLocationPicker";
 import StakeholderBrowser from "../components/StakeholderBrowser";
@@ -134,7 +135,7 @@ export default function StartupDetail() {
       setLoading(true);
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/startups/${id}`,
+          `${getBackendUrl()}/startups/${id}`,
           {
             credentials: "include",
           }
@@ -176,7 +177,7 @@ export default function StartupDetail() {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_BACKEND_URL
+          getBackendUrl()
         }/startup-stakeholders/startup/${id}/stakeholders`,
         {
           credentials: "include",
@@ -248,7 +249,7 @@ export default function StartupDetail() {
       }
 
       const stakeholderResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/stakeholders`,
+        `${getBackendUrl()}/stakeholders`,
         {
           method: "POST",
           headers: {
@@ -286,7 +287,7 @@ export default function StartupDetail() {
 
       const stakeholderId = responseData.id;
       const associationResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startup-stakeholders`,
+        `${getBackendUrl()}/startup-stakeholders`,
         {
           method: "POST",
           headers: {
@@ -612,7 +613,7 @@ export default function StartupDetail() {
 
       // Update the stakeholder data
       const stakeholderResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/stakeholders/${editingStakeholder.stakeholder.id}`,
+        `${getBackendUrl()}/stakeholders/${editingStakeholder.stakeholder.id}`,
         {
           method: "PUT",
           headers: {
@@ -643,7 +644,7 @@ export default function StartupDetail() {
 
       // Update the association (role and status)
       const associationResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/startup-stakeholders/${editingStakeholder.id}`,
+        `${getBackendUrl()}/startup-stakeholders/${editingStakeholder.id}`,
         {
           method: "PUT",
           headers: {
@@ -703,7 +704,7 @@ export default function StartupDetail() {
       console.log(`Deleting association with ID: ${associationId}`);
       const associationResponse = await fetch(
         `${
-          import.meta.env.VITE_BACKEND_URL
+          getBackendUrl()
         }/startup-stakeholders/${associationId}`,
         {
           method: "DELETE",
@@ -722,7 +723,7 @@ export default function StartupDetail() {
       if (stakeholderId) {
         console.log(`Deleting stakeholder with ID: ${stakeholderId}`);
         const stakeholderResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/stakeholders/${stakeholderId}`,
+          `${getBackendUrl()}/stakeholders/${stakeholderId}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -1263,7 +1264,7 @@ export default function StartupDetail() {
       console.log(`Deleting stakeholder with ID: ${actualStakeholderId}`);
       const stakeholderResponse = await fetch(
         `${
-          import.meta.env.VITE_BACKEND_URL
+          getBackendUrl()
         }/stakeholders/${actualStakeholderId}`,
         {
           method: "DELETE",

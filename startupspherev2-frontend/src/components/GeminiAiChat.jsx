@@ -1,3 +1,4 @@
+import { getBackendUrl } from "../config/apiConfig";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, Trash2, X, Bot, User, RotateCcw } from "lucide-react";
@@ -67,7 +68,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         setMessages((prev) => [...prev, { role: "user", content: userMsgText }]);
         setLoading(true);
 
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+        const backendUrl = getBackendUrl() || "http://localhost:8080";
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
         if (!apiKey) throw new Error("Gemini API key is not configured.");
 
@@ -159,7 +160,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
     const fetchDatabaseDetails = async () => {
       try {
         setFetchingDb(true);
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+        const backendUrl = getBackendUrl() || "http://localhost:8080";
         
         // 1. Fetch Global Ecosystem Metrics
         try {
