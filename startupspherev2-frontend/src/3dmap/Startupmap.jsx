@@ -3486,9 +3486,6 @@ export default function Startupmap({
           showLandmarkIcons: true, // Show landmark building icons
           showLandmarkIconLabels: true, // Show landmark labels
 
-          // Typography - Professional font stack
-          font: "Montserrat, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-
           // Color Customization - Professional color scheme
           colorAdminBoundaries: "#c0c4cc", // Subtle admin boundaries
           colorGreenspace: "#9dc183", // Fresh, vibrant green for parks
@@ -3572,9 +3569,6 @@ export default function Startupmap({
       map.setConfigProperty("basemap", "show3dObjects", true);
       map.setConfigProperty("basemap", "showLandmarkIcons", true);
       map.setConfigProperty("basemap", "showLandmarkIconLabels", true);
-
-      // Professional Typography
-      map.setConfigProperty("basemap", "font", "Montserrat, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
 
       // Professional Color Scheme
       map.setConfigProperty("basemap", "colorAdminBoundaries", "#c0c4cc");
