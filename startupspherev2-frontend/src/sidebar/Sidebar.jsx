@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { getBackendUrl } from "../config/apiConfig";
 import Login from "../modals/Login";
 import Signup from "../modals/Signup";
 import { motion, AnimatePresence } from "framer-motion";
@@ -526,7 +527,7 @@ export default function Sidebar({
   const logout = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/logout`,
+        `${getBackendUrl()}/auth/logout`,
         {
           method: "POST",
           credentials: "include",
@@ -567,7 +568,7 @@ export default function Sidebar({
   const checkAuthentication = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/check`,
+        `${getBackendUrl()}/auth/check`,
         {
           method: "GET",
           credentials: "include",

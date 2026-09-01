@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { getBackendUrl } from "../config/apiConfig";
 
 export default function Signup({ closeModal, openLogin }) {
   const [firstname, setFirstname] = useState("");
@@ -94,7 +95,7 @@ export default function Signup({ closeModal, openLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/signup`, {
+      const response = await fetch(`${getBackendUrl()}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

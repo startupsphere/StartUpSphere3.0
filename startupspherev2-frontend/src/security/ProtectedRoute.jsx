@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { getBackendUrl } from "../config/apiConfig";
 
 export default function ProtectedRoute() {
   const [isAuthenticated, setIsAuthenticated] = useState(null); 
@@ -8,7 +9,7 @@ export default function ProtectedRoute() {
   useEffect(() => {
     const fetchAuthenticated = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/check`, {
+        const response = await fetch(`${getBackendUrl()}/auth/check`, {
           credentials: "include",
         });
 

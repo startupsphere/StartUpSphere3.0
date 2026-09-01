@@ -21,8 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bookmarks")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST,
-        RequestMethod.DELETE, RequestMethod.OPTIONS })
 public class BookmarksController {
 
     private final BookmarksService bookmarksService;

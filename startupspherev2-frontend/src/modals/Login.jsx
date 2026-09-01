@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { getBackendUrl } from "../config/apiConfig";
 
 export default function Login({ closeModal, openRegister, onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -15,8 +16,9 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
     setError(null);
 
     try {
+      const backendUrl = getBackendUrl();
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/login`,
+        `${backendUrl}/auth/login`,
         {
           method: "POST",
           headers: {
@@ -46,7 +48,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
         }
         console.log(response);
         const userResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/users/me`,
+          `${backendUrl}/users/me`,
           {
             method: "GET",
             headers: {
