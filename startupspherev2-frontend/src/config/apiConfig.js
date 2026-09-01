@@ -9,13 +9,10 @@ export const getBackendUrl = () => {
 
   if (!envUrl || envUrl.trim() === "" || envUrl === "undefined") {
     if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      console.warn(
-        "VITE_BACKEND_URL or VITE_API_BASE_URL is not configured in Vercel environment variables. Falling back to http://localhost:8080."
-      );
+      return "https://startupsphere30-production.up.railway.app";
     }
     return "http://localhost:8080";
   }
   // Strip trailing slash if present
   return envUrl.replace(/\/+$/, "");
 };
-
