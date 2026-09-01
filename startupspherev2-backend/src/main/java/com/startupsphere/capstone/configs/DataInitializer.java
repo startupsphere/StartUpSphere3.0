@@ -30,24 +30,13 @@ public class DataInitializer {
         String adminEmail = "admin@startupsphere.com";
 
         try {
-            // Schema repairs for PostgreSQL bytea mapping issues
+            // Schema repairs for PostgreSQL bytea mapping issues (only convert if type is bytea)
             try {
-                jdbcTemplate.execute("ALTER TABLE startups ALTER COLUMN company_name TYPE VARCHAR(255) USING convert_from(company_name, 'UTF8')");
-                log.info("Schema repair: altered startups.company_name to VARCHAR(255)");
+                jdbcTemplate.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='startups' AND column_name='company_name' AND data_type='bytea') THEN ALTER TABLE startups ALTER COLUMN company_name TYPE VARCHAR(255) USING convert_from(company_name, 'UTF8'); END IF; END $$;");
+                jdbcTemplate.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='startups' AND column_name='company_description' AND data_type='bytea') THEN ALTER TABLE startups ALTER COLUMN company_description TYPE TEXT USING convert_from(company_description, 'UTF8'); END IF; END $$;");
+                jdbcTemplate.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='startups' AND column_name='location_name' AND data_type='bytea') THEN ALTER TABLE startups ALTER COLUMN location_name TYPE VARCHAR(255) USING convert_from(location_name, 'UTF8'); END IF; END $$;");
             } catch (Exception ex) {
-                log.error("Schema repair startups.company_name failed!", ex);
-            }
-            try {
-                jdbcTemplate.execute("ALTER TABLE startups ALTER COLUMN company_description TYPE TEXT USING convert_from(company_description, 'UTF8')");
-                log.info("Schema repair: altered startups.company_description to TEXT");
-            } catch (Exception ex) {
-                log.error("Schema repair startups.company_description failed!", ex);
-            }
-            try {
-                jdbcTemplate.execute("ALTER TABLE startups ALTER COLUMN location_name TYPE VARCHAR(255) USING convert_from(location_name, 'UTF8')");
-                log.info("Schema repair: altered startups.location_name to VARCHAR(255)");
-            } catch (Exception ex) {
-                log.error("Schema repair startups.location_name failed!", ex);
+                log.warn("Schema repair check skipped: {}", ex.getMessage());
             }
 
             // Check if an admin account already exists
