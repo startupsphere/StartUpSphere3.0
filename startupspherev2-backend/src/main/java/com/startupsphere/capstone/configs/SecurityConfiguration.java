@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/startups", "/startups/**").permitAll()
                         .requestMatchers("/stakeholders", "/stakeholders/**").permitAll()
                         .requestMatchers("/startup-stakeholders", "/startup-stakeholders/**").permitAll()
+                        .requestMatchers("/api/likes", "/api/likes/**").permitAll()
                         .requestMatchers("/api/bookmarks/**").hasAnyRole("USER", "ADMIN", "STARTUP", "HEI", "SME", "RESEARCH", "INNOVATION", "SUPPORT", "GOVERNMENT")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session

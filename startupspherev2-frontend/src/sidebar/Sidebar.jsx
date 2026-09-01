@@ -423,12 +423,15 @@ export default function Sidebar({
     const fetchCurrentUser = async () => {
       try {
         const token = localStorage.getItem("token");
+        if (!token) {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          return;
+        }
         const headers = {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
 
         const response = await fetch(
           `${getBackendUrl()}/users/me`,
@@ -960,12 +963,17 @@ export default function Sidebar({
 
   const fetchUserLikes = async () => {
     if (!user || !user.id) return;
+    const token = localStorage.getItem("token");
 
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/api/likes`,
         {
           method: "GET",
+          headers: headers,
           credentials: "include",
         }
       );
