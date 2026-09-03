@@ -867,7 +867,7 @@ export default function Startupmap({
         });
       }
 
-      // TRUE MAPBOX DENSITY HEATMAP LAYER
+      // TRUE MAPBOX DENSITY HEATMAP LAYER MATCHING LEGEND (Green: TRL 1-3, Yellow: TRL 4-6, Red: TRL 7-9)
       if (!map.getLayer("startups-true-heatmap")) {
         map.addLayer({
           id: "startups-true-heatmap",
@@ -877,7 +877,14 @@ export default function Startupmap({
             visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
-            "heatmap-weight": 1,
+            "heatmap-weight": [
+              "interpolate",
+              ["linear"],
+              ["coalesce", ["get", "colorClass"], 1],
+              1, 0.2,
+              2, 0.6,
+              3, 1.0
+            ],
             "heatmap-intensity": [
               "interpolate",
               ["linear"],
@@ -890,12 +897,10 @@ export default function Startupmap({
               "interpolate",
               ["linear"],
               ["heatmap-density"],
-              0, "rgba(59, 130, 246, 0)",
-              0.2, "rgba(59, 130, 246, 0.35)",
-              0.4, "rgba(34, 197, 94, 0.6)",
-              0.65, "rgba(234, 179, 8, 0.8)",
-              0.85, "rgba(249, 115, 22, 0.9)",
-              1, "rgba(239, 68, 68, 0.95)"
+              0, "rgba(0, 0, 0, 0)",
+              0.2, "rgba(34, 197, 94, 0.6)",  // GREEN (Low TRL 1-3: Basic Research / Concept)
+              0.6, "rgba(234, 179, 8, 0.85)", // YELLOW (Mid TRL 4-6: Prototype / Testing)
+              1.0, "rgba(239, 68, 68, 0.95)"  // RED (High TRL 7-9: Market-ready / Deployed)
             ],
             "heatmap-radius": [
               "interpolate",
@@ -906,7 +911,7 @@ export default function Startupmap({
               12, 90,
               16, 160
             ],
-            "heatmap-opacity": 0.75
+            "heatmap-opacity": 0.8
           }
         }, layerId);
       }
