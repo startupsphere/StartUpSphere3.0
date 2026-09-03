@@ -793,15 +793,16 @@ export default function Startupmap({
       const lng = typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng;
 
       let trlScore = 0;
-      if (s.trlLevel && typeof s.trlLevel === 'string') {
-        const match = s.trlLevel.match(/TRL\s*(\d)/i);
+      if (s.trlLevel !== undefined && s.trlLevel !== null) {
+        const str = String(s.trlLevel);
+        const match = str.match(/(\d)/);
         if (match) trlScore = parseInt(match[1], 10);
       }
 
-      let colorClass = 1; // Default Green
-      if (trlScore >= 1 && trlScore <= 3) colorClass = 1; // Green
-      else if (trlScore >= 4 && trlScore <= 6) colorClass = 2; // Yellow
-      else if (trlScore >= 7 && trlScore <= 9) colorClass = 3; // Red
+      let colorClass = 1; // Default Green (TRL 1-3: Basic Research / Concept)
+      if (trlScore >= 1 && trlScore <= 3) colorClass = 1;      // Green (Low TRL)
+      else if (trlScore >= 4 && trlScore <= 6) colorClass = 2; // Yellow (Mid TRL)
+      else if (trlScore >= 7 && trlScore <= 9) colorClass = 3; // Red (High TRL)
 
       return {
         type: "Feature",
@@ -867,54 +868,7 @@ export default function Startupmap({
         });
       }
 
-      // TRUE MAPBOX DENSITY HEATMAP LAYER MATCHING LEGEND (Green: TRL 1-3, Yellow: TRL 4-6, Red: TRL 7-9)
-      if (!map.getLayer("startups-true-heatmap")) {
-        map.addLayer({
-          id: "startups-true-heatmap",
-          type: "heatmap",
-          source: sourceId,
-          layout: {
-            visibility: showHeatmap ? "visible" : "none"
-          },
-          paint: {
-            "heatmap-weight": [
-              "interpolate",
-              ["linear"],
-              ["coalesce", ["get", "colorClass"], 1],
-              1, 0.2,
-              2, 0.6,
-              3, 1.0
-            ],
-            "heatmap-intensity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 1,
-              9, 3,
-              15, 6
-            ],
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0, "rgba(0, 0, 0, 0)",
-              0.2, "rgba(34, 197, 94, 0.6)",  // GREEN (Low TRL 1-3: Basic Research / Concept)
-              0.6, "rgba(234, 179, 8, 0.85)", // YELLOW (Mid TRL 4-6: Prototype / Testing)
-              1.0, "rgba(239, 68, 68, 0.95)"  // RED (High TRL 7-9: Market-ready / Deployed)
-            ],
-            "heatmap-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 20,
-              8, 45,
-              12, 90,
-              16, 160
-            ],
-            "heatmap-opacity": 0.8
-          }
-        }, layerId);
-      }
+
 
       // Add gradient orbs (blurred circles) for distinct color zones per area
       if (!map.getLayer("startups-heatmap")) {
@@ -1013,14 +967,22 @@ export default function Startupmap({
             "circle-color": [
               "match",
               ["get", "colorClass"],
-              1, "#22c55e",
-              2, "#eab308",
-              3, "#ef4444",
+              1, "#22c55e", // Green (TRL 1-3: Basic Research / Concept)
+              2, "#eab308", // Yellow (TRL 4-6: Prototype / Testing)
+              3, "#ef4444", // Red (TRL 7-9: Market-ready / Deployed)
               "#22c55e"
             ],
-            "circle-radius": 30,
-            "circle-blur": 0.8,
-            "circle-opacity": 0.7
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 25,
+              8, 45,
+              12, 75,
+              16, 120
+            ],
+            "circle-blur": 0.85,
+            "circle-opacity": 0.8
           }
         }, layerId);
 
