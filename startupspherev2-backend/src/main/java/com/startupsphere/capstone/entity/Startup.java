@@ -261,6 +261,7 @@ public class Startup {
         this.status = status;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public byte[] getPhoto() {
         return photo;
     }
@@ -733,6 +734,7 @@ public class Startup {
         this.tin = tin;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public byte[] getRegistrationCertificate() {
         return registrationCertificate;
     }
