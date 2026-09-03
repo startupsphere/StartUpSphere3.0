@@ -195,15 +195,21 @@ function NotificationComponent() {
       setLoading(true);
       setError(null);
 
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       // Use fetch instead of axios to call the API
       const response = await fetch(
         `${getBackendUrl()}/notifications/my`,
         {
           method: "GET",
           credentials: "include", // Important for cookies/auth
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
         }
       );
 
@@ -490,12 +496,18 @@ function NotificationComponent() {
         getBackendUrl()
       }/notifications/${id}/view`;
 
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(endpoint, {
         method: "GET",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -533,14 +545,20 @@ function NotificationComponent() {
     try {
       setDeletingIds((prev) => [...prev, id]);
 
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/${id}`,
         {
           method: "DELETE",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
         }
       );
 
@@ -569,14 +587,20 @@ function NotificationComponent() {
 
   const markAllAsRead = async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/my/markAllRead`,
         {
           method: "PUT",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
         }
       );
 

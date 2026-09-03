@@ -233,19 +233,24 @@ export default function Sidebar({
 
   const markAsViewed = async (id) => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/${id}/view`,
         {
           method: "PUT",
           credentials: "include",
+          headers,
         }
       );
 
-      const data = await response.json();
       if (response.ok) {
+        const data = await response.json();
         console.log("marked as viewed: ", data.data);
       } else {
-        console.log(data);
+        console.log("Failed marking as viewed:", response.status);
       }
     } catch (error) {
       console.log(error);
@@ -258,10 +263,15 @@ export default function Sidebar({
 
     try {
       setLoadingNotification(true);
+      const token = localStorage.getItem("token");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/startups/submitted`,
         {
           credentials: "include",
+          headers,
         }
       );
 
@@ -319,19 +329,24 @@ export default function Sidebar({
   const fetchNewNotifications = async () => {
     setLoadingNotification(true);
     try {
+      const token = localStorage.getItem("token");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/my/new`,
         {
           credentials: "include",
+          headers,
         }
       );
 
-      const data = await response.json();
       if (response.ok) {
+        const data = await response.json();
         console.log(data.data);
-        setNewNotifications(data.data);
+        setNewNotifications(data.data || []);
       } else {
-        console.log(data);
+        console.log("Failed fetching new notifications:", response.status);
       }
     } catch (error) {
       console.log(error);
@@ -342,10 +357,15 @@ export default function Sidebar({
 
   const fetchNotificationsCount = async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/new/count`,
         {
           credentials: "include",
+          headers,
         }
       );
 
@@ -354,7 +374,7 @@ export default function Sidebar({
         setNotificationsCount(data.data);
         console.log(data.data);
       } else {
-        console.log("Failed fetching notifications count");
+        console.log("Failed fetching notifications count:", response.status);
       }
     } catch (error) {
       console.log(error);
@@ -400,19 +420,24 @@ export default function Sidebar({
 
   const fetchNotifications = async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(
         `${getBackendUrl()}/notifications/my`,
         {
           credentials: "include",
+          headers,
         }
       );
 
-      const data = await response.json();
       if (response.ok) {
+        const data = await response.json();
         console.log("Notifications: ", data);
-        setNotifications(data.data);
+        setNotifications(data.data || []);
       } else {
-        console.log(data);
+        console.log("Failed fetching notifications:", response.status);
       }
     } catch (error) {
       console.log(error);
