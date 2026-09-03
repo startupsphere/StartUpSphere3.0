@@ -867,9 +867,53 @@ export default function Startupmap({
         });
       }
 
+      // TRUE MAPBOX DENSITY HEATMAP LAYER
+      if (!map.getLayer("startups-true-heatmap")) {
+        map.addLayer({
+          id: "startups-true-heatmap",
+          type: "heatmap",
+          source: sourceId,
+          layout: {
+            visibility: showHeatmap ? "visible" : "none"
+          },
+          paint: {
+            "heatmap-weight": 1,
+            "heatmap-intensity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 1,
+              9, 3,
+              15, 6
+            ],
+            "heatmap-color": [
+              "interpolate",
+              ["linear"],
+              ["heatmap-density"],
+              0, "rgba(59, 130, 246, 0)",
+              0.2, "rgba(59, 130, 246, 0.35)",
+              0.4, "rgba(34, 197, 94, 0.6)",
+              0.65, "rgba(234, 179, 8, 0.8)",
+              0.85, "rgba(249, 115, 22, 0.9)",
+              1, "rgba(239, 68, 68, 0.95)"
+            ],
+            "heatmap-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0, 20,
+              8, 45,
+              12, 90,
+              16, 160
+            ],
+            "heatmap-opacity": 0.75
+          }
+        }, layerId);
+      }
+
       // Add gradient orbs (blurred circles) for distinct color zones per area
       if (!map.getLayer("startups-heatmap")) {
-        // We reuse the ID "startups-heatmap" or create a new one. Let's use new IDs and remove old.
+        // We reuse the ID "startups-heatmap" or create a new one. Let me use new IDs and remove old.
         if (map.getLayer("startups-heatmap")) map.removeLayer("startups-heatmap");
 
         map.addLayer({
@@ -1693,7 +1737,7 @@ export default function Startupmap({
     setShowHeatmap((prev) => {
       const next = !prev;
       const layers = [
-        "startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count",
+        "startups-true-heatmap", "startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count",
         "startups-unclustered-gradient", "startups-unclustered-core",
         "engagement-heatmap-layer", "engagement-click-zone"
       ];
