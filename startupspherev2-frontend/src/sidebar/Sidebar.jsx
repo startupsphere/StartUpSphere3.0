@@ -233,24 +233,19 @@ export default function Sidebar({
 
   const markAsViewed = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/${id}/view`,
         {
           method: "PUT",
           credentials: "include",
-          headers,
         }
       );
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         console.log("marked as viewed: ", data.data);
       } else {
-        console.log("Failed marking as viewed:", response.status);
+        console.log(data);
       }
     } catch (error) {
       console.log(error);
@@ -263,15 +258,10 @@ export default function Sidebar({
 
     try {
       setLoadingNotification(true);
-      const token = localStorage.getItem("token");
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const response = await fetch(
         `${getBackendUrl()}/startups/submitted`,
         {
           credentials: "include",
-          headers,
         }
       );
 
@@ -329,24 +319,19 @@ export default function Sidebar({
   const fetchNewNotifications = async () => {
     setLoadingNotification(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/my/new`,
         {
           credentials: "include",
-          headers,
         }
       );
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         console.log(data.data);
-        setNewNotifications(data.data || []);
+        setNewNotifications(data.data);
       } else {
-        console.log("Failed fetching new notifications:", response.status);
+        console.log(data);
       }
     } catch (error) {
       console.log(error);
@@ -357,15 +342,10 @@ export default function Sidebar({
 
   const fetchNotificationsCount = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/new/count`,
         {
           credentials: "include",
-          headers,
         }
       );
 
@@ -374,7 +354,7 @@ export default function Sidebar({
         setNotificationsCount(data.data);
         console.log(data.data);
       } else {
-        console.log("Failed fetching notifications count:", response.status);
+        console.log("Failed fetching notifications count");
       }
     } catch (error) {
       console.log(error);
@@ -420,24 +400,19 @@ export default function Sidebar({
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/my`,
         {
           credentials: "include",
-          headers,
         }
       );
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         console.log("Notifications: ", data);
-        setNotifications(data.data || []);
+        setNotifications(data.data);
       } else {
-        console.log("Failed fetching notifications:", response.status);
+        console.log(data);
       }
     } catch (error) {
       console.log(error);
@@ -2272,9 +2247,9 @@ export default function Sidebar({
       )}
 
       {showSearchContainer && (
-        <div className="absolute left-20 top-0 h-screen w-96 bg-white shadow-lg z-5 transform transition-all duration-300 ease-in-out animate-slide-in">
+        <div className="absolute left-20 top-0 h-screen w-96 bg-white shadow-lg z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in">
           {/* Search Header */}
-          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative">
+          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative flex-shrink-0">
             <button
               className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors focus:outline-none"
               onClick={() => {
@@ -2474,7 +2449,7 @@ export default function Sidebar({
 
             {/* Search Input Container */}  </div>
 
-          <div className="h-[calc(100vh-200px)] overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 pb-28">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

@@ -142,12 +142,12 @@ function NotificationComponent() {
       timestamp: item.createdAt || new Date().toISOString(),
       sender: item.startup
         ? {
-            id: item.startup.id,
-            name: item.startup.companyName,
-            avatar: item.startup.photo
-              ? `data:image/jpeg;base64,${item.startup.photo}` // Direct base64 usage
-              : null,
-          }
+          id: item.startup.id,
+          name: item.startup.companyName,
+          avatar: item.startup.photo
+            ? `data:image/jpeg;base64,${item.startup.photo}` // Direct base64 usage
+            : null,
+        }
         : null,
       rawData: item, // Store the raw data for reference if needed
     };
@@ -195,21 +195,15 @@ function NotificationComponent() {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       // Use fetch instead of axios to call the API
       const response = await fetch(
         `${getBackendUrl()}/notifications/my`,
         {
           method: "GET",
           credentials: "include", // Important for cookies/auth
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -224,7 +218,7 @@ function NotificationComponent() {
 
         // Extract from paginated response if present
         const dataSource = result.data?.content || result.data || [];
-        
+
         // Handle both array and single object responses
         if (Array.isArray(dataSource)) {
           notificationData = dataSource.map((item) =>
@@ -306,12 +300,12 @@ function NotificationComponent() {
           sender:
             type !== "system"
               ? {
-                  id: Math.floor(Math.random() * 100),
-                  name: getRandomName(),
-                  avatar: `https://i.pravatar.cc/150?img=${Math.floor(
-                    Math.random() * 70
-                  )}`,
-                }
+                id: Math.floor(Math.random() * 100),
+                name: getRandomName(),
+                avatar: `https://i.pravatar.cc/150?img=${Math.floor(
+                  Math.random() * 70
+                )}`,
+              }
               : null,
         });
       }
@@ -352,9 +346,8 @@ function NotificationComponent() {
       "Moore",
       "Taylor",
     ];
-    return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${
-      lastNames[Math.floor(Math.random() * lastNames.length)]
-    }`;
+    return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]
+      }`;
   };
 
   // Add this function to your component
@@ -400,9 +393,8 @@ function NotificationComponent() {
       "Wave",
       "Sphere",
     ];
-    return `${prefixes[Math.floor(Math.random() * prefixes.length)]}${
-      suffixes[Math.floor(Math.random() * suffixes.length)]
-    }`;
+    return `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]
+      }`;
   };
 
   const getRandomSystemMessage = () => {
@@ -492,22 +484,15 @@ function NotificationComponent() {
       }
 
       // For marking as viewed - only available for unread notifications
-      const endpoint = `${
-        getBackendUrl()
-      }/notifications/${id}/view`;
-
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const endpoint = `${getBackendUrl()
+        }/notifications/${id}/view`;
 
       const response = await fetch(endpoint, {
         method: "GET",
         credentials: "include",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -545,20 +530,14 @@ function NotificationComponent() {
     try {
       setDeletingIds((prev) => [...prev, id]);
 
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/${id}`,
         {
           method: "DELETE",
           credentials: "include",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -566,7 +545,7 @@ function NotificationComponent() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message ||
-            `Failed to delete notification (${response.status})`
+          `Failed to delete notification (${response.status})`
         );
       }
 
@@ -587,20 +566,14 @@ function NotificationComponent() {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const response = await fetch(
         `${getBackendUrl()}/notifications/my/markAllRead`,
         {
           method: "PUT",
           credentials: "include",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -780,9 +753,8 @@ function NotificationComponent() {
       if (!notification.isRead) {
         try {
           // Always mark as viewed when opening the notification
-          const viewEndpoint = `${
-            getBackendUrl()
-          }/notifications/${notification.id}/view`;
+          const viewEndpoint = `${getBackendUrl()
+            }/notifications/${notification.id}/view`;
 
           console.log(`Marking notification ${notification.id} as viewed`);
           const viewResponse = await fetch(viewEndpoint, {
@@ -1154,11 +1126,10 @@ function NotificationComponent() {
                               setActiveFilter(filter.id);
                               setShowFilterMenu(false);
                             }}
-                            className={`block text-black w-full text-left px-2 py-1 rounded flex justify-between items-center ${
-                              activeFilter === filter.id
+                            className={`block text-black w-full text-left px-2 py-1 rounded flex justify-between items-center ${activeFilter === filter.id
                                 ? "bg-blue-50 text-blue-700"
                                 : "hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             <span>{filter.name}</span>
                             <span className="bg-gray-100 text-xs px-1.5 py-0.5 rounded-full">
@@ -1181,11 +1152,10 @@ function NotificationComponent() {
                               setActiveTypeFilter(filter.id);
                               setShowFilterMenu(false);
                             }}
-                            className={`text-black block w-full text-left px-2 py-1 rounded flex justify-between items-center ${
-                              activeTypeFilter === filter.id
+                            className={`text-black block w-full text-left px-2 py-1 rounded flex justify-between items-center ${activeTypeFilter === filter.id
                                 ? "bg-blue-50 text-blue-700"
                                 : "hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             <span>{filter.name}</span>
                             <span className="bg-gray-100 text-xs px-1.5 py-0.5 rounded-full">
@@ -1249,19 +1219,17 @@ function NotificationComponent() {
               <button
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${
-                  activeFilter === filter.id
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${activeFilter === filter.id
                     ? "bg-blue-600 text-white"
                     : "bg-white text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <span>{filter.name}</span>
                 <span
-                  className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                    activeFilter === filter.id
+                  className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${activeFilter === filter.id
                       ? "bg-blue-500 text-white"
                       : "bg-gray-100 text-gray-600"
-                  }`}
+                    }`}
                 >
                   {countByType[filter.id] || 0}
                 </span>
@@ -1277,19 +1245,17 @@ function NotificationComponent() {
               <button
                 key={filter.id}
                 onClick={() => setActiveTypeFilter(filter.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${
-                  activeTypeFilter === filter.id
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${activeTypeFilter === filter.id
                     ? "bg-blue-100 text-blue-800 border border-blue-200"
                     : "bg-white text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <span>{filter.name}</span>
                 <span
-                  className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                    activeTypeFilter === filter.id
+                  className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${activeTypeFilter === filter.id
                       ? "bg-blue-200 text-blue-800"
                       : "bg-gray-100 text-gray-600"
-                  }`}
+                    }`}
                 >
                   {countByType[filter.id] || 0}
                 </span>
@@ -1337,9 +1303,8 @@ function NotificationComponent() {
                   notification && (
                     <li
                       key={notification.id}
-                      className={`relative transition-all ${
-                        notification.isRead ? "bg-white" : "bg-blue-50"
-                      } hover:bg-gray-50`}
+                      className={`relative transition-all ${notification.isRead ? "bg-white" : "bg-blue-50"
+                        } hover:bg-gray-50`}
                     >
                       <div className="px-4 py-5 sm:px-6 flex items-start">
                         {/* Icon or avatar */}
@@ -1430,11 +1395,10 @@ function NotificationComponent() {
                           <button
                             onClick={() => initiateDelete(notification.id)}
                             disabled={deletingIds.includes(notification.id)}
-                            className={`p-2 ${
-                              deletingIds.includes(notification.id)
+                            className={`p-2 ${deletingIds.includes(notification.id)
                                 ? "text-gray-300 cursor-not-allowed"
                                 : "text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            } rounded-full`}
+                              } rounded-full`}
                             title="Delete notification"
                             aria-label="Delete notification"
                           >
@@ -1462,23 +1426,23 @@ function NotificationComponent() {
                 {searchQuery
                   ? "No notifications match your search."
                   : activeFilter !== "all" || activeTypeFilter !== "all"
-                  ? "No notifications match your current filters."
-                  : "You're all caught up!"}
+                    ? "No notifications match your current filters."
+                    : "You're all caught up!"}
               </p>
               {(activeFilter !== "all" ||
                 activeTypeFilter !== "all" ||
                 searchQuery) && (
-                <button
-                  onClick={() => {
-                    setActiveFilter("all");
-                    setActiveTypeFilter("all");
-                    setSearchQuery("");
-                  }}
-                  className="mt-4 text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Clear all filters
-                </button>
-              )}
+                  <button
+                    onClick={() => {
+                      setActiveFilter("all");
+                      setActiveTypeFilter("all");
+                      setSearchQuery("");
+                    }}
+                    className="mt-4 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Clear all filters
+                  </button>
+                )}
             </div>
           )}
         </div>
@@ -1565,11 +1529,10 @@ function NotificationComponent() {
                       <img
                         src={
                           typeof startupDetails.photo === "string" &&
-                          startupDetails.photo.startsWith("/9j")
+                            startupDetails.photo.startsWith("/9j")
                             ? `data:image/jpeg;base64,${startupDetails.photo}`
-                            : `${getBackendUrl()}/startups/${
-                                startupDetails.id
-                              }/photo`
+                            : `${getBackendUrl()}/startups/${startupDetails.id
+                            }/photo`
                         }
                         alt={startupDetails.companyName}
                         className="h-24 w-24 object-cover rounded-lg"
@@ -1605,17 +1568,16 @@ function NotificationComponent() {
                       <p className="text-sm text-gray-500 mt-1">
                         {startupDetails.industry &&
                           startupDetails.industry.charAt(0).toUpperCase() +
-                            startupDetails.industry.slice(1).replace("_", " ")}
+                          startupDetails.industry.slice(1).replace("_", " ")}
                       </p>
                       <div className="mt-2 flex items-center">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            startupDetails.status === "Approved"
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${startupDetails.status === "Approved"
                               ? "bg-green-100 text-green-800"
                               : startupDetails.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
                         >
                           {startupDetails.status}
                         </span>
@@ -1657,11 +1619,11 @@ function NotificationComponent() {
                       <p className="mt-1 text-gray-600">
                         {startupDetails.fundingStage
                           ? startupDetails.fundingStage
-                              .charAt(0)
-                              .toUpperCase() +
-                            startupDetails.fundingStage
-                              .slice(1)
-                              .replace("_", " ")
+                            .charAt(0)
+                            .toUpperCase() +
+                          startupDetails.fundingStage
+                            .slice(1)
+                            .replace("_", " ")
                           : "N/A"}
                       </p>
                     </div>

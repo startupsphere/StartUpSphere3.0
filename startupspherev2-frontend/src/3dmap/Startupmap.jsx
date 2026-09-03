@@ -1777,17 +1777,15 @@ export default function Startupmap({
 
   // Add 3D buildings to the map - Professional enhanced version
   const add3DBuildings = (map) => {
-    if (!map.getSource("composite")) return;
-    try {
-      // First add ambient occlusion shadow layer for depth
-      createBuildingPattern(map);
+    // First add ambient occlusion shadow layer for depth
+    createBuildingPattern(map);
 
     // Enhanced shadow layer with better depth perception
     map.addLayer({
       id: "building-ambient-shadows",
       source: "composite",
       "source-layer": "building",
-      filter: ["==", ["get", "extrude"], "true"],
+      filter: ["==", "extrude", "true"],
       type: "fill-extrusion",
       minzoom: 12,
       layout: {
@@ -1816,7 +1814,7 @@ export default function Startupmap({
         id: "3d-buildings",
         source: "composite",
         "source-layer": "building",
-        filter: ["==", ["get", "extrude"], "true"],
+        filter: ["==", "extrude", "true"],
         type: "fill-extrusion",
         minzoom: 11,
         paint: {
@@ -1879,7 +1877,7 @@ export default function Startupmap({
       "source-layer": "building",
       filter: [
         "all",
-        ["==", ["get", "extrude"], "true"],
+        ["==", "extrude", "true"],
         [">=", ["to-number", ["get", "height"]], 20],
       ],
       type: "fill-extrusion",
@@ -1908,7 +1906,7 @@ export default function Startupmap({
         "source-layer": "building",
         filter: [
           "all",
-          ["==", ["get", "extrude"], "true"],
+          ["==", "extrude", "true"],
           [">", ["to-number", ["get", "height"]], 30],
         ],
         type: "fill-extrusion",
@@ -1956,7 +1954,7 @@ export default function Startupmap({
         "source-layer": "building",
         filter: [
           "all",
-          ["==", ["get", "extrude"], "true"],
+          ["==", "extrude", "true"],
           [">", ["to-number", ["get", "height"]], 30],
         ],
         type: "fill-extrusion",
@@ -1992,7 +1990,7 @@ export default function Startupmap({
         "source-layer": "building",
         filter: [
           "all",
-          ["==", ["get", "extrude"], "true"],
+          ["==", "extrude", "true"],
           [">", ["to-number", ["get", "height"]], 50], // Only for taller buildings
         ],
         type: "fill-extrusion",
@@ -2020,7 +2018,7 @@ export default function Startupmap({
         "source-layer": "building",
         filter: [
           "all",
-          ["==", ["get", "extrude"], "true"],
+          ["==", "extrude", "true"],
           [">", ["to-number", ["get", "height"]], 80], // Only the tallest buildings
         ],
         type: "fill-extrusion",
@@ -2048,7 +2046,7 @@ export default function Startupmap({
         "source-layer": "building",
         filter: [
           "all",
-          ["==", ["get", "extrude"], "true"],
+          ["==", "extrude", "true"],
           [">", ["to-number", ["get", "height"]], 100], // Only the tallest buildings get a glow
         ],
         type: "fill-extrusion",
@@ -2073,7 +2071,6 @@ export default function Startupmap({
       },
       "landmark-buildings"
     );
-    } catch(e) { console.log("3D buildings not fully supported with current style"); }
   };
 
   const addBuildingLabels = (map) => {
@@ -2097,45 +2094,40 @@ export default function Startupmap({
   };
 
   const addBuildingDetails = (map) => {
-    if (!map.getSource("composite")) return;
-    try {
-      // Add decorative elements around buildings when zoomed in
-      map.addLayer({
-        id: "building-details",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["all", ["==", ["get", "extrude"], "true"], [">", ["to-number", ["get", "height"]], 30]],
-        type: "line",
-        minzoom: 17,
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-color": "#ffffff",
-          "line-width": 1.5,
-          "line-opacity": 0.7,
-        },
-      });
+    // Add decorative elements around buildings when zoomed in
+    map.addLayer({
+      id: "building-details",
+      source: "composite",
+      "source-layer": "building",
+      filter: ["all", ["==", "extrude", "true"], [">", ["get", "height"], 30]],
+      type: "line",
+      minzoom: 17,
+      layout: {
+        "line-join": "round",
+        "line-cap": "round",
+      },
+      paint: {
+        "line-color": "#ffffff",
+        "line-width": 1.5,
+        "line-opacity": 0.7,
+      },
+    });
 
-      // Add high-detail window patterns to buildings when very zoomed in
-      map.addLayer({
-        id: "building-high-detail-windows",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["all", ["==", ["get", "extrude"], "true"], [">", ["to-number", ["get", "height"]], 40]],
-        type: "fill-extrusion",
-        minzoom: 18,
-        paint: {
-          "fill-extrusion-pattern": "building-windows-highrise",
-          "fill-extrusion-height": ["*", ["to-number", ["get", "height"]], 0.999],
-          "fill-extrusion-base": ["to-number", ["get", "min_height"]],
-          "fill-extrusion-opacity": 0.8,
-        },
-      });
-    } catch (e) {
-      console.log("Custom building details layer not supported with current style");
-    }
+    // Add high-detail window patterns to buildings when very zoomed in
+    map.addLayer({
+      id: "building-high-detail-windows",
+      source: "composite",
+      "source-layer": "building",
+      filter: ["all", ["==", "extrude", "true"], [">", ["get", "height"], 40]],
+      type: "fill-extrusion",
+      minzoom: 18,
+      paint: {
+        "fill-extrusion-pattern": "building-windows-highrise",
+        "fill-extrusion-height": ["*", ["get", "height"], 0.999],
+        "fill-extrusion-base": ["get", "min_height"],
+        "fill-extrusion-opacity": 0.8,
+      },
+    });
   };
 
   const createBuildingWindowPatterns = (map) => {
@@ -2200,22 +2192,20 @@ export default function Startupmap({
       }
 
       // Add a subtle reflection effect to water
-      if (map.getSource("composite")) {
-        map.addLayer(
-          {
-            id: "water-reflection",
-            type: "fill",
-            source: "composite",
-            "source-layer": "water",
-            layout: {},
-            paint: {
-              "fill-color": "#9dd1f7",
-              "fill-opacity": 0.15,
-            },
+      map.addLayer(
+        {
+          id: "water-reflection",
+          type: "fill",
+          source: "composite",
+          "source-layer": "water",
+          layout: {},
+          paint: {
+            "fill-color": "#9dd1f7",
+            "fill-opacity": 0.15,
           },
-          "waterway-label"
-        );
-      }
+        },
+        "waterway-label"
+      );
     } catch (e) {
       console.log("Water styling not fully supported with Standard style");
     }
@@ -2348,40 +2338,34 @@ export default function Startupmap({
     }
 
     // Add 3D tree representations for parks
-    if (map.getSource("composite")) {
-      try {
-        map.addLayer({
-          id: "park-trees-3d",
-          type: "fill-extrusion",
-          source: "composite",
-          "source-layer": "landuse",
-          filter: ["in", "class", "park", "wood", "nature_reserve"],
-          minzoom: 14,
-          paint: {
-            "fill-extrusion-color": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              14, "#5a7a3c",
-              18, "#4a6a2c"
-            ],
-            "fill-extrusion-height": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              14, 3,
-              16, 8,
-              18, 12
-            ],
-            "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.6,
-            "fill-extrusion-vertical-gradient": true,
-          },
-        });
-      } catch (e) {
-        console.log("3D park trees not supported with current style");
-      }
-    }
+    map.addLayer({
+      id: "park-trees-3d",
+      type: "fill-extrusion",
+      source: "composite",
+      "source-layer": "landuse",
+      filter: ["in", "class", "park", "wood", "nature_reserve"],
+      minzoom: 14,
+      paint: {
+        "fill-extrusion-color": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          14, "#5a7a3c",
+          18, "#4a6a2c"
+        ],
+        "fill-extrusion-height": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          14, 3,
+          16, 8,
+          18, 12
+        ],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.6,
+        "fill-extrusion-vertical-gradient": true,
+      },
+    });
   };
 
   // Add elevated structures like bridges and overpasses
@@ -2400,63 +2384,57 @@ export default function Startupmap({
     }
 
     // Add 3D bridge structures
-    if (map.getSource("composite")) {
-      try {
-        map.addLayer({
-          id: "bridge-3d-structure",
-          type: "fill-extrusion",
-          source: "composite",
-          "source-layer": "road",
-          filter: ["==", ["get", "structure"], "bridge"],
-          minzoom: 14,
-          paint: {
-            "fill-extrusion-color": "#6b7d8f",
-            "fill-extrusion-height": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              14, 8,
-              16, 12,
-              18, 15
-            ],
-            "fill-extrusion-base": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              14, 5,
-              16, 8,
-              18, 10
-            ],
-            "fill-extrusion-opacity": 0.8,
-            "fill-extrusion-vertical-gradient": true,
-          },
-        });
+    map.addLayer({
+      id: "bridge-3d-structure",
+      type: "fill-extrusion",
+      source: "composite",
+      "source-layer": "road",
+      filter: ["==", ["get", "structure"], "bridge"],
+      minzoom: 14,
+      paint: {
+        "fill-extrusion-color": "#6b7d8f",
+        "fill-extrusion-height": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          14, 8,
+          16, 12,
+          18, 15
+        ],
+        "fill-extrusion-base": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          14, 5,
+          16, 8,
+          18, 10
+        ],
+        "fill-extrusion-opacity": 0.8,
+        "fill-extrusion-vertical-gradient": true,
+      },
+    });
 
-        // Add bridge support pillars
-        map.addLayer({
-          id: "bridge-pillars",
-          type: "fill-extrusion",
-          source: "composite",
-          "source-layer": "road",
-          filter: ["==", ["get", "structure"], "bridge"],
-          minzoom: 16,
-          paint: {
-            "fill-extrusion-color": "#4a5a6a",
-            "fill-extrusion-height": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              16, 8,
-              18, 12
-            ],
-            "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.9,
-          },
-        });
-      } catch (e) {
-        console.log("3D bridge structures not supported with current style");
-      }
-    }
+    // Add bridge support pillars
+    map.addLayer({
+      id: "bridge-pillars",
+      type: "fill-extrusion",
+      source: "composite",
+      "source-layer": "road",
+      filter: ["==", ["get", "structure"], "bridge"],
+      minzoom: 16,
+      paint: {
+        "fill-extrusion-color": "#4a5a6a",
+        "fill-extrusion-height": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          16, 8,
+          18, 12
+        ],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.9,
+      },
+    });
   };
 
   // Add dynamic lighting effects based on time simulation
@@ -2520,51 +2498,49 @@ export default function Startupmap({
       });
 
       // Try to add building lights if custom layers are supported
-      if (map.getSource("composite")) {
-        try {
-          map.addLayer({
-            id: "building-windows-lit",
-            type: "fill-extrusion",
-            source: "composite",
-            "source-layer": "building",
-            filter: ["all", ["==", ["get", "extrude"], "true"], [">", ["to-number", ["get", "height"]], 20]],
-            minzoom: 14,
-            paint: {
-              "fill-extrusion-color": "#ffe8b3",
-              "fill-extrusion-height": ["*", ["to-number", ["get", "height"]], 0.995],
-              "fill-extrusion-base": ["to-number", ["get", "min_height"]],
-              "fill-extrusion-opacity": 0.8,
-              "fill-extrusion-vertical-gradient": true,
-            },
-          });
-        } catch (e) {
-          console.log("Custom building lights not supported with Standard style");
-        }
+      try {
+        map.addLayer({
+          id: "building-windows-lit",
+          type: "fill-extrusion",
+          source: "composite",
+          "source-layer": "building",
+          filter: ["all", ["==", "extrude", "true"], [">", ["to-number", ["get", "height"]], 20]],
+          minzoom: 14,
+          paint: {
+            "fill-extrusion-color": "#ffe8b3",
+            "fill-extrusion-height": ["*", ["to-number", ["get", "height"]], 0.995],
+            "fill-extrusion-base": ["to-number", ["get", "min_height"]],
+            "fill-extrusion-opacity": 0.8,
+            "fill-extrusion-vertical-gradient": true,
+          },
+        });
+      } catch (e) {
+        console.log("Custom building lights not supported with Standard style");
+      }
 
-        // Add street lights with warm glow
-        try {
-          map.addLayer({
-            id: "street-lights",
-            type: "circle",
-            source: "composite",
-            "source-layer": "road",
-            minzoom: 16,
-            paint: {
-              "circle-radius": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                16, 2.5,
-                20, 7
-              ],
-              "circle-color": "#ffe8cc",
-              "circle-opacity": 0.9,
-              "circle-blur": 0.8,
-            },
-          });
-        } catch (e) {
-          console.log("Street lights not supported with Standard style");
-        }
+      // Add street lights with warm glow
+      try {
+        map.addLayer({
+          id: "street-lights",
+          type: "circle",
+          source: "composite",
+          "source-layer": "road",
+          minzoom: 16,
+          paint: {
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              16, 2.5,
+              20, 7
+            ],
+            "circle-color": "#ffe8cc",
+            "circle-opacity": 0.9,
+            "circle-blur": 0.8,
+          },
+        });
+      } catch (e) {
+        console.log("Street lights not supported with Standard style");
       }
     }
   };
