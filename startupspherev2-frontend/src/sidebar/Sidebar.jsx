@@ -2247,9 +2247,9 @@ export default function Sidebar({
       )}
 
       {showSearchContainer && (
-        <div className="absolute left-20 top-0 h-screen w-96 bg-white shadow-lg z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in">
+        <div className="absolute left-20 top-0 h-full w-96 bg-white shadow-lg z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden">
           {/* Search Header */}
-          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative flex-shrink-0">
+          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative flex-shrink-0 shadow-md">
             <button
               className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors focus:outline-none"
               onClick={() => {
@@ -2449,7 +2449,7 @@ export default function Sidebar({
 
             {/* Search Input Container */}  </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 pb-28">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 pb-36 overscroll-contain">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
