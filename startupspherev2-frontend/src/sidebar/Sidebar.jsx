@@ -600,7 +600,7 @@ export default function Sidebar({
       // Fetch with pagination params - get large page size for sidebar
       const params = new URLSearchParams({
         page: "0",
-        size: "1000",
+        size: "100",
         sortBy: "companyName",
         sortDir: "ASC",
       });

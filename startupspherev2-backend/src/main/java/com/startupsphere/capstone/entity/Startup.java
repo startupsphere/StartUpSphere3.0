@@ -113,6 +113,7 @@ public class Startup {
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(name = "photo", columnDefinition = "bytea")
     private byte[] photo;
 
@@ -157,6 +158,7 @@ public class Startup {
     private String supportProgram;
 
     // Registration certificate as file (image, any extension)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(name = "registration_certificate", columnDefinition = "bytea")
     private byte[] registrationCertificate;
 
