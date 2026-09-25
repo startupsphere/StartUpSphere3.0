@@ -9,7 +9,15 @@ export default function ProtectedRoute() {
   useEffect(() => {
     const fetchAuthenticated = async () => {
       try {
+        const token = localStorage.getItem("token");
+        const headers = {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        };
+
         const response = await fetch(`${getBackendUrl()}/auth/check`, {
+          method: "GET",
+          headers,
           credentials: "include",
         });
 

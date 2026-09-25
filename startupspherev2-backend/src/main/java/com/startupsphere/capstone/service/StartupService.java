@@ -76,7 +76,8 @@ public class StartupService {
     public Startup createStartup(Startup startup) {
         logger.info("Saving startup: {}", startup.getCompanyName());
 
-        startup.setStatus("In Review");
+        // TEMPORARY: Auto-accept startups for testing
+        startup.setStatus("Approved");
         startup.setIsDraft(false);
         return startupRepository.save(startup);
     }
@@ -109,7 +110,8 @@ public class StartupService {
         }
         
         draft.setIsDraft(false);
-        draft.setStatus("In Review");
+        // TEMPORARY: Auto-accept startups for testing
+        draft.setStatus("Approved");
         return startupRepository.save(draft);
     }
 

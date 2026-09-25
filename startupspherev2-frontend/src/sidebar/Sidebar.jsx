@@ -570,10 +570,16 @@ export default function Sidebar({
 
   const checkAuthentication = async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
       const response = await fetch(
         `${getBackendUrl()}/auth/check`,
         {
           method: "GET",
+          headers,
           credentials: "include",
         }
       );
@@ -1557,7 +1563,13 @@ export default function Sidebar({
                           setShowSearchContainer(false);
                           setShowBookmarks(false);
                           setShowGeminiAi(false);
-                          navigate("/startup-dashboard");
+                          if (!isAuthenticated) {
+                            setOpenLogin(true);
+                          } else if (currentUser?.role === "ROLE_ADMIN") {
+                            navigate("/all-startup-dashboard");
+                          } else {
+                            navigate("/startup-dashboard");
+                          }
                         }}
                         className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
                       >

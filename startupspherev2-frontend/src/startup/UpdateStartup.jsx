@@ -164,7 +164,7 @@ export default function UpdateStartup() {
       newErrors.phoneNumber = "Phone number is required";
     }
     if (!formData.website) {
-      newErrors.website = "Website is required";
+      // website is optional
     }
     if (!formData.streetAddress) {
       newErrors.streetAddress = "Street address is required";

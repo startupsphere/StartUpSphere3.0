@@ -448,7 +448,7 @@ export default function UpdateStartup() {
       newErrors.phoneNumber = "Phone number is required";
     }
     if (!formData.website) {
-      newErrors.website = "Website is required";
+      // website is optional
     }
     if (!formData.streetAddress) {
       newErrors.streetAddress = "Street address is required";
@@ -1267,7 +1267,7 @@ export default function UpdateStartup() {
               {/* Website */}
               <div>
                 <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
-                  Website*
+                  Website <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1279,7 +1279,7 @@ export default function UpdateStartup() {
                     name="website"
                     value={formData.website || ""}
                     onChange={handleInputChange}
-                    required
+
                     placeholder="https://www.example.com"
                     className={`w-full pl-10 pr-3 py-2.5 border ${
                       errors.website ? "border-red-300" : "border-gray-300"

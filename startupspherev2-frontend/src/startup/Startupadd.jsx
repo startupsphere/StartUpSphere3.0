@@ -1250,8 +1250,8 @@ const fetchDraftData = async (id) => {
     }
     
     if (!formData.website) {
-      errors.website = "Website is required.";
-      toast.error("Website is required.");
+      // website is optional
+
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
@@ -1295,12 +1295,12 @@ const fetchDraftData = async (id) => {
     const errors = {};
     
     if (!formData.facebook) {
-      errors.facebook = "Facebook URL is required.";
-      toast.error("Facebook URL is required.");
+      // facebook is optional
+
     }
     if (!formData.linkedIn) {
-      errors.linkedIn = "LinkedIn URL is required.";
-      toast.error("LinkedIn URL is required.");
+      // linkedIn is optional
+
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
@@ -4000,7 +4000,7 @@ const handleSubmit = async () => {
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">Website
-                <span className="text-red-500"> *</span>
+                <span className="text-gray-400 text-xs"> (Optional)</span>
               </label>
               <div className="relative">
                 <input
@@ -4556,7 +4556,7 @@ const handleSubmit = async () => {
                     </svg>
                   </div>
                   Facebook
-                  <span className="text-red-500">*</span>
+                  <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -4610,7 +4610,7 @@ const handleSubmit = async () => {
                     </svg>
                   </div>
                   LinkedIn
-                  <span className="text-red-500">*</span>
+                  <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
