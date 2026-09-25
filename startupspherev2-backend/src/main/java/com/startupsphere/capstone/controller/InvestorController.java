@@ -57,6 +57,9 @@ public class InvestorController {
     @PostMapping
     public ResponseEntity<Investor> createInvestor(@RequestBody Investor investor) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User currentUser = (User) auth.getPrincipal(); // Authenticated user from Spring Security
 
         investor.setUserId(currentUser); // Link investor to the current user

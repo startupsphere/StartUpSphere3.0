@@ -29,6 +29,9 @@ public class RecentsController {
     @PostMapping("/startup/{startupId}")
     public ResponseEntity<Recents> addRecentStartup(@PathVariable Long startupId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User user = (User) auth.getPrincipal();
         Optional<Startup> startupOpt = startupRepository.findById(startupId);
         if (startupOpt.isEmpty()) {
@@ -41,6 +44,9 @@ public class RecentsController {
     @PostMapping("/stakeholder/{stakeholderId}")
     public ResponseEntity<Recents> addRecentStakeholder(@PathVariable Long stakeholderId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User user = (User) auth.getPrincipal();
         Optional<Stakeholder> stakeholderOpt = stakeholderRepository.findById(stakeholderId);
         if (stakeholderOpt.isEmpty()) {
@@ -53,6 +59,9 @@ public class RecentsController {
     @GetMapping
     public ResponseEntity<List<Recents>> getUserRecents() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User user = (User) auth.getPrincipal();
         List<Recents> recents = recentsService.getUserRecents(user);
         return ResponseEntity.ok(recents);
@@ -61,6 +70,9 @@ public class RecentsController {
     @GetMapping("/startups")
     public ResponseEntity<List<Recents>> getUserRecentStartups() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User user = (User) auth.getPrincipal();
         List<Recents> recents = recentsService.getUserRecentStartups(user);
         return ResponseEntity.ok(recents);
@@ -69,6 +81,9 @@ public class RecentsController {
     @GetMapping("/stakeholders")
     public ResponseEntity<List<Recents>> getUserRecentStakeholders() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User user = (User) auth.getPrincipal();
         List<Recents> recents = recentsService.getUserRecentStakeholders(user);
         return ResponseEntity.ok(recents);

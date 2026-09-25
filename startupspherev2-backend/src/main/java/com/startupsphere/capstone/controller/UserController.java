@@ -25,6 +25,11 @@ public class UserController {
     public ResponseEntity<User> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
+
         User currentUser = (User) authentication.getPrincipal();
 
         return ResponseEntity.ok(currentUser);
@@ -41,7 +46,7 @@ public class UserController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getPrincipal().equals("anonymousUser")) {
+                || !(authentication.getPrincipal() instanceof User)) {
             return ResponseEntity.status(401).body("Unauthorized: No user is logged in");
         }
 

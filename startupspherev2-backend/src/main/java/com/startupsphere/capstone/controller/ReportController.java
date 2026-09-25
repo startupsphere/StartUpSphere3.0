@@ -28,6 +28,9 @@ public class ReportController {
     @PostMapping("/")
     public ResponseEntity<Report> createReport(@RequestBody ReportDto dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User currentUser = (User) auth.getPrincipal();
 
         Report report = reportService.createReport(dto, currentUser);
@@ -48,6 +51,9 @@ public class ReportController {
     @PutMapping("/{id}")
     public ResponseEntity<Report> updateReport(@PathVariable Integer id, @RequestBody ReportDto dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
         User currentUser = (User) auth.getPrincipal();
 
         Report updated = reportService.updateReport(id, dto, currentUser);
