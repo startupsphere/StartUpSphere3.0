@@ -482,11 +482,14 @@ export default function Sidebar({
   }, []);
 
   const addToRecents = async (type, id) => {
+    const token = localStorage.getItem("token");
+    if (!isAuthenticated || !token) return;
     try {
       const response = await fetch(`${getBackendUrl()}/recents/${type}/${id}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include'
       })
@@ -501,10 +504,15 @@ export default function Sidebar({
     }
   }
 
-
   const getRecents = async (type) => {
+    const token = localStorage.getItem("token");
+    if (!isAuthenticated || !token) return;
     try {
       const response = await fetch(`${getBackendUrl()}/recents/${type}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         credentials: 'include'
       })
 
