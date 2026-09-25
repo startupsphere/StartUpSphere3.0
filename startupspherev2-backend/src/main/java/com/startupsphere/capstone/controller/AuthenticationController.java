@@ -47,30 +47,35 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(
+    public ResponseEntity<?> authenticate(
             @RequestBody LoginUserDto loginUserDto,
             HttpServletResponse response) {
-        User authenticatedUser = authenticationService.authenticate(loginUserDto);
+        try {
+            User authenticatedUser = authenticationService.authenticate(loginUserDto);
 
-        String jwtToken = jwtService.generateToken(authenticatedUser);
+            String jwtToken = jwtService.generateToken(authenticatedUser);
 
-        // Create an HTTP-only cookie
-        ResponseCookie cookie = ResponseCookie.from("token", jwtToken)
-                .httpOnly(true)
-                .secure(true) // Set to true if using HTTPS
-                .path("/")
-                .sameSite("None")
-                .maxAge(3600)
-                .build(); // No expiration since the token has no expiry
+            // Create an HTTP-only cookie
+            ResponseCookie cookie = ResponseCookie.from("token", jwtToken)
+                    .httpOnly(true)
+                    .secure(true) // Set to true if using HTTPS
+                    .path("/")
+                    .sameSite("None")
+                    .maxAge(3600)
+                    .build();
 
-        // Add the cookie to the response
-        response.addHeader("Set-Cookie", cookie.toString());
+            // Add the cookie to the response
+            response.addHeader("Set-Cookie", cookie.toString());
 
-        // Return the response body (optional)
-        LoginResponse loginResponse = new LoginResponse()
-                .setToken(jwtToken); // No expiration time to set
+            // Return the response body (optional)
+            LoginResponse loginResponse = new LoginResponse()
+                    .setToken(jwtToken);
 
-        return ResponseEntity.ok(loginResponse);
+            return ResponseEntity.ok(loginResponse);
+        } catch (Exception e) {
+            return ResponseEntity.status(401)
+                    .body(java.util.Map.of("error", "Invalid email or password. Please try again."));
+        }
     }
 
     @PostMapping("/logout")
