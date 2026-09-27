@@ -75,6 +75,15 @@ export default function Startupmap({
   useEffect(() => { heatmapModeRef.current = heatmapMode; }, [heatmapMode]);
 
   const [showLegend, setShowLegend] = useState(true);
+  const [isMobileMap, setIsMobileMap] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileMap(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const mapBottomOffset = isMobileMap ? "80px" : "16px";
   const [connectionLines, setConnectionLines] = useState([]);
   const [stakeholderMarkers, setStakeholderMarkers] = useState([]);
   const [filteredStakeholders, setFilteredStakeholders] = useState([]);
@@ -3958,7 +3967,7 @@ export default function Startupmap({
       {/* Map Style Toggle Button */}
       <button
         onClick={toggleMapStyle}
-        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% - 250px))', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% - 250px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
         title={isSatelliteView ? "Switch to Standard Map" : "Switch to Satellite View"}
       >
@@ -4004,7 +4013,7 @@ export default function Startupmap({
       {/* 3D Toggle Button */}
       <button
         onClick={toggle3DView}
-        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% - 80px))', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% - 80px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
       >
         {is3DActive ? (
@@ -4049,7 +4058,7 @@ export default function Startupmap({
       {/* Heatmap Toggle Button */}
       <button
         onClick={toggleHeatmapVisibility}
-        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% + 80px))', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% + 80px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
       >
         <svg
@@ -4078,7 +4087,7 @@ export default function Startupmap({
       {/* Connections Toggle Button */}
       <button
         onClick={toggleConnectionsVisibility}
-        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(calc(-50% + 250px))', zIndex: 10000 }}
+        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% + 250px))', zIndex: 10000 }}
         className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
       >
         <svg
@@ -4101,7 +4110,7 @@ export default function Startupmap({
       {showHeatmap && (
         <button
           onClick={() => setShowLegend(!showLegend)}
-          style={{ position: 'absolute', bottom: '16px', left: '16px', zIndex: 10000 }}
+          style={{ position: 'absolute', bottom: mapBottomOffset, left: '16px', zIndex: 10000 }}
           className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -4113,7 +4122,7 @@ export default function Startupmap({
 
       {/* Heatmap Legend */}
       <div
-        className={`absolute bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
+        className={`absolute bottom-28 md:bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
           }`}
         style={{ width: "260px" }}
       >

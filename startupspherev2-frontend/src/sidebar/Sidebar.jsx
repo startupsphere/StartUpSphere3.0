@@ -177,19 +177,34 @@ export default function Sidebar({
     };
   }, []);
 
+  // Screen resize detection for responsive mobile layout
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Calculate dynamic margins to resize map / dashboard layout when sidebars slide open
   const hasLeftPanel420 = (stakeholder && !viewingStartup) || (startup && !viewingStartup);
   const hasLeftPanel384 = showSearchContainer || (containerMode === "recents" && showRecents) || (containerMode === "bookmarks" && showBookmarks);
 
   let marginLeft = "0px";
-  if (hasLeftPanel420) {
-    marginLeft = "420px";
-  } else if (hasLeftPanel384) {
-    marginLeft = "384px";
+  if (!isMobile) {
+    if (hasLeftPanel420) {
+      marginLeft = "420px";
+    } else if (hasLeftPanel384) {
+      marginLeft = "384px";
+    }
   }
 
   let marginRight = "0px";
-  if (showGeminiAi) {
+  if (!isMobile && showGeminiAi) {
     marginRight = "420px";
   }
 
@@ -1376,8 +1391,8 @@ export default function Sidebar({
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-gray-50">
       <ToastContainer
-        position="bottom-right"
-        autoClose={1000}
+        position={isMobile ? "top-center" : "bottom-right"}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop
         closeOnClick
@@ -1385,6 +1400,7 @@ export default function Sidebar({
         draggable
         pauseOnHover
         theme="colored"
+        style={{ marginTop: isMobile ? "50px" : "0px" }}
       />
 
       {/* Viewing Mode Indicators */}
@@ -1428,8 +1444,93 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className="relative flex h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-30 sidebar-container">
+      {/* Mobile Top Header Bar */}
+      <header className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 items-center justify-between z-40 shadow-xs">
+        {/* Left: Logo & Brand */}
+        <div 
+          className="flex items-center space-x-2 cursor-pointer"
+          onClick={() => {
+            navigate("/");
+            setShowSearchContainer(false);
+            setShowRecents(false);
+            setShowBookmarks(false);
+            setViewingStartup(null);
+            setViewingStakeholder(null);
+            setStartup(null);
+            setStakeholder(null);
+            setContainerMode(null);
+            setShowGeminiAi(false);
+          }}
+        >
+          <img
+            src="/StartUpSphere_logo.png"
+            alt="StartUpSphere Logo"
+            className="h-7 w-7 object-contain"
+          />
+          <span className="font-bold text-gray-900 text-base tracking-tight">
+            StartUp<span className="text-blue-600">Sphere</span>
+          </span>
+        </div>
+
+        {/* Right: Quick Action Controls */}
+        <div className="flex items-center space-x-1.5">
+          {/* AI Chat Button */}
+          <button
+            onClick={() => {
+              setShowSearchContainer(false);
+              setShowRecents(false);
+              setShowBookmarks(false);
+              setViewingStartup(null);
+              setViewingStakeholder(null);
+              setStartup(null);
+              setStakeholder(null);
+              setShowGeminiAi(!showGeminiAi);
+            }}
+            className={`p-2 rounded-full transition-colors relative ${
+              showGeminiAi ? "bg-indigo-100 text-indigo-700" : "text-gray-600 hover:bg-gray-100"
+            }`}
+            aria-label="AI Assistant"
+          >
+            <Sparkles className="h-5 w-5" />
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-indigo-600 animate-ping"></span>
+          </button>
+
+          {/* Notifications Bell */}
+          {isAuthenticated && currentUser?.role !== "ROLE_ADMIN" && (
+            <button
+              onClick={() => {
+                setShowGeminiAi(false);
+                navigate("/notifications");
+              }}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors relative"
+              aria-label="Notifications"
+            >
+              <FaBell className="h-5 w-5" />
+              {notificationsCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                  {notificationsCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Profile Dropdown Toggle */}
+          <button
+            onClick={() => {
+              setShowTooltip((prev) => !prev);
+              setNotificationTooltip(false);
+            }}
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold shadow-sm"
+          >
+            {isAuthenticated && currentUser
+              ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+              : "G"}
+          </button>
+        </div>
+      </header>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-30 sidebar-container">
         <div>
           {/* Logo */}
           <div className="flex justify-center items-center py-6 border-b border-gray-200">
@@ -1706,7 +1807,7 @@ export default function Sidebar({
       </div>
 
       {location.pathname === "/" && (
-        <div className="absolute top-4 right-4 z-50">
+        <div className="hidden md:block absolute top-4 right-4 z-50">
           <div className="relative">
             <div
               className="avatar avatar-placeholder cursor-pointer rounded-full hover:ring-2 hover:ring-blue-900 transition-all duration-200"
@@ -2267,9 +2368,13 @@ export default function Sidebar({
       )}
 
       {showSearchContainer && (
-        <div className="absolute left-20 top-0 h-full w-96 bg-white shadow-lg z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden">
+        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 bg-white shadow-xl z-30 md:z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden">
           {/* Search Header */}
           <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative flex-shrink-0 shadow-md">
+            {/* Mobile Drag/Indicator Handle */}
+            <div className="md:hidden flex justify-center pb-2">
+              <div className="w-12 h-1 bg-white/40 rounded-full"></div>
+            </div>
             <button
               className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors focus:outline-none"
               onClick={() => {
@@ -2712,8 +2817,12 @@ export default function Sidebar({
       )}
 
       {containerMode === "recents" && showRecents && (
-        <div className="absolute left-20 top-0 h-screen w-96 bg-white shadow-lg z-5 transform transition-all duration-300 ease-in-out animate-slide-in">
+        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 bg-white shadow-xl z-30 md:z-5 transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden flex flex-col">
           <div className="p-4 bg-gradient-to-b from-blue-600 to-blue-500 relative">
+            {/* Mobile Drag Indicator */}
+            <div className="md:hidden flex justify-center pb-2">
+              <div className="w-12 h-1 bg-white/40 rounded-full"></div>
+            </div>
             <button
               className="absolute top-2 right-2 text-white hover:text-gray-200 transition-colors"
               onClick={() => {
@@ -2869,7 +2978,7 @@ export default function Sidebar({
 
       {/* Stakeholder Details Container */}
       {stakeholder && !viewingStartup && (
-        <div className="absolute left-20 top-0 h-screen w-[420px] bg-white shadow-xl z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
+        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
           {/* Header with Back Button and Actions */}
           <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex justify-between items-center px-4 py-3">
             <button
@@ -3402,7 +3511,7 @@ export default function Sidebar({
 
       {/* Startup Details Container */}
       {startup && !viewingStartup && (
-        <div className="absolute left-20 top-0 h-screen w-[420px] bg-white shadow-xl z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
+        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
           {/* Header with Back Button and Actions */}
           <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex justify-between items-center px-4 py-3">
             <button
@@ -3905,13 +4014,156 @@ export default function Sidebar({
 
       {/* Main Content */}
       <div
-        className="flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out"
+        className="flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out pt-14 pb-16 md:pt-0 md:pb-0"
         style={{ marginLeft, marginRight }}
       >
         <div className="flex-1">
           <Outlet context={{ activeActorType: filters.startups.actorType }} />
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-gray-200 z-40 items-center justify-around px-1 shadow-lg">
+        {/* Map / Home */}
+        <button
+          onClick={() => {
+            if (location.pathname !== "/") navigate("/");
+            setShowSearchContainer(false);
+            setShowRecents(false);
+            setShowBookmarks(false);
+            setViewingStartup(null);
+            setViewingStakeholder(null);
+            setStartup(null);
+            setStakeholder(null);
+            setContainerMode(null);
+            setShowGeminiAi(false);
+          }}
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+            location.pathname === "/" && !showSearchContainer && !showRecents && !showBookmarks && !showGeminiAi
+              ? "text-blue-600 font-semibold"
+              : "text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          <FaGlobe className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Map</span>
+        </button>
+
+        {/* Browse / Search */}
+        <button
+          onClick={() => {
+            if (location.pathname !== "/") navigate("/");
+            fetchStartups();
+            fetchStakeholders();
+            fetchUserLikes();
+            setContainerMode("search");
+            setShowSearchContainer((prev) => !prev);
+            setShowRecents(false);
+            setShowBookmarks(false);
+            setViewingStartup(null);
+            setViewingStakeholder(null);
+            setShowGeminiAi(false);
+          }}
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+            showSearchContainer ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className="text-[10px] mt-1">Browse</span>
+        </button>
+
+        {/* Recents (If Authenticated) */}
+        {isAuthenticated && (
+          <button
+            onClick={() => {
+              if (location.pathname !== "/") navigate("/");
+              setContainerMode("recents");
+              setShowRecents((prev) => !prev);
+              setShowSearchContainer(false);
+              setShowBookmarks(false);
+              setViewingStartup(null);
+              setViewingStakeholder(null);
+              setShowGeminiAi(false);
+            }}
+            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+              showRecents ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-[10px] mt-1">Recents</span>
+          </button>
+        )}
+
+        {/* Bookmarks (If Authenticated) */}
+        {isAuthenticated && (
+          <button
+            onClick={() => {
+              if (location.pathname !== "/") navigate("/");
+              setContainerMode("bookmarks");
+              setShowBookmarks((prev) => !prev);
+              setShowSearchContainer(false);
+              setShowRecents(false);
+              setViewingStartup(null);
+              setViewingStakeholder(null);
+              setShowGeminiAi(false);
+            }}
+            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+              showBookmarks ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l7-5 7 5V3H5z" />
+            </svg>
+            <span className="text-[10px] mt-1">Bookmarks</span>
+          </button>
+        )}
+
+        {/* Dashboard */}
+        <button
+          onClick={() => {
+            setShowRecents(false);
+            setShowSearchContainer(false);
+            setShowBookmarks(false);
+            setShowGeminiAi(false);
+            if (!isAuthenticated) {
+              setOpenLogin(true);
+            } else if (currentUser?.role === "ROLE_ADMIN") {
+              navigate("/all-startup-dashboard");
+            } else {
+              navigate("/startup-dashboard");
+            }
+          }}
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+            location.pathname.includes("dashboard") ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          <LuLayoutDashboard className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Dashboard</span>
+        </button>
+
+        {/* AI Chat */}
+        <button
+          onClick={() => {
+            setShowSearchContainer(false);
+            setShowRecents(false);
+            setShowBookmarks(false);
+            setViewingStartup(null);
+            setViewingStakeholder(null);
+            setStartup(null);
+            setStakeholder(null);
+            setShowGeminiAi((prev) => !prev);
+          }}
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+            showGeminiAi ? "text-indigo-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          <Sparkles className="h-5 w-5" />
+          <span className="text-[10px] mt-1">AI Chat</span>
+        </button>
+      </nav>
 
       {/* Modals */}
       {openLogin && (
