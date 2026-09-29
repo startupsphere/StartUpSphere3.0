@@ -1570,7 +1570,7 @@ export default function Sidebar({
       </header>
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-40 sidebar-container">
+      <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-50 sidebar-container" style={{ zIndex: 50 }}>
         <div>
           {/* Logo */}
           <div className="flex justify-center items-center py-6 border-b border-gray-200">
@@ -1593,7 +1593,10 @@ export default function Sidebar({
                 alt="StartUpSphere Logo"
                 className="h-6 w-6 object-contain"
               />
-              <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+              <span
+                className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                style={{ zIndex: 99999 }}
+              >
                 Home
               </span>
             </button>
@@ -1620,7 +1623,10 @@ export default function Sidebar({
                     }}
                   >
                     <FaGlobe className="h-6 w-6 opacity-80 group-hover:opacity-100" />
-                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                    <span
+                      className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                      style={{ zIndex: 99999 }}
+                    >
                       Browse
                     </span>
                   </button>
@@ -1661,7 +1667,10 @@ export default function Sidebar({
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                          style={{ zIndex: 99999 }}
+                        >
                           Recents
                         </span>
                       </button>
@@ -1699,7 +1708,10 @@ export default function Sidebar({
                             d="M5 3v18l7-5 7 5V3H5z"
                           />
                         </svg>
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                          style={{ zIndex: 99999 }}
+                        >
                           Bookmarks
                         </span>
                       </button>
@@ -1723,7 +1735,10 @@ export default function Sidebar({
                         className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
                       >
                         <LuLayoutDashboard className="h-6 w-6 opacity-80 group-hover:opacity-100" />
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                          style={{ zIndex: 99999 }}
+                        >
                           Dashboard
                         </span>
                       </button>
@@ -1742,7 +1757,10 @@ export default function Sidebar({
                         className="group relative flex flex-col items-center justify-center rounded-lg p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
                       >
                         <Award className="h-6 w-6 opacity-80 group-hover:opacity-100" />
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                          style={{ zIndex: 99999 }}
+                        >
                           All Startups
                         </span>
                       </button>
@@ -1763,7 +1781,10 @@ export default function Sidebar({
                               </div>
                             )}
                           </div>
-                          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                          <span
+                            className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                            style={{ zIndex: 99999 }}
+                          >
                             Notifications
                           </span>
                         </button>
@@ -1791,7 +1812,10 @@ export default function Sidebar({
                     }}
                   >
                     <Sparkles className={`h-6 w-6 opacity-80 group-hover:opacity-100 ${showGeminiAi ? "animate-pulse text-indigo-600" : ""}`} />
-                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                    <span
+                      className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                      style={{ zIndex: 99999 }}
+                    >
                       Gemini AI
                     </span>
                   </button>
@@ -1823,7 +1847,10 @@ export default function Sidebar({
                     d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                   />
                 </svg>
-                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                <span
+                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                  style={{ zIndex: 99999 }}
+                >
                   Logout
                 </span>
               </button>
@@ -1837,7 +1864,10 @@ export default function Sidebar({
                 onClick={() => setOpenLogin(true)}
               >
                 <RiLoginBoxFill className="h-6 w-6 opacity-80 group-hover:opacity-100" />
-                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none z-[9999]">
+                <span
+                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                  style={{ zIndex: 99999 }}
+                >
                   Login
                 </span>
               </button>

@@ -70,7 +70,7 @@
 
 .sidebar-container {
   position: relative;
-  z-index: 2;
+  z-index: 50 !important;
 }
 
 /* Fix popup styling */
