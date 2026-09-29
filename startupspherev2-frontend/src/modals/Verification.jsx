@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
@@ -33,9 +33,9 @@ export default function Verification({ setVerificationModal, setSelectedTab, sta
     try {
       const response = await fetch(`${getBackendUrl()}/startups/verify-email`, {
         method: "POST",
-        headers: {
+        headers: getAuthHeaders({
           "Content-Type": "application/json",
-        },
+        }),
         body: JSON.stringify({
           startupId,
           email: contactEmail,
@@ -66,9 +66,9 @@ export default function Verification({ setVerificationModal, setSelectedTab, sta
     try {
       const response = await fetch(`${getBackendUrl()}/startups/send-verification-email`, {
         method: "POST",
-        headers: {
+        headers: getAuthHeaders({
           "Content-Type": "application/json",
-        },
+        }),
         body: JSON.stringify({
           startupId,
           email: contactEmail,

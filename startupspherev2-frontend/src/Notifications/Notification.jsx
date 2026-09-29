@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -201,9 +201,9 @@ function NotificationComponent() {
         {
           method: "GET",
           credentials: "include", // Important for cookies/auth
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
         }
       );
 
@@ -488,11 +488,11 @@ function NotificationComponent() {
         }/notifications/${id}/view`;
 
       const response = await fetch(endpoint, {
-        method: "GET",
+        method: "PUT",
         credentials: "include",
-        headers: {
+        headers: getAuthHeaders({
           "Content-Type": "application/json",
-        },
+        }),
       });
 
       if (!response.ok) {
@@ -535,9 +535,9 @@ function NotificationComponent() {
         {
           method: "DELETE",
           credentials: "include",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
         }
       );
 
@@ -571,9 +571,9 @@ function NotificationComponent() {
         {
           method: "PUT",
           credentials: "include",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
         }
       );
 
@@ -760,9 +760,9 @@ function NotificationComponent() {
           const viewResponse = await fetch(viewEndpoint, {
             method: "PUT",
             credentials: "include",
-            headers: {
+            headers: getAuthHeaders({
               "Content-Type": "application/json",
-            },
+            }),
           });
 
           if (!viewResponse.ok) {
@@ -894,9 +894,9 @@ function NotificationComponent() {
         {
           method: "GET",
           credentials: "include",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
         }
       );
 

@@ -16,3 +16,28 @@ export const getBackendUrl = () => {
   // Strip trailing slash if present
   return envUrl.replace(/\/+$/, "");
 };
+
+/**
+ * Helper to retrieve common headers including Bearer token if user is logged in.
+ * Safely checks localStorage for 'token' and avoids setting 'undefined' or 'null' tokens.
+ */
+export const getAuthHeaders = (extraHeaders = {}) => {
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
+  const headers = { ...extraHeaders };
+  if (token && token !== "null" && token !== "undefined" && token.trim() !== "") {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+/**
+ * Wrapper around fetch that automatically includes Authorization header and credentials: "include".
+ */
+export const authFetch = async (url, options = {}) => {
+  const headers = getAuthHeaders(options.headers || {});
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: options.credentials || "include",
+  });
+};

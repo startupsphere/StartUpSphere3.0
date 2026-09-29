@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React, { useState, useEffect, useRef } from "react";
 import StakeholderLocationPicker from "../components/StakeholderLocationPicker";
 import StakeholderBrowser from "../components/StakeholderBrowser";
@@ -137,6 +137,7 @@ export default function StartupDetail() {
         const response = await fetch(
           `${getBackendUrl()}/startups/${id}`,
           {
+            headers: getAuthHeaders(),
             credentials: "include",
           }
         );
@@ -180,6 +181,7 @@ export default function StartupDetail() {
           getBackendUrl()
         }/startup-stakeholders/startup/${id}/stakeholders`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -252,9 +254,9 @@ export default function StartupDetail() {
         `${getBackendUrl()}/stakeholders`,
         {
           method: "POST",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           credentials: "include",
           body: JSON.stringify(stakeholderData),
         }
@@ -290,9 +292,9 @@ export default function StartupDetail() {
         `${getBackendUrl()}/startup-stakeholders`,
         {
           method: "POST",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           credentials: "include",
           body: JSON.stringify({
             startupId: parseInt(id),
@@ -616,9 +618,9 @@ export default function StartupDetail() {
         `${getBackendUrl()}/stakeholders/${editingStakeholder.stakeholder.id}`,
         {
           method: "PUT",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           credentials: "include",
           body: JSON.stringify(stakeholderData),
         }
@@ -647,9 +649,9 @@ export default function StartupDetail() {
         `${getBackendUrl()}/startup-stakeholders/${editingStakeholder.id}`,
         {
           method: "PUT",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           credentials: "include",
           body: JSON.stringify({
             role: role,
@@ -708,6 +710,7 @@ export default function StartupDetail() {
         }/startup-stakeholders/${associationId}`,
         {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -726,6 +729,7 @@ export default function StartupDetail() {
           `${getBackendUrl()}/stakeholders/${stakeholderId}`,
           {
             method: "DELETE",
+            headers: getAuthHeaders(),
             credentials: "include",
           }
         );
@@ -1268,6 +1272,7 @@ export default function StartupDetail() {
         }/stakeholders/${actualStakeholderId}`,
         {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );

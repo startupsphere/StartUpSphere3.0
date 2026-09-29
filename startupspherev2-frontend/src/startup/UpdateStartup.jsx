@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -96,6 +96,7 @@ export default function UpdateStartup() {
       const response = await fetch(
         `${getBackendUrl()}/startups/${id}`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -195,9 +196,9 @@ export default function UpdateStartup() {
         `${getBackendUrl()}/startups/${id}`,
         {
           method: "PUT",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           body: JSON.stringify(formData),
           credentials: "include",
         }
@@ -361,6 +362,7 @@ export default function UpdateStartup() {
         `${getBackendUrl()}/startups/${id}/upload-csv`,
         {
           method: "PUT",
+          headers: getAuthHeaders(),
           body: formData,
           credentials: "include",
         }

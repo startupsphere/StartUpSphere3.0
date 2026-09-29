@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { FaEye } from "react-icons/fa";
 import { BiLike } from "react-icons/bi";
@@ -71,6 +71,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const fetchGlobalMetrics = async () => {
     try {
       const response = await fetch(`${getBackendUrl()}/api/metrics/dashboard`, {
+        headers: getAuthHeaders(),
         credentials: "include"
       });
       if (response.ok) {
@@ -157,6 +158,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       const response = await fetch(
         `${getBackendUrl()}/startups/${startupId}/photo`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
           // Add cache control for faster subsequent loads
           cache: "force-cache",
@@ -192,6 +194,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       const res = await fetch(
         `${getBackendUrl()}/startups/my-drafts`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -331,6 +334,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         `${getBackendUrl()}/startups/draft/${draftId}`,
         {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -376,6 +380,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         `${getBackendUrl()}/startups/${id}`,
         {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -500,11 +505,17 @@ export default function StartupDashboard({ openAddMethodModal }) {
       const response = await fetch(
         `${getBackendUrl()}/startups/my-startups`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setError("Your session has expired or you are unauthorized. Please sign in again.");
+          setStartupIds([]);
+          return [];
+        }
         throw new Error(`Error fetching startup IDs: ${response.status}`);
       }
 
@@ -533,11 +544,17 @@ export default function StartupDashboard({ openAddMethodModal }) {
       const response = await fetch(
         `${getBackendUrl()}/startups/my-startups/details`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setError("Your session has expired or you are unauthorized. Please sign in again.");
+          setStartups([]);
+          return [];
+        }
         throw new Error(`Error fetching startups: ${response.status}`);
       }
 
@@ -580,6 +597,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           fetch(
             `${getBackendUrl()}/api/likes/count/startup/${id}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           )
@@ -603,6 +621,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/bookmarks/count/startup/${id}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           )
@@ -624,6 +643,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
           fetch(
             `${getBackendUrl()}/startups/${id}/view-count`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           )
@@ -744,6 +764,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     getBackendUrl()
                   }/api/likes/count/startup/${startup.id}`,
                   {
+                    headers: getAuthHeaders(),
                     credentials: "include",
                   }
                 ),
@@ -752,6 +773,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     getBackendUrl()
                   }/api/bookmarks/count/startup/${startup.id}`,
                   {
+                    headers: getAuthHeaders(),
                     credentials: "include",
                   }
                 ),
@@ -760,6 +782,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     startup.id
                   }/view-count`,
                   {
+                    headers: getAuthHeaders(),
                     credentials: "include",
                   }
                 ),
@@ -806,6 +829,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/startups/${startupId}/view-count`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -814,6 +838,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/likes/count/startup/${startupId}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -822,6 +847,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/bookmarks/count/startup/${startupId}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -915,6 +941,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/views/grouped-by-month/logged-in-user-startups`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -923,6 +950,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/bookmarks/grouped-by-month/logged-in-user-startups`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -931,6 +959,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/likes/grouped-by-month/logged-in-user-startups`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -964,6 +993,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/views/count-by-month/${startupId}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -972,6 +1002,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/bookmarks/grouped-by-month/startup/${startupId}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -980,6 +1011,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
               getBackendUrl()
             }/api/likes/grouped-by-month/startup/${startupId}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           ),
@@ -1081,9 +1113,9 @@ export default function StartupDashboard({ openAddMethodModal }) {
         `${getBackendUrl()}/startups/${id}`,
         {
           method: "PUT",
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           body: JSON.stringify(editFormData),
           credentials: "include",
         }
@@ -1236,7 +1268,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         `${getBackendUrl()}/startups/send-verification-email`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ startupId: id, email }),
           credentials: "include",
         }

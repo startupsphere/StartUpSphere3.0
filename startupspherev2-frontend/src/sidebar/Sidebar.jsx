@@ -1,6 +1,6 @@
 import { useState, useEffect, memo, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import Login from "../modals/Login";
 import Signup from "../modals/Signup";
 import { motion, AnimatePresence } from "framer-motion";
@@ -252,6 +252,7 @@ export default function Sidebar({
         `${getBackendUrl()}/notifications/${id}/view`,
         {
           method: "PUT",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -267,15 +268,16 @@ export default function Sidebar({
     }
   };
 
-  // First, update the fetchAdminSubmissions function to properly check for ROLE_ADMIN
   const fetchAdminSubmissions = async () => {
-    if (!currentUser || currentUser.role !== "ROLE_ADMIN") return;
+    const role = currentUser?.role;
+    if (!currentUser || (role !== "ROLE_ADMIN" && role !== "ADMIN")) return;
 
     try {
       setLoadingNotification(true);
       const response = await fetch(
         `${getBackendUrl()}/startups/submitted`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -296,14 +298,18 @@ export default function Sidebar({
     }
   };
 
-  // Update the useEffect to check for ROLE_ADMIN
+  // Fetch notifications and admin submissions when user is authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      fetchNotifications();
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      fetchNewNotifications();
       fetchNotificationsCount();
+      fetchNotifications();
 
       // Only fetch admin submissions if the user is an admin
-      if (currentUser && currentUser.role === "ROLE_ADMIN") {
+      const role = currentUser?.role;
+      if (role === "ROLE_ADMIN" || role === "ADMIN") {
         fetchAdminSubmissions();
       }
     }
@@ -318,25 +324,15 @@ export default function Sidebar({
     }
   }, [handleStartupClickRef]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchNewNotifications();
-      fetchNotificationsCount();
-      fetchNotifications();
-
-      // Add admin submissions fetch if user is admin
-      if (currentUser && currentUser.role === "ADMIN") {
-        fetchAdminSubmissions();
-      }
-    }
-  }, [isAuthenticated, currentUser?.role]);
-
   const fetchNewNotifications = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
     setLoadingNotification(true);
     try {
       const response = await fetch(
         `${getBackendUrl()}/notifications/my/new`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -356,10 +352,13 @@ export default function Sidebar({
   };
 
   const fetchNotificationsCount = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
     try {
       const response = await fetch(
         `${getBackendUrl()}/notifications/new/count`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -414,10 +413,13 @@ export default function Sidebar({
   }, [location.pathname]);
 
   const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
     try {
       const response = await fetch(
         `${getBackendUrl()}/notifications/my`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );

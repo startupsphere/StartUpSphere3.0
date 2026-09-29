@@ -173,10 +173,14 @@ public class NotificationController {
     public ResponseEntity<ApiResponse> getUserNotifications() {
         try {
             Integer currentUserId = SecurityUtils.getCurrentUserId();
-            logger.info("fetching user notifications with id: ", currentUserId);
+            logger.info("fetching user notifications with id: {}", currentUserId);
             List<Notifications> notifications = notificationService.getUserNotifications(currentUserId);
             return ResponseEntity.ok()
                     .body(new ApiResponse(true, "User notifications successfully fetched", notifications));
+        } catch (IllegalStateException e) {
+            logger.warn("Unauthenticated notification request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "User not authenticated", null));
         } catch (Exception e) {
             logger.error("Error fetching user notifications: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -201,6 +205,10 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ApiResponse(false, "Access denied", null));
             }
+        } catch (IllegalStateException e) {
+            logger.warn("Unauthenticated notification request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "User not authenticated", null));
         } catch (IllegalArgumentException e) {
             logger.warn("Notification not found with id: {}", id);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -221,6 +229,10 @@ public class NotificationController {
             List<Notifications> updatedNotifications = notificationService.markAllAsViewed(currentUserId);
             return ResponseEntity.ok()
                     .body(new ApiResponse(true, "All notifications marked as read", updatedNotifications));
+        } catch (IllegalStateException e) {
+            logger.warn("Unauthenticated notification request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "User not authenticated", null));
         } catch (Exception e) {
             logger.error("Error marking all notifications as read: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -236,6 +248,10 @@ public class NotificationController {
             List<Notifications> notifications = notificationService.getUserUnviewedNotifications(currentUserId);
             return ResponseEntity.ok()
                     .body(new ApiResponse(true, "Users new notifications fetched successfully", notifications));
+        } catch (IllegalStateException e) {
+            logger.warn("Unauthenticated notification request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "User not authenticated", null));
         } catch (Exception e) {
             logger.error("Error fetching users new notifications: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -247,10 +263,14 @@ public class NotificationController {
     public ResponseEntity<ApiResponse> getUserUnviewedCount() {
         try {
             Integer currentUserId = SecurityUtils.getCurrentUserId();
-            logger.info("Fetching count new notifications: ", currentUserId);
+            logger.info("Fetching count new notifications: {}", currentUserId);
             long count = notificationService.getUserUnviewedCount(currentUserId);
             return ResponseEntity.ok()
                     .body(new ApiResponse(true, "Count of new notifications fetched successfully", count));
+        } catch (IllegalStateException e) {
+            logger.warn("Unauthenticated notification request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "User not authenticated", null));
         } catch (Exception e) {
             logger.error("Error fetching count of new notifications: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
