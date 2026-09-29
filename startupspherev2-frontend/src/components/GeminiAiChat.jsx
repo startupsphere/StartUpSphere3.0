@@ -1,7 +1,7 @@
 import { getBackendUrl } from "../config/apiConfig";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, X, Bot, User, RotateCcw } from "lucide-react";
+import { Sparkles, Send, Trash2, X, Bot, User, RotateCcw, ArrowLeft } from "lucide-react";
 
 export default function GeminiAiChat({ currentUser, onClose }) {
   const [messages, setMessages] = useState(() => {
@@ -27,6 +27,15 @@ export default function GeminiAiChat({ currentUser, onClose }) {
   const [dashboardMetrics, setDashboardMetrics] = useState(null);
   const [userStartups, setUserStartups] = useState([]);
   const [fetchingDb, setFetchingDb] = useState(true);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Scroll to bottom whenever messages list changes
   useEffect(() => {
@@ -108,7 +117,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
         const fullPrompt = `${systemInstruction}\n\n${detailContext}\n\nUser: Describe what the pinpointed startup "${companyName}" on the heatmap is all about.\nAssistant:`;
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
           {
             method: "POST",
             headers: {
@@ -287,7 +296,7 @@ export default function GeminiAiChat({ currentUser, onClose }) {
       const fullPrompt = `${systemInstruction}\n\n${dbContext}\n\nChat History:\n${chatContext}\nUser: ${userMessage}\nAssistant:`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -336,38 +345,72 @@ export default function GeminiAiChat({ currentUser, onClose }) {
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-40 md:z-[110] h-[calc(100vh-120px)] md:h-screen w-full md:w-[420px] border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.08)] flex flex-col"
+      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-40 md:z-[110] h-[calc(100vh-120px)] md:h-screen sidebar-drawer-420 border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.12)] flex flex-col"
+      style={{
+        width: isMobile ? "100%" : "420px",
+        maxWidth: isMobile ? "100vw" : "420px",
+      }}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 p-4 text-white flex items-center justify-between shadow-sm relative overflow-hidden">
+      {/* Header with High-Contrast Background & Prominent Back Button */}
+      <div
+        className="p-3.5 sm:p-4 text-white flex items-center justify-between shadow-md relative overflow-hidden flex-shrink-0"
+        style={{
+          backgroundColor: "#1e3a8a",
+          backgroundImage: "linear-gradient(135deg, #1e40af 0%, #312e81 60%, #1e1b4b 100%)",
+        }}
+      >
         {/* Shimmering glass effects */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-        
-        <div className="flex items-center space-x-2.5 relative z-10">
-          <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm flex items-center justify-center animate-pulse">
-            <Sparkles className="h-5 w-5 text-blue-200" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
+
+        <div className="flex items-center space-x-2.5 relative z-10 min-w-0">
+          {/* Prominent Back Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white transition-all text-xs font-semibold cursor-pointer border border-white/20 shadow-xs focus:outline-none flex-shrink-0"
+            aria-label="Back"
+            title="Back to Map / Dashboard"
+          >
+            <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
+            <span className="font-medium">Back</span>
+          </button>
+
+          <div className="p-2 bg-white/15 rounded-xl backdrop-blur-sm flex items-center justify-center shadow-inner flex-shrink-0">
+            <Sparkles className="h-4.5 w-4.5 text-amber-300" />
           </div>
-          <div>
-            <h3 className="font-bold text-sm tracking-wide">StartUpSphere AI</h3>
-            <div className="flex items-center text-xs text-blue-200">
-              <span className="h-1.5 w-1.5 bg-green-400 rounded-full mr-1.5 animate-ping"></span>
-              <span>Online Expert Advisor</span>
+
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm sm:text-base text-white tracking-wide leading-tight truncate">
+              StartUpSphere AI
+            </h3>
+            <div className="flex items-center text-xs font-medium text-emerald-300 mt-0.5">
+              <span className="relative flex h-2 w-2 mr-1.5 flex-shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <span className="text-emerald-200 font-semibold tracking-wide text-[11px] truncate">
+                Online Expert Advisor
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-1 relative z-10">
+        <div className="flex items-center space-x-1 relative z-10 flex-shrink-0 ml-2">
           <button
+            type="button"
             onClick={clearChat}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors border-0 bg-transparent text-white cursor-pointer"
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors border-0 bg-transparent text-white/90 hover:text-white cursor-pointer"
             title="Clear Chat"
+            aria-label="Clear Chat"
           >
-            <Trash2 className="h-4.5 w-4.5 opacity-80 hover:opacity-100" />
+            <Trash2 className="h-4.5 w-4.5" />
           </button>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors border-0 bg-transparent text-white cursor-pointer"
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors border-0 bg-transparent text-white/90 hover:text-white cursor-pointer"
             title="Close Assistant"
+            aria-label="Close Assistant"
           >
             <X className="h-5 w-5" />
           </button>
