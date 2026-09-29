@@ -23,23 +23,52 @@ import { BsCalendarEvent, BsPeople, BsBriefcase } from "react-icons/bs";
 import { HiOutlineMail } from "react-icons/hi";
 import { FaBell } from "react-icons/fa";
 
-// Memoized StakeholderCard component for better performance
+// Modern StartupLogo helper with robust fallback avatar
+const StartupLogo = memo(({ startup }) => {
+  const [imageError, setImageError] = useState(false);
+  const initials = startup?.companyName
+    ? startup.companyName
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+    : "S";
+
+  if (!imageError && startup?.id) {
+    return (
+      <img
+        src={`${getBackendUrl()}/startups/${startup.id}/photo`}
+        alt={startup.companyName}
+        className="h-11 w-11 rounded-xl object-cover border border-gray-100 shadow-xs group-hover:scale-105 transition-transform"
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-xs uppercase tracking-wider group-hover:scale-105 transition-transform flex-shrink-0">
+      {initials}
+    </div>
+  );
+});
+
+// Memoized StakeholderCard component with modern elevated aesthetics
 const StakeholderCard = memo(({ stakeholder, onClick }) => {
   // Extract first letter of first and last name for avatar
   const getInitials = (name) => {
     if (!name) return "S";
-    const names = name.split(" ");
-    if (names.length === 1) return names[0].charAt(0);
-    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`;
+    const names = name.split(" ").filter(Boolean);
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   };
 
   // Format location with fallbacks
   const getLocation = () => {
     if (stakeholder.region) return stakeholder.region;
-
     const city = stakeholder.city || "";
     const province = stakeholder.province || "";
-
     if (city && province) return `${city}, ${province}`;
     if (city) return city;
     if (province) return province;
@@ -49,47 +78,55 @@ const StakeholderCard = memo(({ stakeholder, onClick }) => {
   return (
     <div
       onClick={() => onClick(stakeholder)}
-      className="bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 cursor-pointer group"
+      className="bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all duration-200 p-3.5 cursor-pointer group hover:-translate-y-0.5"
     >
-      <div className="flex items-start space-x-3">
-        {/* Stakeholder Avatar with optimized initials */}
+      <div className="flex items-start gap-3">
+        {/* Stakeholder Avatar with gradient initials */}
         <div className="flex-shrink-0">
-          <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center border border-gray-100 text-blue-700 font-semibold uppercase shadow-sm">
+          <div className="h-11 w-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center border border-indigo-100 text-white font-bold text-xs uppercase shadow-xs group-hover:scale-105 transition-transform">
             {getInitials(stakeholder.name)}
           </div>
         </div>
 
-        {/* Stakeholder Details with improved layout */}
+        {/* Stakeholder Details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-1.5">
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate pr-2">
+          <div className="flex items-start justify-between gap-1 mb-1">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
               {stakeholder.name || "Unnamed Stakeholder"}
             </h3>
-            {stakeholder.organization && (
-              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-full whitespace-nowrap">
-                {stakeholder.organization}
+            {stakeholder.sector && (
+              <span className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/60 truncate max-w-[90px]">
+                {stakeholder.sector}
               </span>
             )}
           </div>
 
-          {/* Email with fallback */}
-          <p className="text-xs text-gray-600 mb-2 truncate flex items-center">
-            <HiOutlineMail className="mr-1 h-3.5 w-3.5 text-gray-400" />
-            {stakeholder.email || "Email not provided"}
+          {stakeholder.organization && (
+            <div className="mb-1.5">
+              <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-blue-700 bg-blue-50/80 rounded-md border border-blue-100/60 truncate max-w-[200px]">
+                {stakeholder.organization}
+              </span>
+            </div>
+          )}
+
+          {/* Email */}
+          <p className="text-xs text-gray-500 mb-2 truncate flex items-center">
+            <HiOutlineMail className="mr-1.5 h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <span className="truncate">{stakeholder.email || "Email not provided"}</span>
           </p>
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            {/* Location with enhanced formatting */}
-            <div className="flex items-center">
-              <MdLocationOn className="mr-1 h-3.5 w-3.5 text-gray-400" />
-              <span className="truncate max-w-[150px]">{getLocation()}</span>
+          <div className="flex items-center justify-between pt-1.5 border-t border-gray-50 text-[11px] text-gray-400">
+            {/* Location */}
+            <div className="flex items-center min-w-0 pr-2">
+              <MdLocationOn className="mr-1 h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+              <span className="truncate max-w-[130px]">{getLocation()}</span>
             </div>
 
-            {/* Phone with proper icon and fallback handling */}
+            {/* Phone */}
             {stakeholder.phoneNumber && (
-              <div className="flex items-center">
+              <div className="flex items-center flex-shrink-0">
                 <FaPhone className="mr-1 h-3 w-3 text-gray-400" />
-                <span className="truncate max-w-[80px]">
+                <span className="truncate max-w-[90px]">
                   {stakeholder.phoneNumber}
                 </span>
               </div>
@@ -100,6 +137,7 @@ const StakeholderCard = memo(({ stakeholder, onClick }) => {
     </div>
   );
 });
+
 
 export default function Sidebar({
   mapInstanceRef,
@@ -2370,216 +2408,313 @@ export default function Sidebar({
       )}
 
       {showSearchContainer && (
-        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 bg-white shadow-xl z-30 md:z-5 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden">
+        <div
+          className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto sidebar-drawer-384 bg-white shadow-2xl border-r border-gray-200/80 z-30 flex flex-col transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden"
+          style={{ width: isMobile ? "100%" : "384px" }}
+        >
           {/* Search Header */}
-          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 relative flex-shrink-0 shadow-md">
-            {/* Mobile Drag/Indicator Handle */}
+          <div className="p-4 pb-3.5 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 relative flex-shrink-0 shadow-md">
+            {/* Mobile Drag Indicator */}
             <div className="md:hidden flex justify-center pb-2">
-              <div className="w-12 h-1 bg-white/40 rounded-full"></div>
+              <div className="w-10 h-1 bg-white/40 rounded-full"></div>
             </div>
-            <button
-              className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors focus:outline-none"
-              onClick={() => {
-                const container = document.querySelector(".animate-slide-in");
-                if (container) {
-                  container.classList.add("animate-slide-out");
-                  setTimeout(() => setShowSearchContainer(false), 300);
-                } else {
-                  setShowSearchContainer(false);
-                }
-              }}
-              aria-label="Close"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
 
-            <h2 className="text-lg text-white font-medium mb-4 flex items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2 opacity-90"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              Browse
-            </h2>
-
-            <div className="flex items-center mx-auto mb-4">
-              <div className="relative w-full">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            {/* Header Title & Close Button */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="h-8 w-8 rounded-lg bg-white/15 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
                   <svg
-                    className="w-4 h-4 text-gray-400"
                     xmlns="http://www.w3.org/2000/svg"
+                    className="h-4.5 w-4.5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    strokeWidth="2.2"
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                     />
                   </svg>
                 </div>
-
-                <input
-                  type="text"
-                  value={
-                    (viewingType === "startups"
-                      ? filters.startups.query
-                      : filters.stakeholders.query) || ""
-                  }
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFilters((prev) => ({
-                      ...prev,
-                      [viewingType]: { ...prev[viewingType], query: value },
-                    }));
-                  }}
-                  className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full pl-10 pr-4 py-2.5 shadow-sm"
-                  placeholder={
-                    viewingType === "startups"
-                      ? "Search by company name, industry, description, city, status, establish date/year..."
-                      : "Search stakeholders by name, organization, location, date..."
-                  }
-                />
+                <div>
+                  <h2 className="text-base font-bold text-white tracking-tight leading-none flex items-center gap-1.5">
+                    Browse Directory
+                  </h2>
+                  <p className="text-[11px] text-blue-100/80 mt-0.5">
+                    Explore innovations & stakeholders
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Type Selector - redesigned with only Startups and Stakeholders */}
-            <div className="flex gap-2 p-1 bg-blue-800/40 rounded-lg">
               <button
-                onClick={() => setViewingType("startups")}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${viewingType === "startups"
-                  ? "bg-white text-blue-700 shadow-sm"
-                  : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
+                className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white flex items-center justify-center transition-all duration-150 focus:outline-none"
+                onClick={() => {
+                  const container = document.querySelector(".animate-slide-in");
+                  if (container) {
+                    container.classList.add("animate-slide-out");
+                    setTimeout(() => setShowSearchContainer(false), 300);
+                  } else {
+                    setShowSearchContainer(false);
+                  }
+                }}
+                aria-label="Close"
               >
-                <div className="flex items-center justify-center">
-                  <BsBriefcase
-                    className={`mr-2 h-4 w-4 ${viewingType === "startups"
-                      ? "text-blue-600"
-                      : "text-white/80"
-                      }`}
-                  />
-                  Innovations
-                </div>
-              </button>
-              <button
-                onClick={() => setViewingType("stakeholders")}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${viewingType === "stakeholders"
-                  ? "bg-white text-blue-700 shadow-sm"
-                  : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
-              >
-                <div className="flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`mr-2 h-4 w-4 ${viewingType === "stakeholders"
-                      ? "text-blue-600"
-                      : "text-white/80"
-                      }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                  Stakeholders
-                </div>
+                <MdClose className="h-4 w-4" />
               </button>
             </div>
 
-            {viewingType === "startups" && (
-              <div className="mt-3">
-                <select
-                  value={filters.startups.actorType || "All"}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFilters((prev) => ({
-                      ...prev,
-                      startups: { ...prev.startups, actorType: value },
-                    }));
-                  }}
-                  className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
+            {/* Search Input Box */}
+            <div className="relative mb-2.5">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <svg
+                  className="w-4 h-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 >
-                  <option value="All">All Innovation Types</option>
-                  <option value="ROLE_STARTUP">Startup</option>
-                  <option value="ROLE_HEI">University / HEI</option>
-                  <option value="ROLE_RESEARCH">Research Institution</option>
-                </select>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
               </div>
-            )}
 
-            <div className="mt-3">
-              <select
+              <input
+                type="text"
                 value={
                   (viewingType === "startups"
-                    ? filters.startups.searchField
-                    : filters.stakeholders.searchField) || "All"
+                    ? filters.startups.query
+                    : filters.stakeholders.query) || ""
                 }
                 onChange={(e) => {
                   const value = e.target.value;
                   setFilters((prev) => ({
                     ...prev,
-                    [viewingType]: { ...prev[viewingType], searchField: value },
+                    [viewingType]: { ...prev[viewingType], query: value },
                   }));
                 }}
-                className="bg-white/95 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent block w-full p-2 shadow-sm"
+                className="bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm rounded-xl block w-full pl-9 pr-8 py-2 shadow-sm border border-white/20 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all"
+                placeholder={
+                  viewingType === "startups"
+                    ? "Search company, industry, city..."
+                    : "Search stakeholders by name, org..."
+                }
+              />
+
+              {Boolean(
+                viewingType === "startups"
+                  ? filters.startups.query
+                  : filters.stakeholders.query
+              ) && (
+                <button
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      [viewingType]: { ...prev[viewingType], query: "" },
+                    }))
+                  }
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <MdClose className="h-4 w-4 bg-gray-100 hover:bg-gray-200 rounded-full p-0.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Type Selector - Innovations vs Stakeholders */}
+            <div className="flex gap-1 p-1 bg-black/20 backdrop-blur-md rounded-xl">
+              <button
+                onClick={() => setViewingType("startups")}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                  viewingType === "startups"
+                    ? "bg-white text-blue-700 shadow-sm"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
               >
-                <option value="All">Search In: All Fields</option>
-                {viewingType === "startups" ? (
-                  <>
-                    <option value="companyName">Company Name</option>
-                    <option value="industry">Industry</option>
-                    <option value="companyDescription">Description</option>
-                    <option value="city">City</option>
-                    <option value="foundedDate">Established / Founded Date (Year)</option>
-                    <option value="registrationDate">Registration Date</option>
-                  </>
-                ) : (
-                  <>
+                <BsBriefcase className="h-3.5 w-3.5" />
+                <span>Innovations</span>
+                {startups && startups.length > 0 && (
+                  <span
+                    className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      viewingType === "startups"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-white/20 text-white"
+                    }`}
+                  >
+                    {startups.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setViewingType("stakeholders")}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                  viewingType === "stakeholders"
+                    ? "bg-white text-blue-700 shadow-sm"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <BsPeople className="h-3.5 w-3.5" />
+                <span>Stakeholders</span>
+                {stakeholders && stakeholders.length > 0 && (
+                  <span
+                    className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      viewingType === "stakeholders"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-white/20 text-white"
+                    }`}
+                  >
+                    {stakeholders.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Filters Row */}
+            <div className="grid grid-cols-2 gap-2 mt-2.5">
+              {viewingType === "startups" ? (
+                <>
+                  <div className="relative">
+                    <select
+                      value={filters.startups.actorType || "All"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          startups: { ...prev.startups, actorType: value },
+                        }));
+                      }}
+                      className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                    >
+                      <option value="All">All Types</option>
+                      <option value="ROLE_STARTUP">Startup</option>
+                      <option value="ROLE_HEI">University / HEI</option>
+                      <option value="ROLE_RESEARCH">Research Institution</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <select
+                      value={filters.startups.searchField || "All"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          startups: { ...prev.startups, searchField: value },
+                        }));
+                      }}
+                      className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                    >
+                      <option value="All">In: All Fields</option>
+                      <option value="companyName">Company Name</option>
+                      <option value="industry">Industry</option>
+                      <option value="companyDescription">Description</option>
+                      <option value="city">City</option>
+                      <option value="foundedDate">Founded Date</option>
+                      <option value="registrationDate">Registration Date</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="relative col-span-2">
+                  <select
+                    value={filters.stakeholders.searchField || "All"}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFilters((prev) => ({
+                        ...prev,
+                        stakeholders: { ...prev.stakeholders, searchField: value },
+                      }));
+                    }}
+                    className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                  >
+                    <option value="All">Search In: All Fields</option>
                     <option value="name">Name</option>
                     <option value="organization">Organization</option>
                     <option value="sector">Sector</option>
                     <option value="biography">Biography</option>
-                  </>
-                )}
-              </select>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Search Input Container */}  </div>
+          {/* Results Status Subheader */}
+          <div className="px-4 py-2 bg-gray-50/90 border-b border-gray-100 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
+            <span>
+              {viewingType === "startups" ? (
+                startups ? (
+                  `${applyFilters(startups).length} innovation${
+                    applyFilters(startups).length === 1 ? "" : "s"
+                  } found`
+                ) : (
+                  "Loading..."
+                )
+              ) : (
+                stakeholders ? (
+                  `${applyFilters(stakeholders).length} stakeholder${
+                    applyFilters(stakeholders).length === 1 ? "" : "s"
+                  } found`
+                ) : (
+                  "Loading..."
+                )
+              )}
+            </span>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 pb-36 overscroll-contain">
+            {/* Clear filters shortcut if any filter is set */}
+            {Boolean(
+              (viewingType === "startups" &&
+                (filters.startups.query ||
+                  filters.startups.actorType !== "All" ||
+                  filters.startups.searchField !== "All")) ||
+                (viewingType === "stakeholders" &&
+                  (filters.stakeholders.query ||
+                    filters.stakeholders.searchField !== "All"))
+            ) && (
+              <button
+                onClick={() => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    [viewingType]: {
+                      ...prev[viewingType],
+                      query: "",
+                      actorType: "All",
+                      searchField: "All",
+                    },
+                  }));
+                }}
+                className="text-blue-600 hover:text-blue-800 font-medium hover:underline text-[11px] cursor-pointer"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 pb-32 overscroll-contain">
             {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mb-3"></div>
+                <p className="text-xs text-gray-500">Loading directory...</p>
               </div>
             ) : viewingType === "startups" ? (
               startups && startups.length > 0 ? (
@@ -2588,156 +2723,112 @@ export default function Sidebar({
                     <div
                       key={startup.id}
                       onClick={() => handleStartupClick(startup, 'startup')}
-                      className="bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 cursor-pointer group"
+                      className="bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all duration-200 p-3.5 cursor-pointer group hover:-translate-y-0.5"
                     >
-                      <div className="flex items-start space-x-3">
+                      <div className="flex items-start gap-3">
                         {/* Startup Logo */}
                         <div className="flex-shrink-0">
-                          <img
-                            src={`${getBackendUrl()
-                              }/startups/${startup.id}/photo`}
-                            alt={startup.companyName}
-                            className="h-12 w-12 rounded-md object-cover border border-gray-100 shadow-sm group-hover:shadow transition-shadow"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                startup.companyName
-                              )}&background=0D8ABC&color=fff&size=128&bold=true`;
-                            }}
-                          />
+                          <StartupLogo startup={startup} />
                         </div>
 
                         {/* Startup Details */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1.5">
-                            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate pr-2">
+                          <div className="flex items-start justify-between gap-1 mb-1">
+                            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
                               {startup.companyName}
                             </h3>
-                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-full whitespace-nowrap">
-                              {startup.industry}
-                            </span>
+                            {startup.role && startup.role !== "ROLE_STARTUP" && (
+                              <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
+                                {startup.role === "ROLE_HEI"
+                                  ? "HEI"
+                                  : startup.role === "ROLE_RESEARCH"
+                                  ? "Research"
+                                  : "Org"}
+                              </span>
+                            )}
                           </div>
+
+                          {startup.industry && (
+                            <div className="mb-1.5">
+                              <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-blue-700 bg-blue-50/80 rounded-md border border-blue-100/60 max-w-[200px] truncate">
+                                {startup.industry}
+                              </span>
+                            </div>
+                          )}
 
                           <p className="text-xs text-gray-600 line-clamp-2 mb-2 leading-relaxed">
                             {startup.companyDescription ||
                               "No description available"}
                           </p>
 
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <div className="flex items-center">
-                              <MdLocationOn className="mr-1 h-3.5 w-3.5 text-gray-400" />
-                              <span className="truncate max-w-[120px]">
+                          <div className="flex items-center justify-between pt-1.5 border-t border-gray-50 text-[11px] text-gray-400">
+                            <div className="flex items-center min-w-0 pr-2">
+                              <MdLocationOn className="mr-1 h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                              <span className="truncate max-w-[130px]">
                                 {startup.locationName ||
                                   startup.city ||
                                   "Location not specified"}
                               </span>
                             </div>
-                            <div className="flex items-center">
-                              <BsCalendarEvent className="mr-1 h-3 w-3 text-gray-400" />
-                              <span>
-                                {new Date(startup.foundedDate).getFullYear()}
-                              </span>
-                            </div>
+                            {startup.foundedDate && (
+                              <div className="flex items-center flex-shrink-0">
+                                <BsCalendarEvent className="mr-1 h-3 w-3 text-gray-400" />
+                                <span>
+                                  {new Date(startup.foundedDate).getFullYear()}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
                   ))
-                ) : searchQuery ? (
-                  filters.startups.query &&
-                  filters.startups.query.trim() !== "" && (
-                    <div className="py-12 px-4 text-center">
-                      <div className="mx-auto h-16 w-16 text-gray-300 mb-5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-full w-full"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="1.5"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="text-gray-700 font-medium text-lg mb-1">
-                        No results found
-                      </h3>
-                      <p className="text-gray-500 text-sm max-w-xs mx-auto">
-                        Try adjusting your search terms or filters to find what
-                        you’re looking for.
-                      </p>
-                      <button
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            [viewingType]: {
-                              query: "",
-                              industry: "",
-                              customIndustry: "",
-                              foundedDate: "",
-                              teamSize: "",
-                              fundingStage: "",
-                              investmentStage: "",
-                              investmentRange: "",
-                              preferredIndustry: "",
-                              customPreferredIndustry: "",
-                              location: "",
-                            },
-                          }))
-                        }
-                        className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        Clear all filters
-                      </button>
-                    </div>
-                  )
                 ) : (
-                  <div className="text-center py-12 px-4">
-                    <div className="mx-auto h-16 w-16 text-gray-300 mb-4">
+                  <div className="py-16 px-4 text-center">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
-                        className="w-full h-full"
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth={1}
+                          strokeWidth="1.5"
                           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         />
                       </svg>
                     </div>
-                    <h3 className="text-gray-700 font-medium text-lg mb-2">
-                      No startups found
+                    <h3 className="text-gray-800 font-semibold text-sm mb-1">
+                      No matching innovations
                     </h3>
-                    <p className="text-gray-500 text-sm max-w-xs mx-auto">
-                      Try adjusting your search terms or check the spelling.
+                    <p className="text-gray-500 text-xs max-w-xs mx-auto mb-4">
+                      Try adjusting your keywords or clearing current filters.
                     </p>
                     <button
                       onClick={() => {
                         setFilters((prev) => ({
                           ...prev,
-                          startups: { ...prev.startups, query: "" },
+                          startups: {
+                            ...prev.startups,
+                            query: "",
+                            actorType: "All",
+                            searchField: "All",
+                          },
                         }));
                         fetchStartups();
                       }}
-                      className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                      className="px-3.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
                     >
-                      Clear search
+                      Clear search & filters
                     </button>
                   </div>
                 )
               ) : (
-                <div className="text-center py-10">
-                  <p className="text-gray-700 font-medium">
-                    No startups available.
-                  </p>
+                <div className="text-center py-16 px-4 text-gray-500 text-xs">
+                  No startups available.
                 </div>
               )
             ) : stakeholders && stakeholders.length > 0 ? (
@@ -2750,68 +2841,49 @@ export default function Sidebar({
                   />
                 ))
               ) : (
-                <div className="text-center py-12 px-4">
-                  <div className="mx-auto h-16 w-16 text-gray-300 mb-4">
+                <div className="py-16 px-4 text-center">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
-                      className="w-full h-full"
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={1}
+                        strokeWidth="1.5"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
                   </div>
-                  <h3 className="text-gray-700 font-medium text-lg mb-2">
-                    No stakeholders found
+                  <h3 className="text-gray-800 font-semibold text-sm mb-1">
+                    No matching stakeholders
                   </h3>
-                  <p className="text-gray-500 text-sm max-w-xs mx-auto">
-                    Try adjusting your search terms or check the spelling.
+                  <p className="text-gray-500 text-xs max-w-xs mx-auto mb-4">
+                    Try different keywords or search in all fields.
                   </p>
                   <button
                     onClick={() => {
                       setFilters((prev) => ({
                         ...prev,
-                        stakeholders: { ...prev.stakeholders, query: "" },
+                        stakeholders: {
+                          ...prev.stakeholders,
+                          query: "",
+                          searchField: "All",
+                        },
                       }));
-                      fetchStakeholders();
                     }}
-                    className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    className="px-3.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
                   >
-                    Clear search
+                    Clear search & filters
                   </button>
                 </div>
               )
             ) : (
-              <div className="text-center py-12 px-4">
-                <div className="mx-auto h-16 w-16 text-gray-300 mb-5">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-full w-full"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-gray-700 font-medium text-lg mb-1">
-                  No stakeholders found
-                </h3>
-                <p className="text-gray-500 text-sm max-w-xs mx-auto">
-                  Try adjusting your search terms or filters to find what you're
-                  looking for.
-                </p>
+              <div className="text-center py-16 px-4 text-gray-500 text-xs">
+                No stakeholders available.
               </div>
             )}
           </div>
@@ -2819,7 +2891,11 @@ export default function Sidebar({
       )}
 
       {containerMode === "recents" && showRecents && (
-        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 bg-white shadow-xl z-30 md:z-5 transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden flex flex-col">
+        <div
+          className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 sidebar-drawer-384 bg-white shadow-xl z-30 md:z-5 transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden flex flex-col"
+          style={{ width: isMobile ? "100%" : "384px" }}
+        >
+
           <div className="p-4 bg-gradient-to-b from-blue-600 to-blue-500 relative">
             {/* Mobile Drag Indicator */}
             <div className="md:hidden flex justify-center pb-2">
@@ -2980,7 +3056,10 @@ export default function Sidebar({
 
       {/* Stakeholder Details Container */}
       {stakeholder && !viewingStartup && (
-        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
+        <div
+          className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] sidebar-drawer-420 bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto"
+          style={{ width: isMobile ? "100%" : "420px" }}
+        >
           {/* Header with Back Button and Actions */}
           <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex justify-between items-center px-4 py-3">
             <button
@@ -3513,7 +3592,10 @@ export default function Sidebar({
 
       {/* Startup Details Container */}
       {startup && !viewingStartup && (
-        <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto">
+        <div
+          className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-[420px] sidebar-drawer-420 bg-white shadow-xl z-30 md:z-20 transform transition-all duration-300 ease-in-out animate-slide-in overflow-y-auto"
+          style={{ width: isMobile ? "100%" : "420px" }}
+        >
           {/* Header with Back Button and Actions */}
           <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex justify-between items-center px-4 py-3">
             <button

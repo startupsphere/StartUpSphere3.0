@@ -256,3 +256,17 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Sidebar drawer desktop fixed widths to guarantee correct docking layout */
+@media (min-width: 768px) {
+  .sidebar-drawer-384 {
+    width: 384px !important;
+    max-width: 384px !important;
+    min-width: 384px !important;
+  }
+  .sidebar-drawer-420 {
+    width: 420px !important;
+    max-width: 420px !important;
+    min-width: 420px !important;
+  }
+}
