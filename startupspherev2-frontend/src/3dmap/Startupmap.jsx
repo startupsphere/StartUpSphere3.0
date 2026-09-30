@@ -4072,75 +4072,92 @@ export default function Startupmap({
         </button>
       </div>
 
-      {/* Heatmap Legend */}
-      <div
-        className={`absolute bottom-28 md:bottom-14 left-4 bg-white bg-opacity-95 backdrop-blur-md p-4 rounded-lg shadow-lg border border-gray-100 z-[10000] transition-transform duration-500 ease-in-out ${showHeatmap && showLegend ? "translate-x-0 opacity-100" : "-translate-x-[150%] opacity-0 pointer-events-none"
-          }`}
-        style={{ width: "260px" }}
-      >
-        <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Heatmap Mode</h3>
+      {/* Creative Compact Heatmap Legend */}
+      {showHeatmap && showLegend && (
+        <div
+          className="fixed md:absolute top-16 md:top-20 left-3 md:left-4 z-[9990] max-w-[320px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-left-4"
+        >
+          {/* Header with Mode Segment Control & Minimize Button */}
+          <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-gray-100">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+              <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase">
+                Heatmap Scale
+              </span>
+            </div>
 
-        <div className="flex bg-gray-100 rounded-lg p-1 mb-4 pointer-events-auto cursor-pointer">
-          <button
-            onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${heatmapMode === "TRL" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            TRL Level
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setHeatmapMode("ENGAGEMENT"); }}
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${heatmapMode === "ENGAGEMENT" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Engagement
-          </button>
-        </div>
+            <div className="flex items-center gap-1.5">
+              {/* Toggle TRL vs Engagement */}
+              <div className="flex bg-gray-100/90 p-0.5 rounded-lg text-[10px] font-semibold">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    heatmapMode === "TRL"
+                      ? "bg-white text-indigo-600 shadow-2xs font-bold"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  TRL
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setHeatmapMode("ENGAGEMENT"); }}
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    heatmapMode === "ENGAGEMENT"
+                      ? "bg-white text-indigo-600 shadow-2xs font-bold"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  Engagement
+                </button>
+              </div>
 
-        <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Legend</h3>
-        <div className="space-y-3 text-xs">
+              {/* Minimize Legend Button */}
+              <button
+                onClick={() => setShowLegend(false)}
+                className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-700 rounded-full transition-colors cursor-pointer"
+                title="Minimize Legend"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content: Continuous Visual Gradient Ramp & Scale Labels */}
           {heatmapMode === "TRL" ? (
-            <>
-              <div className="flex items-start gap-2">
-                <span className="w-3 h-3 mt-0.5 rounded-full bg-red-500 shadow-sm border border-red-200 shrink-0"></span>
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-bold">Red (High)</span>
-                  <span className="text-gray-600">TRL 7-9: Market-ready / Deployed</span>
-                </div>
+            <div>
+              <div className="h-2 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner mb-1.5"></div>
+              <div className="flex justify-between text-[10px] font-medium text-gray-600 px-0.5">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Concept (1-3)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  Testing (4-6)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  Deployed (7-9)
+                </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="w-3 h-3 mt-0.5 rounded-full bg-yellow-500 shadow-sm border border-yellow-200 shrink-0"></span>
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-bold">Yellow (Mid)</span>
-                  <span className="text-gray-600">TRL 4-6: Prototype / Testing</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="w-3 h-3 mt-0.5 rounded-full bg-green-500 shadow-sm border border-green-200 shrink-0"></span>
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-bold">Green (Low)</span>
-                  <span className="text-gray-600">TRL 1-3: Basic Research / Concept</span>
-                </div>
-              </div>
-            </>
+            </div>
           ) : (
-            <>
-              <div className="flex items-start gap-2">
-                <span className="w-3 h-3 mt-0.5 rounded-full bg-red-500 opacity-80 shadow-sm border border-red-200 shrink-0"></span>
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-bold">Red (High)</span>
-                  <span className="text-gray-600">Score 15+: Extremely active engagement zone</span>
-                </div>
+            <div>
+              <div className="h-2 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner mb-1.5"></div>
+              <div className="flex justify-between text-[10px] font-medium text-gray-600 px-0.5">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                  Quiet (0-14)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  High Active (15+)
+                </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="w-3 h-3 mt-0.5 rounded-full bg-blue-500 opacity-30 shadow-sm border border-blue-200 shrink-0"></span>
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-bold">Blue (Low)</span>
-                  <span className="text-gray-600">Score 0-14: Quiet or developing area</span>
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
-      </div>
+      )}
 
       {selectedEngagementData && (
         <EngagementChart
