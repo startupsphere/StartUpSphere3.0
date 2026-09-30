@@ -3938,7 +3938,7 @@ export default function Startupmap({
       </div>
 
       {/* Creative Compact Heatmap Legend (Top-Right Floating below profile avatar) */}
-      {showLegend && (
+      {showLegend ? (
         <div
           style={{ zIndex: 9990 }}
           className="absolute top-20 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
@@ -4038,6 +4038,17 @@ export default function Startupmap({
             </div>
           )}
         </div>
+      ) : (
+        /* Floating Quick Toggle Button when Legend is minimized */
+        <button
+          onClick={() => setShowLegend(true)}
+          style={{ zIndex: 9990 }}
+          className="absolute top-20 md:top-20 right-3 md:right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all cursor-pointer animate-in fade-in duration-200"
+          title="Show Map Legend"
+        >
+          <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+          <span>Legend</span>
+        </button>
       )}
 
       {selectedEngagementData && (
