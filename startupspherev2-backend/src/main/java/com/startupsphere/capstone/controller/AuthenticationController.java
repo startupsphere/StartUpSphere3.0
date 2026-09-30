@@ -36,13 +36,22 @@ public class AuthenticationController {
         try {
             User registeredUser = authenticationService.signup(registerUserDto);
             return ResponseEntity.ok(registeredUser);
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("Email already exists")) {
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("users_pkey") || msg.contains("duplicate key")) {
                 return ResponseEntity.status(409)
-                        .body(java.util.Map.of("error", "Email already exists. Please use a different email address."));
+                        .body(java.util.Map.of("error", "An account registration conflict occurred. Please try submitting again."));
             }
             return ResponseEntity.status(400)
-                    .body(java.util.Map.of("error", "Registration failed: " + e.getMessage()));
+                    .body(java.util.Map.of("error", "Registration could not be completed. Please check your information and try again."));
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.toLowerCase().contains("email already exists")) {
+                return ResponseEntity.status(409)
+                        .body(java.util.Map.of("error", "This email address is already registered. Please sign in or use a different email."));
+            }
+            return ResponseEntity.status(400)
+                    .body(java.util.Map.of("error", "Registration failed. Please verify your details and try again."));
         }
     }
 

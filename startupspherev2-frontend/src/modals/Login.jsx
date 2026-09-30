@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
+import { formatErrorMessage } from "../utils/errorUtils";
 
 export default function Login({ closeModal, openRegister, onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -73,7 +74,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
         }, 1500);
       }
     } catch (err) {
-      setError(err.message);
+      setError(formatErrorMessage(err));
     } finally {
       setLoading(false);
     }

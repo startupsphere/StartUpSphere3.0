@@ -11,7 +11,7 @@ import jakarta.persistence.*;
 })
 public class Views {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     private Instant timestamp = Instant.now();

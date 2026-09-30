@@ -11,7 +11,7 @@ import java.util.List;
 public class Investor {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "investorId", nullable = false)
     private Integer investorId;
 

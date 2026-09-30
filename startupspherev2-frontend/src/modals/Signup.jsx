@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
+import { formatErrorMessage } from "../utils/errorUtils";
 
 export default function Signup({ closeModal, openLogin }) {
   const [firstname, setFirstname] = useState("");
@@ -126,11 +127,11 @@ export default function Signup({ closeModal, openLogin }) {
           if (errorData.error.toLowerCase().includes("email")) {
             setEmailError(true);
           }
-          throw new Error(errorData.error);
+          throw new Error(formatErrorMessage(errorData.error));
         }
         
         // Handle other errors with a formal message
-        throw new Error(errorData.message || "We're unable to complete your registration at this time. Please try again later.");
+        throw new Error(formatErrorMessage(errorData.message || "We're unable to complete your registration at this time. Please try again later."));
       }
 
       const data = await parseJSON(response);
@@ -139,7 +140,7 @@ export default function Signup({ closeModal, openLogin }) {
 
       closeModal();
     } catch (err) {
-      setError(err.message);
+      setError(formatErrorMessage(err));
     } finally {
       setLoading(false);
     }
