@@ -3937,11 +3937,11 @@ export default function Startupmap({
         </button>
       </div>
 
-      {/* Creative Compact Heatmap Legend (Top-Right Floating) */}
+      {/* Creative Compact Heatmap Legend (Top-Right Floating below profile avatar) */}
       {showLegend && (
         <div
-          style={{ zIndex: 10001 }}
-          className="absolute top-4 md:top-5 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
+          style={{ zIndex: 9990 }}
+          className="absolute top-20 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
