@@ -829,10 +829,7 @@ export default function Startupmap({
 
 
       // Add gradient orbs (blurred circles) for distinct color zones per area
-      if (!map.getLayer("startups-heatmap")) {
-        // We reuse the ID "startups-heatmap" or create a new one. Let me use new IDs and remove old.
-        if (map.getLayer("startups-heatmap")) map.removeLayer("startups-heatmap");
-
+      if (!map.getLayer("startups-zone-gradients")) {
         map.addLayer({
           id: "startups-zone-gradients",
           type: "circle",
@@ -3943,8 +3940,8 @@ export default function Startupmap({
       {/* Creative Compact Heatmap Legend (Top-Right Floating) */}
       {showLegend && (
         <div
-          style={{ zIndex: 9990 }}
-          className="fixed md:absolute top-16 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
+          style={{ zIndex: 10001 }}
+          className="absolute top-4 md:top-5 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
