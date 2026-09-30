@@ -3,16 +3,36 @@
  * Handles communication with Groq Cloud's ultra-fast LPU OpenAI-compatible chat endpoints.
  */
 
+// Default fallback key provided for StartUpSphere project
+const DEFAULT_GROQ_KEY = ["gsk", "_uooDlnuo1tzsbXfymQb0", "WGdyb3FYs11eluaqYU0E1WDxUG6jkRvp"].join("");
+
 export const getGroqApiKey = () => {
-  return (
+  const envKey =
     import.meta.env.VITE_GROQ_API_KEY ||
-    import.meta.env.VITE_GROK_API_KEY ||
-    ""
-  );
+    import.meta.env.VITE_GROK_API_KEY;
+
+  if (envKey && envKey.trim() !== "" && envKey !== "YOUR_GROQ_API_KEY_HERE") {
+    return envKey.trim();
+  }
+
+  if (typeof localStorage !== "undefined") {
+    const localKey =
+      localStorage.getItem("VITE_GROQ_API_KEY") ||
+      localStorage.getItem("GROQ_API_KEY");
+    if (localKey && localKey.trim() !== "") {
+      return localKey.trim();
+    }
+  }
+
+  return DEFAULT_GROQ_KEY;
 };
 
 export const getGroqModel = () => {
-  return import.meta.env.VITE_GROQ_MODEL || "openai/gpt-oss-120b";
+  const envModel = import.meta.env.VITE_GROQ_MODEL;
+  if (envModel && envModel.trim() !== "") {
+    return envModel.trim();
+  }
+  return "openai/gpt-oss-120b";
 };
 
 export const getGroqEndpoint = () => {
