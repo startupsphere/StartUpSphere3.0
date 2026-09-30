@@ -337,64 +337,11 @@ export default function Startupmap({
   };
 
   const renderInvestorMarkers = (map, investors) => {
-    // Clear existing markers if needed
+    // Disabled to remove 3D person pins from map
     if (window.investorMarkersArray) {
       window.investorMarkersArray.forEach((marker) => marker.remove());
     }
     window.investorMarkersArray = [];
-
-    investors.forEach((investor) => {
-      if (
-        typeof investor.locationLang === "string" &&
-        typeof investor.locationLat === "string" &&
-        parseFloat(investor.locationLat) >= -90 &&
-        parseFloat(investor.locationLat) <= 90 &&
-        parseFloat(investor.locationLang) >= -180 &&
-        parseFloat(investor.locationLang) <= 180
-      ) {
-        // Create a DOM element for the investor 3D marker
-        const el = document.createElement("div");
-        el.className = "investor-marker-3d";
-        el.style.width = "20px";
-        el.style.height = "20px";
-        el.style.backgroundColor = "blue";
-        el.style.borderRadius = "50%";
-        el.style.cursor = "pointer";
-
-        // Add 3D marker effect using CSS transform
-        el.style.transform = "translate(-50%, -50%)";
-        el.style.willChange = "transform";
-        el.style.boxShadow = "0 0 10px rgba(0, 0, 255, 0.5)";
-
-        // Create a popup
-        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-          `<div style="color: black; font-family: Arial, sans-serif;">
-              <h3 style="margin: 0; color: black;">${investor.firstname} ${investor.lastname}</h3>
-              <p style="margin: 0; color: black;">${investor.locationName}</p>
-            </div>`
-        );
-
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: "bottom",
-          offset: [0, -10],
-        })
-          .setLngLat([
-            parseFloat(investor.locationLang),
-            parseFloat(investor.locationLat),
-          ])
-          .setPopup(popup)
-          .addTo(map);
-
-        window.investorMarkersArray = window.investorMarkersArray || [];
-        window.investorMarkersArray.push(marker);
-      } else {
-        console.warn(
-          `Invalid location for investor: ${investor.firstname} ${investor.lastname}`,
-          investor
-        );
-      }
-    });
   };
 
   // Render stakeholders using a Mapbox symbol layer (no DOM markers)
@@ -1120,17 +1067,17 @@ export default function Startupmap({
             <style>
               .mapboxgl-popup-content {
                 padding: 0 !important;
-                border-radius: 14px !important;
+                border-radius: 16px !important;
                 overflow: hidden !important;
                 background: #ffffff !important;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-                border: 1px solid rgba(229, 231, 235, 0.8) !important;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+                border: 1px solid rgba(229, 231, 235, 0.9) !important;
               }
               .mapboxgl-popup-close-button {
-                color: #ffffff !important;
+                color: #4b5563 !important;
                 font-size: 18px !important;
                 font-weight: bold !important;
-                padding: 10px 12px !important;
+                padding: 8px 12px !important;
                 border: none !important;
                 background: transparent !important;
                 outline: none !important;
@@ -1138,8 +1085,9 @@ export default function Startupmap({
                 z-index: 100 !important;
               }
               .mapboxgl-popup-close-button:hover {
-                background: rgba(255, 255, 255, 0.15) !important;
-                border-radius: 0 14px 0 14px !important;
+                color: #111827 !important;
+                background: #f3f4f6 !important;
+                border-radius: 50% !important;
               }
               .ai-summary-scroll::-webkit-scrollbar {
                 width: 4px;
@@ -1160,14 +1108,14 @@ export default function Startupmap({
                 100% { transform: rotate(360deg); }
               }
             </style>
-            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 540px; max-width: 90vw; height: 340px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff;">
-              <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 18px; box-sizing: border-box;">
-                <div style="font-weight: 700; font-size: 16px; line-height: 1.25; margin-bottom: 2px; padding-right: 20px;">${props.name || "Startup"}</div>
-                <div style="font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Startup Company</div>
+            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 560px; max-width: 90vw; height: 360px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff;">
+              <div style="padding: 14px 18px 12px 18px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; box-sizing: border-box;">
+                <div style="font-weight: 700; font-size: 15px; color: #111827; padding-right: 25px; line-height: 1.25;">${props.name || "Startup"}</div>
+                <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Startup Overview</div>
               </div>
-              <div style="padding: 16px 20px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 12px; box-sizing: border-box;">
-                <div style="width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin-popup 1s linear infinite;"></div>
-                <div style="font-size: 12px; color: #6b7280; font-weight: 500;">Generating AI Insights & Analytics...</div>
+              <div style="padding: 20px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 12px; box-sizing: border-box;">
+                <div style="width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin-popup 1s linear infinite;"></div>
+                <div style="font-size: 12.5px; color: #6b7280; font-weight: 500;">Generating AI Insights & Ecosystem Analytics...</div>
               </div>
             </div>
           `;
@@ -1225,17 +1173,17 @@ export default function Startupmap({
                 <style>
                   .mapboxgl-popup-content {
                     padding: 0 !important;
-                    border-radius: 14px !important;
+                    border-radius: 16px !important;
                     overflow: hidden !important;
                     background: #ffffff !important;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-                    border: 1px solid rgba(229, 231, 235, 0.8) !important;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+                    border: 1px solid rgba(229, 231, 235, 0.9) !important;
                   }
                   .mapboxgl-popup-close-button {
-                    color: #ffffff !important;
+                    color: #4b5563 !important;
                     font-size: 18px !important;
                     font-weight: bold !important;
-                    padding: 10px 12px !important;
+                    padding: 8px 12px !important;
                     border: none !important;
                     background: transparent !important;
                     outline: none !important;
@@ -1243,8 +1191,9 @@ export default function Startupmap({
                     z-index: 100 !important;
                   }
                   .mapboxgl-popup-close-button:hover {
-                    background: rgba(255, 255, 255, 0.15) !important;
-                    border-radius: 0 14px 0 14px !important;
+                    color: #111827 !important;
+                    background: #f3f4f6 !important;
+                    border-radius: 50% !important;
                   }
                   .ai-summary-scroll::-webkit-scrollbar {
                     width: 4px;
@@ -1261,111 +1210,120 @@ export default function Startupmap({
                     background: #94a3b8;
                   }
                 </style>
-                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 540px; max-width: 90vw; height: 340px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; overflow: hidden;">
-                  <!-- Header with Gradient and Metadata -->
-                  <div style="background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 14px 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;">
-                    <div style="font-weight: 700; font-size: 16px; line-height: 1.25; padding-right: 25px; word-break: break-word;">${details.companyName || props.name}</div>
-                    <div style="font-size: 11px; opacity: 0.95; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                      <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${details.industry || "General"}</span>
+                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 560px; max-width: 90vw; height: 360px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; overflow: hidden;">
+                  
+                  <!-- Clean Header Matching Photo 3 Engagement Summary -->
+                  <div style="padding: 14px 18px 12px 18px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 24px;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg style="width: 16px; height: 16px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <span style="font-weight: 700; font-size: 15px; color: #111827; line-height: 1.25;">Engagement & Startup Summary</span>
+                      </div>
+                    </div>
+                    <div style="font-size: 11.5px; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 1px;">
+                      <span style="font-weight: 700; color: #1f2937;">${details.companyName || props.name}</span>
                       <span>•</span>
-                      <span style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; font-weight: 500;">${details.trlLevel || "TRL Not Set"}</span>
+                      <span style="background: #f3f4f6; color: #4b5563; padding: 2px 7px; border-radius: 6px; font-weight: 600; font-size: 10.5px;">${details.industry || "General"}</span>
+                      <span>•</span>
+                      <span style="background: #eef2ff; color: #4f46e5; padding: 2px 7px; border-radius: 6px; font-weight: 600; font-size: 10.5px;">${details.trlLevel || "TRL Not Set"}</span>
                     </div>
                   </div>
                   
-                  <!-- Main 2-Column Side-by-Side Body (Fixed Height: 340px container) -->
+                  <!-- Main 2-Column Side-by-Side Body (Fixed Container Height: 360px) -->
                   <div style="padding: 14px 18px; display: flex; flex-direction: row; gap: 14px; background: #ffffff; box-sizing: border-box; flex: 1; min-height: 0; overflow: hidden;">
                     
-                    <!-- LEFT COLUMN: Location + Ecosystem Analytics + TRL -->
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; border-right: 1px solid #f1f5f9; padding-right: 12px; box-sizing: border-box;">
-                      <!-- Location & Revenue -->
-                      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #4B5563;">
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-                          <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0; margin-top: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                          </svg>
-                          <span style="word-break: break-word; line-height: 1.3; font-size: 12px;">${details.locationName || props.locationName || "Location not specified"}</span>
-                        </div>
-                        ${details.revenue ? `
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 2px;">
-                          <span style="color: #059669; font-weight: 600;">PHP ${Number(details.revenue).toLocaleString()} Revenue</span>
-                        </div>` : ''}
+                    <!-- LEFT COLUMN: Location + Ecosystem Analytics Stat Badges (Photo 3 Style) -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; border-right: 1px solid #f1f5f9; padding-right: 14px; box-sizing: border-box; overflow-y: auto;">
+                      
+                      <!-- Location line -->
+                      <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; color: #4b5563;">
+                        <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0; margin-top: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span style="word-break: break-word; line-height: 1.3;">${details.locationName || props.locationName || "Location not specified"}</span>
                       </div>
 
-                      <!-- Ecosystem Analytics Section -->
-                      <div style="border-top: 1px solid #f3f4f6; padding-top: 8px; display: flex; flex-direction: column; gap: 7px; flex: 1; justify-content: space-between;">
-                        <div style="font-weight: 700; font-size: 10.5px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
-                          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                          </svg>
-                          <span>Ecosystem Analytics</span>
-                        </div>
-                        
-                        <!-- Views -->
-                        <div>
-                          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
-                            <span>Ecosystem Views</span>
-                            <strong>${views}</strong>
-                          </div>
-                          <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
-                            <div style="width: ${Math.min(100, views > 0 ? (views / 200) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #6366f1, #4f46e5); border-radius: 3px;"></div>
-                          </div>
-                        </div>
-
-                        <!-- Likes -->
-                        <div>
-                          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
-                            <span>Likes Benchmark</span>
-                            <strong>${likes}</strong>
-                          </div>
-                          <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
-                            <div style="width: ${Math.min(100, likes > 0 ? (likes / 50) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #34d399, #10b981); border-radius: 3px;"></div>
-                          </div>
-                        </div>
-
-                        <!-- Bookmarks -->
-                        <div>
-                          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; margin-bottom: 2px; font-weight: 500;">
-                            <span>Bookmarks Saved</span>
-                            <strong>${bookmarks}</strong>
-                          </div>
-                          <div style="width: 100%; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; border: 1px solid #e2e8f0;">
-                            <div style="width: ${Math.min(100, bookmarks > 0 ? (bookmarks / 25) * 100 : 2)}%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 3px;"></div>
-                          </div>
-                        </div>
-
-                        <!-- TRL Segmented Progress Bar -->
-                        ${trlValue > 0 ? `
-                        <div style="border-top: 1px solid #f3f4f6; padding-top: 6px;">
-                          <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #4B5563; font-weight: 600; margin-bottom: 3px;">
-                            <span>TRL Stage</span>
-                            <span>Level ${trlValue}/9</span>
-                          </div>
-                          <div style="display: flex; gap: 2px; width: 100%; height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                            ${Array.from({ length: 9 }).map((_, idx) => {
-                              const active = idx < trlValue;
-                              let color = '#e2e8f0';
-                              if (active) {
-                                if (trlValue <= 3) color = '#10b981';
-                                else if (trlValue <= 6) color = '#f59e0b';
-                                else color = '#ef4444';
-                              }
-                              return '<div style="flex: 1; height: 100%; background: ' + color + '; border-radius: 1px;"></div>';
-                            }).join('')}
-                          </div>
-                        </div>` : ''}
+                      <!-- Ecosystem Analytics Section Label -->
+                      <div style="font-weight: 700; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+                        <svg style="width: 12px; height: 12px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span>Ecosystem Analytics</span>
                       </div>
+
+                      <!-- Stat Card 1: Likes (Soft Pink/Rose Card matching Photo 3) -->
+                      <div style="background: #fff1f2; border: 1px solid #ffe4e6; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <svg style="width: 15px; height: 15px; color: #e11d48;" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                          <span style="font-size: 12px; font-weight: 600; color: #be123c;">Likes</span>
+                        </div>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${likes.toLocaleString()}</span>
+                      </div>
+
+                      <!-- Stat Card 2: Views (Soft Blue Card matching Photo 3) -->
+                      <div style="background: #eff6ff; border: 1px solid #dbeafe; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <svg style="width: 15px; height: 15px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                          </svg>
+                          <span style="font-size: 12px; font-weight: 600; color: #1d4ed8;">Views</span>
+                        </div>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${views.toLocaleString()}</span>
+                      </div>
+
+                      <!-- Stat Card 3: Bookmarks (Soft Purple Card matching Photo 3) -->
+                      <div style="background: #faf5ff; border: 1px solid #f3e8ff; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <svg style="width: 15px; height: 15px; color: #9333ea;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                          </svg>
+                          <span style="font-size: 12px; font-weight: 600; color: #7e22ce;">Bookmarks</span>
+                        </div>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${bookmarks.toLocaleString()}</span>
+                      </div>
+
+                      <!-- Total Score & TRL Level Section -->
+                      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 1px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Total Score</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #4f46e5;">${(likes + views + bookmarks).toLocaleString()}</div>
+                      </div>
+
+                      ${trlValue > 0 ? `
+                      <div style="margin-top: 1px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #4B5563; font-weight: 600; margin-bottom: 3px;">
+                          <span>TRL Stage</span>
+                          <span>Level ${trlValue}/9</span>
+                        </div>
+                        <div style="display: flex; gap: 2px; width: 100%; height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                          ${Array.from({ length: 9 }).map((_, idx) => {
+                            const active = idx < trlValue;
+                            let color = '#e2e8f0';
+                            if (active) {
+                              if (trlValue <= 3) color = '#10b981';
+                              else if (trlValue <= 6) color = '#f59e0b';
+                              else color = '#ef4444';
+                            }
+                            return '<div style="flex: 1; height: 100%; background: ' + color + '; border-radius: 1px;"></div>';
+                          }).join('')}
+                        </div>
+                      </div>` : ''}
                     </div>
 
                     <!-- RIGHT COLUMN: Groq AI Business Summary (Fixed Container, Scrollable Summary) -->
-                    <div style="flex: 1.1; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%;">
+                    <div style="flex: 1.1; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%;">
                       <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 10.5px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;">
-                        <svg style="width: 13px; height: 13px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
                         <span>Groq AI Business Summary</span>
                       </div>
-                      <div class="ai-summary-scroll" style="font-size: 11.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: left; word-break: break-word; overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; box-sizing: border-box;">
+                      <div class="ai-summary-scroll" style="font-size: 11.5px; color: #334155; line-height: 1.6; font-weight: 500; text-align: left; word-break: break-word; overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; box-sizing: border-box;">
                         ${formattedAiText}
                       </div>
                     </div>
@@ -1544,118 +1502,9 @@ export default function Startupmap({
     }
   };
 
-  // Add default startup marker for Cebu
+  // Disabled default startup marker to remove person pin
   const addDefaultStartupMarker = (map) => {
-    // Cebu City coordinates (approximate center)
-    const cebuCoordinates = [123.8854, 10.3157];
-
-    // Create a DOM element for the startup marker with enhanced professional appearance
-    const el = document.createElement("div");
-    el.className = "default-startup-marker";
-    el.style.width = "15px";  // Larger for better visibility
-    el.style.height = "15px"; // Maintain aspect ratio
-
-    // Try to use professional SVG marker first, fallback to custom design
-    const markerIconSvg = `${window.location.origin}/startup-marker.png`;
-
-    // Create professional looking marker
-    const createCustomMarker = () => {
-      // Create canvas for custom marker
-      const canvas = document.createElement('canvas');
-      canvas.width = 60;
-      canvas.height = 60;
-      const ctx = canvas.getContext('2d');
-
-      // Draw professional pin with blue color theme
-      ctx.clearRect(0, 0, 60, 60);
-
-      // Pin body with gradient
-      const gradient = ctx.createLinearGradient(30, 10, 30, 35);
-      gradient.addColorStop(0, '#0A66C2');
-      gradient.addColorStop(1, '#0077B5');
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(30, 20, 12, Math.PI, Math.PI * 2);
-      ctx.lineTo(30, 48);
-      ctx.lineTo(18, 20);
-      ctx.closePath();
-      ctx.fill();
-
-      // White center
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath();
-      ctx.arc(30, 20, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Blue dot in center
-      ctx.fillStyle = '#0A66C2';
-      ctx.beginPath();
-      ctx.arc(30, 20, 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Convert to image URL
-      const dataURL = canvas.toDataURL();
-      el.style.backgroundImage = `url(${dataURL})`;
-    };
-
-    // Check if SVG exists, fallback to custom design
-    fetch(markerIconSvg)
-      .then(response => {
-        if (response.ok) {
-          el.style.backgroundImage = `url(${markerIconSvg})`;
-        } else {
-          createCustomMarker();
-        }
-      })
-      .catch(() => {
-        createCustomMarker();
-      });
-
-    el.style.backgroundSize = "contain";
-    el.style.backgroundRepeat = "no-repeat";
-    el.style.backgroundPosition = "center";
-    el.style.cursor = "pointer";
-
-    // Add enhanced professional shadow effect
-    el.style.filter = "drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3))";
-    el.style.transform = "translate(-50%, -100%)";
-
-    // Create a popup with enhanced professional styling for the default marker
-    const popup = new mapboxgl.Popup({ offset: 28, closeButton: true, className: "startup-popup" }).setHTML(
-      `<div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; overflow: hidden; border-radius: 8px;">
-        <div style="background: linear-gradient(135deg, #0A66C2, #0077B5); color: #fff; padding: 16px;">
-          <div style="font-weight: 600; font-size: 16px; letter-spacing: -0.01em;">Cebu Startup Hub</div>
-          <div style="opacity: 0.9; font-size: 12px; margin-top: 3px;">Business District</div>
-        </div>
-        <div style="padding: 14px 16px; background: #fff;">
-          <div style="display: flex; align-items: center; font-size: 13px; color: #4B5563; margin-bottom: 2px;">
-            <svg style="width: 14px; height: 14px; margin-right: 6px; flex-shrink: 0;" fill="none" stroke="#0A66C2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            <span>Cebu City, Philippines</span>
-          </div>
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
-            <div style="font-size: 12px; color: #4B5563; display: flex; align-items: center;">
-              <svg style="width: 14px; height: 14px; margin-right: 6px; flex-shrink: 0;" fill="none" stroke="#4B5563" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <span>Click to set your startup location</span>
-            </div>
-          </div>
-        </div>
-      </div>`
-    );
-
-    // Add marker to map
-    new mapboxgl.Marker({
-      element: el,
-      anchor: "bottom",
-    })
-      .setLngLat(cebuCoordinates)
-      .setPopup(popup)
-      .addTo(map);
+    // No-op to prevent pin on map
   };
 
   const toggleConnectionsVisibility = () => {
