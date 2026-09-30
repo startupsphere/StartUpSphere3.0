@@ -39,6 +39,20 @@ public class DataInitializer {
                 log.warn("Schema repair check skipped: {}", ex.getMessage());
             }
 
+            // Fix sequence for users table if it's missing (fixes Registration DataIntegrityViolationException)
+            try {
+                jdbcTemplate.execute("DO $$ BEGIN " +
+                    "IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = 'users_id_seq') THEN " +
+                    "CREATE SEQUENCE users_id_seq; " +
+                    "END IF; " +
+                    "PERFORM setval('users_id_seq', coalesce(max(id), 0) + 1, false) FROM users; " +
+                    "ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'); " +
+                    "ALTER SEQUENCE users_id_seq OWNED BY users.id; " +
+                    "END $$;");
+            } catch (Exception ex) {
+                log.warn("Users sequence repair skipped: {}", ex.getMessage());
+            }
+
             // Check if an admin account already exists
             if (userRepository.findByEmail(adminEmail).isEmpty()) {
                 User admin = new User()
