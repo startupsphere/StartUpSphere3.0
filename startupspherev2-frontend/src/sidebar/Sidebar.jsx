@@ -15,7 +15,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award, Sparkles } from "lucide-react";
+import { Award, Sparkles, User } from "lucide-react";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone } from "react-icons/fa";
@@ -1560,7 +1560,8 @@ export default function Sidebar({
               setShowTooltip((prev) => !prev);
               setNotificationTooltip(false);
             }}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold shadow-sm"
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+            aria-label="Profile Menu"
           >
             {isAuthenticated && currentUser
               ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
@@ -1568,6 +1569,124 @@ export default function Sidebar({
           </button>
         </div>
       </header>
+
+      {/* Mobile Profile Dropdown Overlay */}
+      {showTooltip && (
+        <div className="md:hidden">
+          <div
+            className="fixed inset-0 z-[99990] bg-black/10 backdrop-blur-[1px]"
+            onClick={() => setShowTooltip(false)}
+          />
+          <div className="fixed top-14 right-3 w-60 bg-white border border-gray-200/90 rounded-xl shadow-2xl z-[99999] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50/80 to-white">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {currentUser?.firstname} {currentUser?.lastname}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[150px]">
+                      {currentUser?.email}
+                    </div>
+                    {currentUser?.role && (
+                      <div className="mt-1.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
+                          currentUser.role === 'ROLE_ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          currentUser.role === 'ROLE_STARTUP' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                          currentUser.role === 'ROLE_HEI' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
+                          currentUser.role === 'ROLE_SME' ? 'bg-green-100 text-green-800 border border-green-200' :
+                          currentUser.role === 'ROLE_RESEARCH' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                          currentUser.role === 'ROLE_INNOVATION' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
+                          currentUser.role === 'ROLE_SUPPORT' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
+                          currentUser.role === 'ROLE_GOVERNMENT' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                          'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}>
+                          {
+                            currentUser.role === 'ROLE_ADMIN' ? 'Admin' :
+                            currentUser.role === 'ROLE_STARTUP' ? 'Startup' :
+                            currentUser.role === 'ROLE_HEI' ? 'University / HEI' :
+                            currentUser.role === 'ROLE_SME' ? 'SME / Business' :
+                            currentUser.role === 'ROLE_RESEARCH' ? 'Research Institution' :
+                            currentUser.role === 'ROLE_INNOVATION' ? 'Innovation Output' :
+                            currentUser.role === 'ROLE_SUPPORT' ? 'Support Organization' :
+                            currentUser.role === 'ROLE_GOVERNMENT' ? 'Government / Funding' :
+                            'Standard User'
+                          }
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <FaBell
+                      onClick={() => {
+                        setShowTooltip(false);
+                        navigate("/notifications");
+                      }}
+                      className="text-gray-600 hover:text-blue-600 text-xl cursor-pointer transition-colors"
+                    />
+                    {notificationsCount > 0 && (
+                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                        {notificationsCount}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="p-1.5 space-y-1">
+                  <button
+                    onClick={() => {
+                      setShowTooltip(false);
+                      if (currentUser?.role === "ROLE_ADMIN") {
+                        navigate("/all-startup-dashboard");
+                      } else {
+                        navigate("/startup-dashboard");
+                      }
+                    }}
+                    className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                  >
+                    <LuLayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowLogoutConfirm(true);
+                      setShowTooltip(false);
+                    }}
+                    className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="p-2 space-y-1">
+                <button
+                  onClick={() => {
+                    setShowTooltip(false);
+                    setOpenLogin(true);
+                  }}
+                  className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                >
+                  <RiLoginBoxFill className="mr-2 h-4 w-4 text-blue-600" />
+                  Login
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTooltip(false);
+                    setOpenRegister(true);
+                  }}
+                  className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                >
+                  <User className="mr-2 h-4 w-4 text-indigo-600" />
+                  Register Account
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Desktop Sidebar */}
       <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-50 sidebar-container" style={{ zIndex: 50 }}>
@@ -2346,7 +2465,12 @@ export default function Sidebar({
             )}
 
             {showTooltip && (
-              <div className="absolute top-14 right-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setShowTooltip(false)}
+                />
+                <div className="absolute top-14 right-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
                 {isAuthenticated ? (
                   <>
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
@@ -2432,6 +2556,7 @@ export default function Sidebar({
                   </>
                 )}
               </div>
+              </>
             )}
           </div>
         </div>

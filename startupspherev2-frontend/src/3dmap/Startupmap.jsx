@@ -76,6 +76,7 @@ export default function Startupmap({
   useEffect(() => { heatmapModeRef.current = heatmapMode; }, [heatmapMode]);
 
   const [showLegend, setShowLegend] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [isMobileMap, setIsMobileMap] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
   useEffect(() => {
@@ -3947,161 +3948,129 @@ export default function Startupmap({
       />
       <SearchComponent />
 
-      {/* Map Style Toggle Button */}
-      <button
-        onClick={toggleMapStyle}
-        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% - 250px))', zIndex: 10000 }}
-        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
-        title={isSatelliteView ? "Switch to Standard Map" : "Switch to Satellite View"}
+      {/* Map Controls Container & Toggle Button */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: mapBottomOffset,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+        }}
+        className="flex flex-col items-center gap-2"
       >
-        {isSatelliteView ? (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        {/* Expanded Controls Container */}
+        {showControls && (
+          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[92vw] md:max-w-none animate-in fade-in slide-in-from-bottom-3 duration-200">
+            {/* Legend Toggle Button */}
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                showLegend
+                  ? "bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-              />
-            </svg>
-            Map
-          </>
-        ) : (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              Legend
+            </button>
+
+            {/* 3D / 2D Toggle Button */}
+            <button
+              onClick={toggle3DView}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                is3DActive
+                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/70 shadow-2xs"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Satellite
-          </>
+              {is3DActive ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                  2D View
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 009-9" />
+                  </svg>
+                  3D View
+                </>
+              )}
+            </button>
+
+            {/* Heatmap Toggle Button */}
+            <button
+              onClick={toggleHeatmapVisibility}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                showHeatmap
+                  ? "bg-orange-50 text-orange-700 border border-orange-200/70 shadow-2xs"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9" />
+              </svg>
+              {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+            </button>
+
+            {/* Connections Toggle Button */}
+            <button
+              onClick={toggleConnectionsVisibility}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                showConnections
+                  ? "bg-teal-50 text-teal-700 border border-teal-200/70 shadow-2xs"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              {showConnections ? "Hide Connections" : "Show Connections"}
+            </button>
+
+            {/* Map / Satellite Toggle Button */}
+            <button
+              onClick={toggleMapStyle}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                isSatelliteView
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {isSatelliteView ? "Map View" : "Satellite"}
+            </button>
+          </div>
         )}
-      </button>
 
-      {/* 3D Toggle Button */}
-      <button
-        onClick={toggle3DView}
-        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% - 80px))', zIndex: 10000 }}
-        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
-      >
-        {is3DActive ? (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-              />
-            </svg>
-            2D
-          </>
-        ) : (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={0}
-                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 009-9"
-              />
-            </svg>
-            3D
-          </>
-        )}
-      </button>
-
-      {/* Heatmap Toggle Button */}
-      <button
-        onClick={toggleHeatmapVisibility}
-        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% + 80px))', zIndex: 10000 }}
-        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4 mr-1 text-orange-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9.879 16.121A3 3 0 1012.015 11L11 14H9"
-          />
-        </svg>
-        {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
-      </button>
-
-      {/* Connections Toggle Button */}
-      <button
-        onClick={toggleConnectionsVisibility}
-        style={{ position: 'absolute', bottom: mapBottomOffset, left: '50%', transform: 'translateX(calc(-50% + 250px))', zIndex: 10000 }}
-        className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4 mr-1"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
-        {showConnections ? "Hide Connections" : "Show Connections"}
-      </button>
-
-      {showHeatmap && (
+        {/* Master Control Trigger Button */}
         <button
-          onClick={() => setShowLegend(!showLegend)}
-          style={{ position: 'absolute', bottom: mapBottomOffset, left: '16px', zIndex: 10000 }}
-          className="bg-white bg-opacity-90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-white transition duration-200"
+          onClick={() => setShowControls((prev) => !prev)}
+          className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-gray-200/90 flex items-center gap-2 text-xs md:text-sm font-semibold text-gray-800 hover:bg-white active:scale-95 transition-all cursor-pointer"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
-          Legend
+          <span>Map Controls</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${showControls ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
         </button>
-      )}
+      </div>
 
       {/* Heatmap Legend */}
       <div
