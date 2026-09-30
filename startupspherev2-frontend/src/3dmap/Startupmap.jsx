@@ -1,4 +1,5 @@
 import { getBackendUrl } from "../config/apiConfig";
+import { getGroqStartupSummary } from "../services/groqService";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
@@ -1172,7 +1173,6 @@ export default function Startupmap({
 
           try {
             const backendUrl = getBackendUrl() || "http://localhost:8080";
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
             // 1. Fetch live database details, likes, bookmarks, and views concurrently
             const [detailRes, likesRes, bookmarksRes, viewsRes] = await Promise.all([
@@ -1199,29 +1199,12 @@ export default function Startupmap({
               trlValue = details.trlLevel;
             }
 
-            // 2. Fetch summary from Gemini
+            // 2. Fetch summary from Groq AI
             let aiText = "AI analysis could not be generated at this time.";
-            if (apiKey) {
-              const systemInstruction =
-                "You are the StartUpSphere AI Analyst. Summarize this startup's business model, technology readiness level (TRL), and potential strength in 2-3 sentences or clear bullet points.\\n" +
-                "Keep it simple and direct. Do NOT include preambles, introductory phrases, or conversational filler (e.g. do not say 'Sure! Here is...', or 'Based on the details...'). Start your response directly with the business insights.\\n" +
-                "Limit the summary to exactly 70-90 words to fit cleanly in a map popup bubble.";
-
-              const prompt = `${systemInstruction}\\n\\n=== STARTUP DATABASE DETAILS ===\\n${JSON.stringify(details, null, 2)}\\n\\nAnalysis:`;
-
-              const aiRes = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                }
-              );
-
-              if (aiRes.ok) {
-                const aiData = await aiRes.json();
-                aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || aiText;
-              }
+            try {
+              aiText = await getGroqStartupSummary(details);
+            } catch (groqErr) {
+              console.warn("Groq AI summary error:", groqErr);
             }
 
             // 3. Check if popup is still open before updating HTML
@@ -1364,7 +1347,7 @@ export default function Startupmap({
                         <svg style="width: 14px; height: 14px; color: #4f46e5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
-                        <span>AI Business Summary</span>
+                        <span>Groq AI Business Summary</span>
                       </div>
                       <div style="font-size: 12.5px; color: #334155; line-height: 1.55; font-weight: 500; text-align: justify; word-break: break-word; box-sizing: border-box;">
                         ${formattedAiText}

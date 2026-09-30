@@ -11,6 +11,20 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    proxy: {
+      '/groq-proxy': {
+        target: 'https://api.groq.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (p) => p.replace(/^\/groq-proxy/, ''),
+      },
+      '/xai-proxy': {
+        target: 'https://api.x.ai',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (p) => p.replace(/^\/xai-proxy/, ''),
+      },
+    },
     https: {
       key: fs.readFileSync(path.resolve(__dirname, 'cert.key')),
       cert: fs.readFileSync(path.resolve(__dirname, 'cert.crt')),

@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/groq-proxy/:path*",
+      "destination": "https://api.groq.com/:path*"
+    },
+    {
+      "source": "/xai-proxy/:path*",
+      "destination": "https://api.x.ai/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

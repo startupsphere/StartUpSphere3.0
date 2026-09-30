@@ -16,7 +16,7 @@ import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Award, Sparkles } from "lucide-react";
-import GeminiAiChat from "../components/GeminiAiChat";
+import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone } from "react-icons/fa";
 import { BsCalendarEvent, BsPeople, BsBriefcase } from "react-icons/bs";
@@ -1816,7 +1816,7 @@ export default function Sidebar({
                       className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
                       style={{ zIndex: 99999 }}
                     >
-                      Gemini AI
+                      Groq AI
                     </span>
                   </button>
                 </li>
@@ -4409,10 +4409,10 @@ export default function Sidebar({
           </div>
         </motion.div>
       )}
-      {/* Gemini AI Panel */}
+      {/* Groq AI Panel */}
       <AnimatePresence>
         {showGeminiAi && (
-          <GeminiAiChat currentUser={currentUser} onClose={() => setShowGeminiAi(false)} />
+          <GroqAiChat currentUser={currentUser} onClose={() => setShowGeminiAi(false)} />
         )}
       </AnimatePresence>
     </div>
