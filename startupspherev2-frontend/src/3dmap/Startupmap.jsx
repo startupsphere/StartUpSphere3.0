@@ -3964,7 +3964,10 @@ export default function Startupmap({
           <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[92vw] md:max-w-none animate-in fade-in slide-in-from-bottom-3 duration-200">
             {/* Legend Toggle Button */}
             <button
-              onClick={() => setShowLegend(!showLegend)}
+              onClick={() => {
+                setShowLegend((prev) => !prev);
+                if (!showHeatmap) setShowHeatmap(true);
+              }}
               className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
                 showLegend
                   ? "bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs"
@@ -4073,9 +4076,16 @@ export default function Startupmap({
       </div>
 
       {/* Creative Compact Heatmap Legend */}
-      {showHeatmap && showLegend && (
+      {showLegend && (
         <div
-          className="fixed md:absolute top-16 md:top-20 left-3 md:left-4 z-[9990] max-w-[320px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-left-4"
+          style={{
+            position: 'absolute',
+            bottom: isMobileMap ? "145px" : "70px",
+            left: isMobileMap ? "50%" : "24px",
+            transform: isMobileMap ? "translateX(-50%)" : "none",
+            zIndex: 10005,
+          }}
+          className="w-[90vw] max-w-[340px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-gray-100">
@@ -4122,11 +4132,11 @@ export default function Startupmap({
             </div>
           </div>
 
-          {/* Content: Continuous Visual Gradient Ramp & Scale Labels */}
+          {/* Content: Visual Gradient Ramp & Scale Labels */}
           {heatmapMode === "TRL" ? (
             <div>
-              <div className="h-2 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner mb-1.5"></div>
-              <div className="flex justify-between text-[10px] font-medium text-gray-600 px-0.5">
+              <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner mb-1.5"></div>
+              <div className="flex justify-between text-[10px] font-semibold text-gray-600 px-0.5">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Concept (1-3)
@@ -4143,8 +4153,8 @@ export default function Startupmap({
             </div>
           ) : (
             <div>
-              <div className="h-2 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner mb-1.5"></div>
-              <div className="flex justify-between text-[10px] font-medium text-gray-600 px-0.5">
+              <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner mb-1.5"></div>
+              <div className="flex justify-between text-[10px] font-semibold text-gray-600 px-0.5">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                   Quiet (0-14)
