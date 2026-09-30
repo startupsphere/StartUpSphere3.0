@@ -150,9 +150,17 @@ export async function sendGroqChat({
     throw new Error(errorMsg);
   }
 
-  const aiText =
-    data?.choices?.[0]?.message?.content ||
-    "I apologize, but I couldn't generate a response. Please try again.";
+  const choiceMessage = data?.choices?.[0]?.message;
+  let aiText = choiceMessage?.content;
+
+  // If content is empty (e.g. reasoning model token cutoff), fallback to reasoning or clean message
+  if (!aiText || typeof aiText !== "string" || aiText.trim() === "") {
+    if (choiceMessage?.reasoning && typeof choiceMessage.reasoning === "string" && choiceMessage.reasoning.trim() !== "") {
+      aiText = choiceMessage.reasoning.trim();
+    } else {
+      aiText = "I apologize, but I couldn't generate a response. Please try again.";
+    }
+  }
 
   return aiText;
 }
@@ -174,6 +182,6 @@ export async function getGroqStartupSummary(details) {
     systemInstruction,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.5,
-    maxTokens: 250,
+    maxTokens: 1024,
   });
 }
