@@ -344,271 +344,20 @@ export default function Startupmap({
     window.investorMarkersArray = [];
   };
 
-  // Render stakeholders using a Mapbox symbol layer (no DOM markers)
+  // Render stakeholders using a Mapbox symbol layer (Disabled to remove 3D person pins)
   const renderStakeholderMarkers = (map, stakeholdersWithLocation) => {
     if (!map) return;
-
     const sourceId = "stakeholders-src";
     const symbolLayerId = "stakeholders-layer";
     const highlightLayerId = "stakeholders-highlight";
-
-    // Build GeoJSON from stakeholders
-    const features = stakeholdersWithLocation.map((s) => {
-      const lat = typeof s.locationLat === "string" ? parseFloat(s.locationLat) : s.locationLat;
-      const lng = typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng;
-      return {
-        type: "Feature",
-        id: s.id,
-        properties: {
-          id: s.id,
-          name: s.name || "Stakeholder",
-          organization: s.organization || "",
-          email: s.email || "",
-          locationName: s.locationName || "",
-        },
-        geometry: { type: "Point", coordinates: [lng, lat] },
-      };
-    });
-
-    const data = { type: "FeatureCollection", features };
-
-    // Add or update source
+    if (map.getLayer(symbolLayerId)) {
+      try { map.removeLayer(symbolLayerId); } catch (e) {}
+    }
+    if (map.getLayer(highlightLayerId)) {
+      try { map.removeLayer(highlightLayerId); } catch (e) {}
+    }
     if (map.getSource(sourceId)) {
-      const src = map.getSource(sourceId);
-      try { src.setData(data); } catch { }
-    } else {
-      map.addSource(sourceId, { type: "geojson", data });
-    }
-
-    // Ensure icon image is registered
-    const ensureIconAndLayers = () => {
-      // Add symbol layer
-      if (!map.getLayer(symbolLayerId)) {
-        console.log("Adding stakeholder symbol layer");
-        map.addLayer({
-          id: symbolLayerId,
-          type: "symbol",
-          source: sourceId,
-          layout: {
-            "icon-image": "stakeholder-icon",
-            "icon-size": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              3, 0.15,  // Visible at low zoom
-              8, 0.20,  // Medium size
-              12, 0.25, // Good visibility
-              16, 0.30, // Clearly visible at high zoom
-              20, 0.35  // Maximum visibility when very zoomed in
-            ],
-            "icon-allow-overlap": true,
-            "icon-ignore-placement": false,
-            "icon-anchor": "center",
-            "icon-pitch-alignment": "viewport",
-            "icon-rotation-alignment": "viewport",
-            "visibility": "visible"
-          },
-          paint: {
-            "icon-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              3, 0.8,
-              8, 0.9,
-              12, 1.0
-            ],
-            "icon-halo-width": 2,
-            "icon-halo-color": "rgba(255, 255, 255, 0.8)",
-            "icon-halo-blur": 1
-          }
-        });
-        console.log("Stakeholder symbol layer added");
-      }
-
-      // Add subtle highlight circle layer for active
-      if (!map.getLayer(highlightLayerId)) {
-        map.addLayer({
-          id: highlightLayerId,
-          type: "circle",
-          source: sourceId,
-          filter: ["==", ["get", "id"], -1], // start with no match
-          paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              5, 4,
-              10, 7,
-              14, 10,
-              18, 12
-            ],
-            "circle-color": "#3b82f6",
-            "circle-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              10, 0.1,
-              15, 0.15
-            ],
-            "circle-stroke-color": "#3b82f6",
-            "circle-stroke-width": 2,
-            "circle-stroke-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              10, 0.4,
-              15, 0.6
-            ],
-            "circle-blur": 0.2,
-          },
-        });
-      }
-
-      // Add hover interactions once
-      if (!map.__stakeholderEventsAdded) {
-        map.__stakeholderEventsAdded = true;
-
-        map.on("mouseenter", symbolLayerId, (e) => {
-          map.getCanvas().style.cursor = "pointer";
-          if (!e.features?.length) return;
-          const id = e.features[0].id;
-          if (id != null) {
-            map.setFeatureState({ source: sourceId, id }, { hover: true });
-          }
-        });
-
-        map.on("mouseleave", symbolLayerId, (e) => {
-          map.getCanvas().style.cursor = "";
-          if (!e.features?.length) return;
-          const id = e.features[0].id;
-          if (id != null) {
-            map.setFeatureState({ source: sourceId, id }, { hover: false });
-          }
-        });
-
-        map.on("click", symbolLayerId, (e) => {
-          if (!e.features?.length) return;
-          const f = e.features[0];
-          const id = f.id;
-          const [lng, lat] = f.geometry.coordinates;
-
-          setActiveStakeholderId(id);
-          try {
-            map.setFeatureState({ source: sourceId, id }, { selected: true });
-            if (map.getLayer(highlightLayerId)) {
-              map.setFilter(highlightLayerId, ["==", ["get", "id"], id]);
-            }
-          } catch { }
-
-          // Fly and popup
-          map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 14.5), speed: 0.8, curve: 1.2, essential: true });
-
-          if (stakeholderPopupRef.current) {
-            stakeholderPopupRef.current.remove();
-            stakeholderPopupRef.current = null;
-          }
-
-          const props = f.properties || {};
-          const html = `
-            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #1F2937;">
-              <div style="background: linear-gradient(135deg, #4F46E5, #3B82F6); color: #fff; padding: 14px 16px; border-radius: 8px 8px 0 0;">
-                <div style="font-weight: 600; font-size: 15px;">${props.name || "Stakeholder"}</div>
-                ${props.organization ? `<div style="opacity:.95; font-size:12px; margin-top:3px;">${props.organization}</div>` : ""}
-              </div>
-              <div style="padding: 12px 16px; background: #fff; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
-                ${props.locationName ? `<div style=\"font-size: 13px; color: #4B5563; margin-bottom: 8px;\"><svg style=\"display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px;\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z\"></path><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 11a3 3 0 11-6 0 3 3 0 016 0z\"></path></svg>${props.locationName}</div>` : ""}
-                ${props.email ? `<div style=\"font-size: 13px;\"><svg style=\"display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px;\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z\"></path></svg><a href=\"mailto:${props.email}\" style=\"color:#4F46E5; text-decoration: none;\">${props.email}</a></div>` : ""}
-              </div>
-            </div>`;
-
-          stakeholderPopupRef.current = new mapboxgl.Popup({ offset: 15, closeButton: true, className: "stakeholder-popup" })
-            .setLngLat([lng, lat])
-            .setHTML(html)
-            .addTo(map);
-        });
-      }
-    };
-
-    // If icon not present, load it then add layers
-    const iconName = "stakeholder-icon";
-    if (!map.hasImage(iconName)) {
-      // Use preloaded icon if available for better performance
-      if (stakeholderIconRef.current && stakeholderIconRef.current.complete) {
-        try {
-          map.addImage(iconName, stakeholderIconRef.current, { pixelRatio: 2 });
-          ensureIconAndLayers();
-        } catch (e) {
-          console.error("Failed to add preloaded stakeholder icon:", e);
-          loadIconFromURL();
-        }
-      } else {
-        loadIconFromURL();
-      }
-    } else {
-      ensureIconAndLayers();
-    }
-
-    function loadIconFromURL() {
-      const iconUrl = `${window.location.origin}/stakeholder-icon.png`;
-      console.log("Loading stakeholder icon from:", iconUrl);
-
-      map.loadImage(iconUrl, (err, img) => {
-        if (err) {
-          console.error("Failed to load stakeholder icon from URL, using fallback:", err);
-          // Create a professional fallback icon using canvas
-          const canvas = document.createElement('canvas');
-          canvas.width = 64; canvas.height = 64;
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, 64, 64);
-
-          // Create circular background with gradient
-          const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 24);
-          gradient.addColorStop(0, '#9333EA');
-          gradient.addColorStop(1, '#7C3AED');
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(32, 32, 24, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Add white border for professional look
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.arc(32, 32, 22, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Add person silhouette
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-          // Head
-          ctx.beginPath();
-          ctx.arc(32, 26, 7, 0, Math.PI * 2);
-          ctx.fill();
-          // Body/shoulders
-          ctx.beginPath();
-          ctx.arc(32, 34, 11, 0, Math.PI, true);
-          ctx.fill();
-
-          try {
-            const imageData = ctx.getImageData(0, 0, 64, 64);
-            map.addImage(iconName, {
-              width: 64,
-              height: 64,
-              data: new Uint8Array(imageData.data)
-            }, { pixelRatio: 2 });
-            console.log("Stakeholder fallback icon added successfully");
-          } catch (e) {
-            console.error("Failed to add fallback icon:", e);
-          }
-          return ensureIconAndLayers();
-        }
-        try {
-          map.addImage(iconName, img, { pixelRatio: 2 });
-          console.log("Stakeholder icon loaded successfully from URL");
-        } catch (e) {
-          console.error("Failed to add stakeholder icon to map:", e);
-        }
-        ensureIconAndLayers();
-      });
+      try { map.removeSource(sourceId); } catch (e) {}
     }
   };
 
@@ -3823,7 +3572,7 @@ export default function Startupmap({
       >
         {/* Expanded Controls Container */}
         {showControls && (
-          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[92vw] md:max-w-none animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[92vw] md:max-w-none transition-all duration-200">
             {/* Legend Toggle Button */}
             <button
               onClick={() => {
@@ -3940,8 +3689,8 @@ export default function Startupmap({
       {/* Creative Compact Heatmap Legend (Top-Right Floating below profile avatar) */}
       {showLegend ? (
         <div
-          style={{ zIndex: 9990 }}
-          className="absolute top-20 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
+          style={{ zIndex: 99999 }}
+          className="absolute top-16 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
@@ -4042,8 +3791,8 @@ export default function Startupmap({
         /* Floating Quick Toggle Button when Legend is minimized */
         <button
           onClick={() => setShowLegend(true)}
-          style={{ zIndex: 9990 }}
-          className="absolute top-20 md:top-20 right-3 md:right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all cursor-pointer animate-in fade-in duration-200"
+          style={{ zIndex: 99999 }}
+          className="absolute top-16 md:top-20 right-3 md:right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
           title="Show Map Legend"
         >
           <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
