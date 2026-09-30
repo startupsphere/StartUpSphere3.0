@@ -4091,33 +4091,27 @@ export default function Startupmap({
         </button>
       </div>
 
-      {/* Creative Compact Heatmap Legend */}
+      {/* Creative Compact Heatmap Legend (Top-Right Floating) */}
       {showLegend && (
         <div
-          style={{
-            position: 'absolute',
-            bottom: isMobileMap ? "145px" : "70px",
-            left: isMobileMap ? "50%" : "24px",
-            transform: isMobileMap ? "translateX(-50%)" : "none",
-            zIndex: 10005,
-          }}
-          className="w-[90vw] max-w-[340px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
+          style={{ zIndex: 9990 }}
+          className="fixed md:absolute top-16 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300 animate-in fade-in slide-in-from-right-4"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
-          <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-gray-100">
+          <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
               <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase">
-                Heatmap Scale
+                Legend
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {/* Toggle TRL vs Engagement */}
               <div className="flex bg-gray-100/90 p-0.5 rounded-lg text-[10px] font-semibold">
                 <button
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
                     heatmapMode === "TRL"
                       ? "bg-white text-indigo-600 shadow-2xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
@@ -4127,7 +4121,7 @@ export default function Startupmap({
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("ENGAGEMENT"); }}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
                     heatmapMode === "ENGAGEMENT"
                       ? "bg-white text-indigo-600 shadow-2xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
@@ -4148,37 +4142,52 @@ export default function Startupmap({
             </div>
           </div>
 
-          {/* Content: Visual Gradient Ramp & Scale Labels */}
+          {/* Content: Continuous Visual Gradient Ramp & Detailed Categories */}
           {heatmapMode === "TRL" ? (
-            <div>
-              <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner mb-1.5"></div>
-              <div className="flex justify-between text-[10px] font-semibold text-gray-600 px-0.5">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Concept (1-3)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  Testing (4-6)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                  Deployed (7-9)
-                </span>
+            <div className="space-y-2">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner"></div>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Red (High):</span>{" "}
+                    <span className="text-gray-600">TRL 7-9: Market-ready / Deployed</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-amber-400 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Yellow (Mid):</span>{" "}
+                    <span className="text-gray-600">TRL 4-6: Prototype / Testing</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-emerald-500 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Green (Low):</span>{" "}
+                    <span className="text-gray-600">TRL 1-3: Research / Concept</span>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
-            <div>
-              <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner mb-1.5"></div>
-              <div className="flex justify-between text-[10px] font-semibold text-gray-600 px-0.5">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                  Quiet (0-14)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                  High Active (15+)
-                </span>
+            <div className="space-y-2">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner"></div>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Red (High):</span>{" "}
+                    <span className="text-gray-600">Score 15+: Active engagement zone</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-blue-400 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Blue (Low):</span>{" "}
+                    <span className="text-gray-600">Score 0-14: Quiet/Developing area</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
