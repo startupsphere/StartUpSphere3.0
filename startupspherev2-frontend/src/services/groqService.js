@@ -32,7 +32,7 @@ export const getGroqModel = () => {
   if (envModel && envModel.trim() !== "") {
     return envModel.trim();
   }
-  return "openai/gpt-oss-120b";
+  return "llama-3.3-70b-versatile";
 };
 
 export const getGroqEndpoint = () => {
@@ -153,13 +153,19 @@ export async function sendGroqChat({
   const choiceMessage = data?.choices?.[0]?.message;
   let aiText = choiceMessage?.content;
 
-  // If content is empty (e.g. reasoning model token cutoff), fallback to reasoning or clean message
-  if (!aiText || typeof aiText !== "string" || aiText.trim() === "") {
-    if (choiceMessage?.reasoning && typeof choiceMessage.reasoning === "string" && choiceMessage.reasoning.trim() !== "") {
-      aiText = choiceMessage.reasoning.trim();
-    } else {
-      aiText = "I apologize, but I couldn't generate a response. Please try again.";
+  // Clean reasoning / thinking blocks if present
+  if (aiText && typeof aiText === "string") {
+    // Strip <think>...</think> blocks
+    aiText = aiText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    // If there is an orphaned </think>, keep only the content after it
+    if (aiText.includes("</think>")) {
+      aiText = aiText.split("</think>").pop().trim();
     }
+  }
+
+  // If content is empty, fallback to clean message instead of exposing raw reasoning scratchpad
+  if (!aiText || typeof aiText !== "string" || aiText.trim() === "") {
+    aiText = "Summary is currently unavailable for this startup.";
   }
 
   return aiText;
@@ -172,16 +178,34 @@ export async function sendGroqChat({
  */
 export async function getGroqStartupSummary(details) {
   const systemInstruction =
-    "You are the StartUpSphere AI Analyst powered by Groq. Summarize this startup's business model, technology readiness level (TRL), and potential strength in 2-3 sentences or clear bullet points.\n" +
-    "Keep it simple, punchy, and direct. Do NOT include preambles, introductory phrases, or conversational filler (e.g. do not say 'Sure! Here is...', or 'Based on the details...'). Start your response directly with the business insights.\n" +
-    "Limit the summary to exactly 70-90 words to fit cleanly in a map popup bubble.";
+    "You are the StartUpSphere AI Analyst. Provide a direct, concise business summary of the startup.\n" +
+    "Summarize the startup's core business model, technology readiness level (TRL), and primary strengths in 2-3 clear, punchy sentences or bullet points (approx 60-80 words).\n" +
+    "STRICT INSTRUCTIONS:\n" +
+    "1. Give ONLY the direct final summary answering the business overview.\n" +
+    "2. Do NOT output internal thoughts, word counting, prompt restatements, or meta-commentary.\n" +
+    "3. Do NOT include preambles, introductory phrases, or conversational filler (e.g. avoid 'Here is the summary:', 'Sure', 'Based on the details').\n" +
+    "4. Start immediately with the business summary.";
 
-  const prompt = `=== STARTUP DATABASE DETAILS ===\n${JSON.stringify(details, null, 2)}\n\nGenerate startup analysis summary:`;
+  const name = details.companyName || details.name || "Startup";
+  const industry = details.industry || "General";
+  const trl = details.trlLevel || "TRL Not Specified";
+  const location = details.locationName || details.address || "Location not specified";
+  const description = details.description || details.pitch || details.businessModel || "No description provided.";
+  const website = details.website || "";
+
+  const prompt =
+    `Startup Name: ${name}\n` +
+    `Industry: ${industry}\n` +
+    `Location: ${location}\n` +
+    `TRL Stage: ${trl}\n` +
+    `Description: ${description}\n` +
+    (website ? `Website: ${website}\n` : "") +
+    `\nProvide the 2-3 sentence business summary now:`;
 
   return sendGroqChat({
     systemInstruction,
     messages: [{ role: "user", content: prompt }],
-    temperature: 0.5,
-    maxTokens: 1024,
+    temperature: 0.3,
+    maxTokens: 512,
   });
 }

@@ -1061,13 +1061,13 @@ export default function Startupmap({
                       </div>` : ''}
                     </div>
 
-                    <!-- RIGHT COLUMN: Groq AI Business Summary (Fixed Container, Scrollable Summary) -->
+                    <!-- RIGHT COLUMN: Business Summary (Fixed Container, Scrollable Summary) -->
                     <div style="flex: 1.1; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%;">
                       <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 10.5px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;">
                         <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
-                        <span>Groq AI Business Summary</span>
+                        <span>Business Summary</span>
                       </div>
                       <div class="ai-summary-scroll" style="font-size: 11.5px; color: #334155; line-height: 1.6; font-weight: 500; text-align: left; word-break: break-word; overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; box-sizing: border-box;">
                         ${formattedAiText}
