@@ -2568,7 +2568,10 @@ export default function Sidebar({
           style={{ width: isMobile ? "100%" : "384px" }}
         >
           {/* Search Header */}
-          <div className="p-4 pb-3.5 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 relative flex-shrink-0 shadow-md">
+          <div
+            className="p-4 pb-3.5 bg-blue-600 bg-linear-to-br from-blue-600 via-indigo-600 to-blue-700 relative flex-shrink-0 shadow-md"
+            style={{ background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #1d4ed8 100%)" }}
+          >
             {/* Mobile Drag Indicator */}
             <div className="md:hidden flex justify-center pb-2">
               <div className="w-10 h-1 bg-white/40 rounded-full"></div>
@@ -2577,7 +2580,7 @@ export default function Sidebar({
             {/* Header Title & Close Button */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2.5">
-                <div className="h-8 w-8 rounded-lg bg-white/15 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                <div className="h-8.5 w-8.5 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner border border-white/25">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4.5 w-4.5"
@@ -2594,17 +2597,17 @@ export default function Sidebar({
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white tracking-tight leading-none flex items-center gap-1.5">
+                  <h2 className="text-base font-bold text-white tracking-tight leading-none flex items-center gap-1.5 drop-shadow-xs">
                     Browse Directory
                   </h2>
-                  <p className="text-[11px] text-blue-100/80 mt-0.5">
+                  <p className="text-[11.5px] text-blue-100 font-medium mt-0.5">
                     Explore innovations & stakeholders
                   </p>
                 </div>
               </div>
 
               <button
-                className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white flex items-center justify-center transition-all duration-150 focus:outline-none"
+                className="h-7 w-7 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition-all duration-150 focus:outline-none border border-white/20 cursor-pointer shadow-xs"
                 onClick={() => {
                   const container = document.querySelector(".animate-slide-in");
                   if (container) {
@@ -2682,13 +2685,13 @@ export default function Sidebar({
             </div>
 
             {/* Type Selector - Innovations vs Stakeholders */}
-            <div className="flex gap-1 p-1 bg-black/20 backdrop-blur-md rounded-xl">
+            <div className="flex gap-1 p-1 bg-black/25 backdrop-blur-md rounded-xl border border-white/15">
               <button
                 onClick={() => setViewingType("startups")}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   viewingType === "startups"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
+                    ? "bg-white text-blue-700 shadow-sm font-bold"
+                    : "text-white/90 hover:text-white hover:bg-white/15 font-medium"
                 }`}
               >
                 <BsBriefcase className="h-3.5 w-3.5" />
@@ -2698,7 +2701,7 @@ export default function Sidebar({
                     className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                       viewingType === "startups"
                         ? "bg-blue-100 text-blue-700"
-                        : "bg-white/20 text-white"
+                        : "bg-white/25 text-white"
                     }`}
                   >
                     {startups.length}
@@ -2708,10 +2711,10 @@ export default function Sidebar({
 
               <button
                 onClick={() => setViewingType("stakeholders")}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   viewingType === "stakeholders"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
+                    ? "bg-white text-blue-700 shadow-sm font-bold"
+                    : "text-white/90 hover:text-white hover:bg-white/15 font-medium"
                 }`}
               >
                 <BsPeople className="h-3.5 w-3.5" />
@@ -2721,7 +2724,7 @@ export default function Sidebar({
                     className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                       viewingType === "stakeholders"
                         ? "bg-blue-100 text-blue-700"
-                        : "bg-white/20 text-white"
+                        : "bg-white/25 text-white"
                     }`}
                   >
                     {stakeholders.length}
@@ -3051,7 +3054,10 @@ export default function Sidebar({
           style={{ width: isMobile ? "100%" : "384px" }}
         >
 
-          <div className="p-4 bg-gradient-to-b from-blue-600 to-blue-500 relative">
+          <div
+            className="p-4 bg-blue-600 bg-linear-to-b from-blue-600 to-blue-500 relative"
+            style={{ background: "linear-gradient(180deg, #2563eb 0%, #3b82f6 100%)" }}
+          >
             {/* Mobile Drag Indicator */}
             <div className="md:hidden flex justify-center pb-2">
               <div className="w-12 h-1 bg-white/40 rounded-full"></div>
@@ -3274,7 +3280,10 @@ export default function Sidebar({
           </div>
 
           {/* Stakeholder Header - Enhanced with modern design */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-8 px-6 relative overflow-hidden">
+          <div
+            className="bg-blue-600 bg-linear-to-r from-blue-600 to-blue-700 text-white py-8 px-6 relative overflow-hidden"
+            style={{ background: "linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%)" }}
+          >
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10">
               <svg

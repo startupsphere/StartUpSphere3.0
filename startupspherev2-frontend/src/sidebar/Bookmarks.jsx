@@ -130,7 +130,10 @@ const Bookmarks = ({
 
   return (
     <div className="fixed md:absolute inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:left-20 md:right-auto w-full md:w-96 sidebar-drawer-384 bg-white shadow-xl z-30 md:z-5 transform transition-all duration-300 ease-in-out animate-slide-in overflow-hidden flex flex-col">
-      <div className="p-4 bg-gradient-to-b from-blue-600 to-blue-500 relative">
+      <div
+        className="p-4 bg-blue-600 bg-linear-to-b from-blue-600 to-blue-500 relative"
+        style={{ background: "linear-gradient(180deg, #2563eb 0%, #3b82f6 100%)" }}
+      >
         <button
           className="absolute top-2 right-2 text-white hover:text-gray-200 transition-colors"
           onClick={() => {
