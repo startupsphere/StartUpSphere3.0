@@ -32,7 +32,7 @@ export const getGroqModel = () => {
   if (envModel && envModel.trim() !== "") {
     return envModel.trim();
   }
-  return "llama-3.3-70b-versatile";
+  return "openai/gpt-oss-120b";
 };
 
 export const getGroqEndpoint = () => {
@@ -206,6 +206,6 @@ export async function getGroqStartupSummary(details) {
     systemInstruction,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.3,
-    maxTokens: 512,
+    maxTokens: 1024,
   });
 }
