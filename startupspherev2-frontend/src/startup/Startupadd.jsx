@@ -3379,18 +3379,30 @@ const handleSubmit = async () => {
                           : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                       }`}
                       value={formData.registrationAgency}
-                      onChange={e =>
+                      onChange={e => {
+                        const val = e.target.value;
                         setFormData(prev => ({
                           ...prev,
-                          registrationAgency: e.target.value,
-                          otherRegistrationAgency: "",
-                        }))
-                      }
+                          registrationAgency: val,
+                          otherRegistrationAgency: val === "other" ? prev.otherRegistrationAgency : "",
+                        }));
+                      }}
                     >
                       <option value="">Select agency</option>
+                      <option value="DTI">DTI (Department of Trade and Industry)</option>
+                      <option value="SEC">SEC (Securities and Exchange Commission)</option>
+                      <option value="CDA">CDA (Cooperative Development Authority)</option>
+                      <option value="BIR">BIR (Bureau of Internal Revenue)</option>
+                      <option value="DOT">DOT (Department of Tourism)</option>
                       <option value="DICT">DICT (Department of Information and Communications Technology)</option>
                       <option value="DOST">DOST (Department of Science and Technology)</option>
-                      <option value="DTI">DTI (Department of Trade and Industry)</option>
+                      <option value="FDA">FDA (Food and Drug Administration)</option>
+                      <option value="BOI">BOI (Board of Investments)</option>
+                      <option value="PEZA">PEZA (Philippine Economic Zone Authority)</option>
+                      <option value="BSP">BSP (Bangko Sentral ng Pilipinas)</option>
+                      <option value="IPOPHL">IPOPHL (Intellectual Property Office of the Philippines)</option>
+                      <option value="LGU">LGU (Local Government Unit / Mayor's Permit)</option>
+                      <option value="other">Other (Please specify)</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

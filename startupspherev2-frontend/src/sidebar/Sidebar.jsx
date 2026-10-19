@@ -4118,7 +4118,11 @@ export default function Sidebar({
                         {startup.registrationAgency && (
                           <div className="flex justify-between">
                             <span>Agency:</span>
-                            <span className="font-semibold text-gray-800">{startup.registrationAgency}</span>
+                            <span className="font-semibold text-gray-800">
+                              {startup.registrationAgency === "other" && startup.otherRegistrationAgency
+                                ? startup.otherRegistrationAgency
+                                : startup.registrationAgency}
+                            </span>
                           </div>
                         )}
                         {startup.registrationNumber && (

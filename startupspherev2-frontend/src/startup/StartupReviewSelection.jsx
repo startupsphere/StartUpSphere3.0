@@ -1622,7 +1622,9 @@ export default function EnhancedStartupReviewSection({
                             <div className="bg-white p-3 rounded-lg">
                               <p className="text-sm font-medium text-gray-500 mb-1">Agency</p>
                               <p className="text-gray-800 font-medium">
-                                {selectedStartup.registrationAgency || "N/A"}
+                                {selectedStartup.registrationAgency === "other" && selectedStartup.otherRegistrationAgency
+                                  ? selectedStartup.otherRegistrationAgency
+                                  : selectedStartup.registrationAgency || "N/A"}
                               </p>
                             </div>
 
