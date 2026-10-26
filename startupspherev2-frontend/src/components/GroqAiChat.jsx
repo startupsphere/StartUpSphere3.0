@@ -228,16 +228,22 @@ export default function GroqAiChat({ currentUser, onClose }) {
       let systemInstruction = 
         "You are StartUpSphere Groq AI Consultant, an expert startup advisor, venture strategist, and data analyst for the StartUpSphere platform powered by Groq LPU inference. " +
         "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
-        "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology trends, cap tables, and compliance. " +
-        "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output nicely with clean bullet points and bold headers if needed.\n\n" +
+        "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology readiness levels (TRL), cap tables, and government compliance (BIR, SEC, DTI). " +
+        "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output with clear executive summaries, bullet points, and bold headers.\n\n" +
         "**CRITICAL RESPONSE RULES:**\n" +
-        "- Focus DIRECTLY and strictly on the numbers, data, and answers requested. Remove any unnecessary text responses, conversational fluff, preambles, introductory statements, or pleasantries (e.g. do NOT say 'Sure! Here is the data you requested', 'I'd be happy to help!', or 'Here is a breakdown...').\n" +
-        "- Start your response directly with the data table, metrics, or answers.\n" +
-        "- Limit answers to concise blocks that are extremely easy to read in a chat window.\n\n" +
-        "**CRITICAL DATABASE INSTRUCTIONS:**\n" +
-        "1. When the user asks about 'details' of the database/dashboard, or asks you to make the database 'simple to learn/understand', you MUST reply by translating the database stats into a clean, text-based data representation (such as an ASCII text table, simple text layout, or easy-to-read section-by-section breakdown) that simplifies the numbers for the user.\n" +
-        "2. Explain what Innovation Density Index (IDI), Support Index (SI), Ecosystem Balance Score (EBS), and Ecosystem Gap Score (EGS) mean using extremely simple, layperson terms (e.g. 'Innovation Density is like the number of seeds planted, Support Index is like the water and soil provided, etc.').\n" +
-        "3. Provide clear actionable advice based on the metrics, presented in a friendly, text-only card or dashboard format using markdown.";
+        "- Focus DIRECTLY on the requested data and deliver clear, high-value insights. Eliminate conversational filler, pleasantries, or preambles (do NOT say 'Sure! Here is the data', 'I'd be glad to help', or 'Here is a breakdown'). Start directly with the core summary or answer.\n" +
+        "- Structure your summaries into 3 intuitive parts:\n" +
+        "   1. **📌 Executive Summary**: 2 punchy, crystal-clear sentences delivering the high-level takeaway.\n" +
+        "   2. **📊 Key Metrics & Details**: Clean bulleted highlights with bold metric values, intuitive context, and plain-language definitions.\n" +
+        "   3. **💡 Strategic Action Items**: 2-3 concrete, prioritized recommendations for the user or founder.\n" +
+        "- Explain complex metrics in layperson terms:\n" +
+        "   • **TRL (Technology Readiness Level)**: Technology maturity scale (TRL 1-3 Concept, TRL 4-6 Prototype/Validation, TRL 7-9 Commercial/Market-Ready).\n" +
+        "   • **IDI (Innovation Density)**: Concentration of active startups in a geographic or industry hub.\n" +
+        "   • **SI (Support Index)**: Depth of incubation, accelerator, and academic lab backing.\n" +
+        "   • **EBS (Ecosystem Balance Score)**: Health between startup demand and support resources (0-10 scale).\n" +
+        "   • **EGS (Ecosystem Gap Score)**: Deficits in capital, mentorship, or regulatory backing (lower is better).\n" +
+        "   • **Government Compliance**: State of BIR (tax), SEC (corporate), and DTI (sole proprietorship) registration.\n" +
+        "- Format tables using standard markdown tables or formatted bullet lists for readability on all devices.";
 
       // Security & Privacy: Limit AI context strictly to name and platform role.
       if (currentUser) {
@@ -492,58 +498,152 @@ export default function GroqAiChat({ currentUser, onClose }) {
 function renderFormattedContent(text, role) {
   if (!text) return null;
 
-  const lines = text.split("\n");
+  const rawLines = text.split("\n");
   const isUser = role === "user";
 
   const textColor = isUser ? "text-white" : "text-gray-700";
   const headerColor = isUser ? "text-white" : "text-gray-900";
   const listDotColor = isUser ? "text-white" : "text-gray-700";
 
-  return lines.map((line, lineIndex) => {
+  const elements = [];
+  let tableBuffer = [];
+
+  const flushTable = (keyPrefix) => {
+    if (tableBuffer.length === 0) return;
+    
+    // Parse table rows
+    const rows = tableBuffer
+      .filter((r) => !r.match(/^\|\s*[-:]+[-| :]*\|$/)) // Filter out markdown separator line
+      .map((r) => {
+        return r
+          .split("|")
+          .map((c) => c.trim())
+          .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      });
+
+    if (rows.length > 0) {
+      const headerRow = rows[0];
+      const bodyRows = rows.slice(1);
+      elements.push(
+        <div key={`table-${keyPrefix}`} className="my-2.5 overflow-x-auto rounded-lg border border-gray-200/80 shadow-xs">
+          <table className="min-w-full divide-y divide-gray-200 text-xs">
+            <thead className="bg-gray-50/80 font-bold text-gray-800">
+              <tr>
+                {headerRow.map((cell, cIdx) => (
+                  <th key={cIdx} className="px-3 py-2 text-left font-semibold">
+                    {parseInlineFormatting(cell, isUser)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {bodyRows.map((row, rIdx) => (
+                <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-gray-50/40"}>
+                  {row.map((cell, cIdx) => (
+                    <td key={cIdx} className="px-3 py-1.5 text-gray-700 font-normal">
+                      {parseInlineFormatting(cell, isUser)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+    tableBuffer = [];
+  };
+
+  rawLines.forEach((line, lineIndex) => {
+    const trimmed = line.trim();
+
+    // Check if line is part of a markdown table
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      tableBuffer.push(trimmed);
+      return;
+    } else {
+      flushTable(lineIndex);
+    }
+
     // 1. Handle Headers
     if (line.startsWith("### ")) {
-      return (
+      elements.push(
         <h5 key={lineIndex} className={`font-bold text-sm mt-3 mb-1.5 ${headerColor}`}>
           {parseInlineFormatting(line.substring(4), isUser)}
         </h5>
       );
+      return;
     }
     if (line.startsWith("## ") || line.startsWith("##")) {
       const cleanLine = line.startsWith("## ") ? line.substring(3) : line.substring(2);
-      return (
+      elements.push(
         <h4 key={lineIndex} className={`font-bold text-base mt-4 mb-2 ${headerColor}`}>
           {parseInlineFormatting(cleanLine, isUser)}
         </h4>
       );
+      return;
     }
     if (line.startsWith("# ")) {
-      return (
+      elements.push(
         <h3 key={lineIndex} className={`font-bold text-lg mt-4 mb-2 ${headerColor} border-b ${isUser ? 'border-white/20' : 'border-gray-100'} pb-1`}>
           {parseInlineFormatting(line.substring(2), isUser)}
         </h3>
       );
+      return;
     }
 
-    // 2. Handle Bullet Lists
+    // 2. Handle Blockquotes / Callout Highlights
+    if (line.startsWith("> ")) {
+      elements.push(
+        <div key={lineIndex} className={`p-2.5 my-2 rounded-lg border-l-4 ${isUser ? 'bg-white/10 border-white text-white' : 'bg-indigo-50/70 border-indigo-500 text-indigo-900'} text-xs font-medium`}>
+          {parseInlineFormatting(line.substring(2), isUser)}
+        </div>
+      );
+      return;
+    }
+
+    // 3. Handle Bullet Lists
     if (line.startsWith("* ") || line.startsWith("- ")) {
-      return (
-        <li key={lineIndex} className={`list-disc list-inside ml-3.5 my-1 ${listDotColor}`}>
+      elements.push(
+        <li key={lineIndex} className={`list-disc list-inside ml-2.5 my-1 ${listDotColor}`}>
           {parseInlineFormatting(line.substring(2), isUser)}
         </li>
       );
+      return;
     }
 
-    // 3. Handle standard paragraphs
-    if (line.trim() === "") {
-      return <div key={lineIndex} className="h-2" />;
+    // 4. Handle Numbered Lists
+    const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      elements.push(
+        <div key={lineIndex} className="flex items-start gap-2 my-1.5 ml-1">
+          <span className={`inline-flex items-center justify-center h-4.5 w-4.5 rounded-full text-[10px] font-bold flex-shrink-0 ${isUser ? 'bg-white text-indigo-600' : 'bg-indigo-100 text-indigo-700'}`}>
+            {numMatch[1]}
+          </span>
+          <span className={`${textColor} text-xs leading-relaxed`}>
+            {parseInlineFormatting(numMatch[2], isUser)}
+          </span>
+        </div>
+      );
+      return;
     }
 
-    return (
-      <p key={lineIndex} className={`my-1.5 ${textColor} leading-relaxed`}>
+    // 5. Empty spacer
+    if (trimmed === "") {
+      elements.push(<div key={lineIndex} className="h-1.5" />);
+      return;
+    }
+
+    // 6. Standard paragraphs
+    elements.push(
+      <p key={lineIndex} className={`my-1.5 ${textColor} leading-relaxed text-xs sm:text-sm`}>
         {parseInlineFormatting(line, isUser)}
       </p>
     );
   });
+
+  flushTable("end");
+  return elements;
 }
 
 function parseInlineFormatting(text, isUser) {

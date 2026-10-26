@@ -22,6 +22,7 @@ import { FaRegHeart, FaRegBookmark, FaPhone } from "react-icons/fa";
 import { BsCalendarEvent, BsPeople, BsBriefcase } from "react-icons/bs";
 import { HiOutlineMail } from "react-icons/hi";
 import { FaBell } from "react-icons/fa";
+import TooltipInfo from "../components/TooltipInfo";
 
 // Modern StartupLogo helper with robust fallback avatar
 const StartupLogo = memo(({ startup }) => {
@@ -167,6 +168,7 @@ export default function Sidebar({
       teamSize: "",
       fundingStage: "",
       actorType: "All",
+      govReg: "All",
     },
     stakeholders: {
       query: "",
@@ -1420,7 +1422,17 @@ export default function Sidebar({
         const matchesQuery = !query || fieldsToCheck.some(f => safeFieldCheck(item[f], query));
 
         const matchesActorType = currentFilters.actorType === "All" || (item.role || "ROLE_STARTUP") === currentFilters.actorType;
-        return matchesQuery && matchesActorType;
+
+        const agencyStr = String(item.registrationAgency || "").toUpperCase();
+        const matchesGovReg = 
+          !currentFilters.govReg || 
+          currentFilters.govReg === "All" ||
+          (currentFilters.govReg === "REGISTERED" && Boolean(item.isGovernmentRegistered)) ||
+          (currentFilters.govReg === "BIR" && Boolean(item.isGovernmentRegistered) && agencyStr.includes("BIR")) ||
+          (currentFilters.govReg === "SEC" && Boolean(item.isGovernmentRegistered) && agencyStr.includes("SEC")) ||
+          (currentFilters.govReg === "DTI" && Boolean(item.isGovernmentRegistered) && agencyStr.includes("DTI"));
+
+        return matchesQuery && matchesActorType && matchesGovReg;
       } catch (error) {
         console.error("Error in applyFilters:", error);
         return false;
@@ -1485,7 +1497,7 @@ export default function Sidebar({
       )}
 
       {/* Mobile Top Header Bar */}
-      <header className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 items-center justify-between z-40 shadow-xs">
+      <header className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 items-center justify-between z-40 shadow-lg text-white">
         {/* Left: Logo & Brand */}
         <div 
           className="flex items-center space-x-2 cursor-pointer"
@@ -1505,10 +1517,10 @@ export default function Sidebar({
           <img
             src="/StartUpSphere_logo.png"
             alt="StartUpSphere Logo"
-            className="h-7 w-7 object-contain"
+            className="h-7 w-7 object-contain drop-shadow"
           />
-          <span className="font-bold text-gray-900 text-base tracking-tight">
-            StartUp<span className="text-blue-600">Sphere</span>
+          <span className="font-bold text-white text-base tracking-tight">
+            StartUp<span className="text-blue-400">Sphere</span>
           </span>
         </div>
 
@@ -1688,11 +1700,11 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-gray-200 bg-white shadow-sm z-50 sidebar-container" style={{ zIndex: 50 }}>
+      {/* Desktop Sidebar with Distinct Styling */}
+      <div className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-slate-800 bg-slate-900 shadow-2xl z-50 sidebar-container" style={{ zIndex: 50 }}>
         <div>
           {/* Logo */}
-          <div className="flex justify-center items-center py-6 border-b border-gray-200">
+          <div className="flex justify-center items-center py-5 border-b border-slate-800/90 bg-slate-950/40">
             <button
               onClick={() => {
                 navigate("/");
@@ -1705,22 +1717,24 @@ export default function Sidebar({
                 setStakeholder(null);
                 setContainerMode(null);
               }}
-              className="group relative flex flex-col items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+              className="group relative flex flex-col items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
             >
-              <img
-                src="/StartUpSphere_logo.png"
-                alt="StartUpSphere Logo"
-                className="h-6 w-6 object-contain"
-              />
+              <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 shadow-inner group-hover:border-blue-500/50 group-hover:shadow-blue-500/20 transition-all">
+                <img
+                  src="/StartUpSphere_logo.png"
+                  alt="StartUpSphere Logo"
+                  className="h-6 w-6 object-contain"
+                />
+              </div>
               <span
-                className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-2xl border border-slate-700 pointer-events-none"
                 style={{ zIndex: 99999 }}
               >
                 Home
               </span>
             </button>
           </div>
-          <div className="border-b border-gray-200">
+          <div className="border-b border-slate-800/80">
             <div className="px-2">
               <ul className="space-y-1 pt-4">
                 {/* Browse Icon (replaces Filter) */}
@@ -1944,17 +1958,17 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Sidebar Footer */}
+        {/* Sidebar Footer with Distinct Dark Contrast */}
         {isAuthenticated ? (
-          <div className="sticky inset-x-0 bottom-0 border-t border-gray-200 bg-white p-2">
+          <div className="sticky inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/60 p-2.5">
             <div className="flex justify-center">
               <button
-                className="group relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 cursor-pointer"
+                className="group relative flex flex-col items-center justify-center rounded-xl p-2.5 text-slate-400 hover:bg-rose-950/40 hover:text-rose-400 transition-all duration-200 cursor-pointer"
                 onClick={() => setShowLogoutConfirm(true)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 opacity-80 group-hover:opacity-100"
+                  className="h-5.5 w-5.5 opacity-80 group-hover:opacity-100"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1967,7 +1981,7 @@ export default function Sidebar({
                   />
                 </svg>
                 <span
-                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-rose-300 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-2xl border border-rose-900/50 pointer-events-none"
                   style={{ zIndex: 99999 }}
                 >
                   Logout
@@ -1976,15 +1990,15 @@ export default function Sidebar({
             </div>
           </div>
         ) : (
-          <div className="sticky inset-x-0 bottom-0 border-t border-gray-200 bg-white p-2">
+          <div className="sticky inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/60 p-2.5">
             <div className="flex justify-center">
               <button
-                className="group relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 cursor-pointer"
+                className="group relative flex flex-col items-center justify-center rounded-xl p-2.5 text-slate-400 hover:bg-blue-950/40 hover:text-blue-400 transition-all duration-200 cursor-pointer"
                 onClick={() => setOpenLogin(true)}
               >
-                <RiLoginBoxFill className="h-6 w-6 opacity-80 group-hover:opacity-100" />
+                <RiLoginBoxFill className="h-5.5 w-5.5 opacity-80 group-hover:opacity-100" />
                 <span
-                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700/60 pointer-events-none"
+                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-blue-300 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-2xl border border-blue-900/50 pointer-events-none"
                   style={{ zIndex: 99999 }}
                 >
                   Login
@@ -2733,11 +2747,12 @@ export default function Sidebar({
               </button>
             </div>
 
-            {/* Filters Row */}
-            <div className="grid grid-cols-2 gap-2 mt-2.5">
+            {/* Filters Row - Consolidated & Visible */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5">
               {viewingType === "startups" ? (
                 <>
                   <div className="relative">
+                    <label className="sr-only">Filter by Stakeholder Type</label>
                     <select
                       value={filters.startups.actorType || "All"}
                       onChange={(e) => {
@@ -2747,14 +2762,15 @@ export default function Sidebar({
                           startups: { ...prev.startups, actorType: value },
                         }));
                       }}
-                      className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      title="Filter by stakeholder type"
                     >
                       <option value="All">All Types</option>
                       <option value="ROLE_STARTUP">Startup</option>
                       <option value="ROLE_HEI">University / HEI</option>
-                      <option value="ROLE_RESEARCH">Research Institution</option>
+                      <option value="ROLE_RESEARCH">Research Body</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
                       <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
@@ -2762,6 +2778,34 @@ export default function Sidebar({
                   </div>
 
                   <div className="relative">
+                    <label className="sr-only">Filter by Government Registration</label>
+                    <select
+                      value={filters.startups.govReg || "All"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          startups: { ...prev.startups, govReg: value },
+                        }));
+                      }}
+                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      title="Filter by government registration agency"
+                    >
+                      <option value="All">All Registrations</option>
+                      <option value="BIR">BIR Registered</option>
+                      <option value="SEC">SEC Registered</option>
+                      <option value="DTI">DTI Registered</option>
+                      <option value="REGISTERED">Gov Registered (Any)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
+                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <label className="sr-only">Search In Field</label>
                     <select
                       value={filters.startups.searchField || "All"}
                       onChange={(e) => {
@@ -2771,7 +2815,8 @@ export default function Sidebar({
                           startups: { ...prev.startups, searchField: value },
                         }));
                       }}
-                      className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      title="Search in specific field"
                     >
                       <option value="All">In: All Fields</option>
                       <option value="companyName">Company Name</option>
@@ -2781,7 +2826,7 @@ export default function Sidebar({
                       <option value="foundedDate">Founded Date</option>
                       <option value="registrationDate">Registration Date</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
                       <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
@@ -2789,7 +2834,7 @@ export default function Sidebar({
                   </div>
                 </>
               ) : (
-                <div className="relative col-span-2">
+                <div className="relative col-span-1 sm:col-span-3">
                   <select
                     value={filters.stakeholders.searchField || "All"}
                     onChange={(e) => {
@@ -2799,7 +2844,7 @@ export default function Sidebar({
                         stakeholders: { ...prev.stakeholders, searchField: value },
                       }));
                     }}
-                    className="bg-white/95 text-gray-800 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-white/20 shadow-xs focus:ring-2 focus:ring-blue-300 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                    className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
                   >
                     <option value="All">Search In: All Fields</option>
                     <option value="name">Name</option>
@@ -2807,7 +2852,7 @@ export default function Sidebar({
                     <option value="sector">Sector</option>
                     <option value="biography">Biography</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
                     <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
                       <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                     </svg>
@@ -3991,7 +4036,8 @@ export default function Sidebar({
               <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
                 <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <Award className="h-4 w-4 text-indigo-600" />
-                  TRL (Technology Readiness Level)
+                  <span>TRL (Technology Readiness Level)</span>
+                  <TooltipInfo type="TRL" size="xs" />
                 </h2>
                 <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
@@ -4106,7 +4152,10 @@ export default function Sidebar({
                 {startup.isGovernmentRegistered !== undefined && (
                   <div className="border-t border-gray-200/50 pt-2">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
+                        <TooltipInfo type="GOV_REG" size="xs" />
+                      </div>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                         }`}>
                         {startup.isGovernmentRegistered ? "Yes" : "No"}
@@ -4116,12 +4165,21 @@ export default function Sidebar({
                     {startup.isGovernmentRegistered && (
                       <div className="mt-2 bg-white rounded p-2.5 border border-gray-200/60 space-y-1.5 text-xs text-gray-600">
                         {startup.registrationAgency && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span>Agency:</span>
-                            <span className="font-semibold text-gray-800">
+                            <span className="inline-flex items-center gap-1 font-semibold text-gray-800">
                               {startup.registrationAgency === "other" && startup.otherRegistrationAgency
                                 ? startup.otherRegistrationAgency
                                 : startup.registrationAgency}
+                              {String(startup.registrationAgency || "").toUpperCase().includes("BIR") && (
+                                <TooltipInfo type="BIR" size="xs" />
+                              )}
+                              {String(startup.registrationAgency || "").toUpperCase().includes("SEC") && (
+                                <TooltipInfo type="SEC" size="xs" />
+                              )}
+                              {String(startup.registrationAgency || "").toUpperCase().includes("DTI") && (
+                                <TooltipInfo type="DTI" size="xs" />
+                              )}
                             </span>
                           </div>
                         )}
@@ -4274,8 +4332,8 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-gray-200 z-40 items-center justify-around px-1 shadow-lg">
+      {/* Mobile Bottom Navigation Bar with Distinct Styling */}
+      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-40 items-center justify-around px-1 shadow-2xl text-slate-400">
         {/* Map / Home */}
         <button
           onClick={() => {
@@ -4290,14 +4348,14 @@ export default function Sidebar({
             setContainerMode(null);
             setShowGeminiAi(false);
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
             location.pathname === "/" && !showSearchContainer && !showRecents && !showBookmarks && !showGeminiAi
-              ? "text-blue-600 font-semibold"
-              : "text-gray-500 hover:text-gray-900"
+              ? "text-blue-400 font-semibold drop-shadow"
+              : "text-slate-400 hover:text-white"
           }`}
         >
           <FaGlobe className="h-5 w-5" />
-          <span className="text-[10px] mt-1">Map</span>
+          <span className="text-[10px] mt-1 font-medium">Map</span>
         </button>
 
         {/* Browse / Search */}
@@ -4315,14 +4373,14 @@ export default function Sidebar({
             setViewingStakeholder(null);
             setShowGeminiAi(false);
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
-            showSearchContainer ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+            showSearchContainer ? "text-blue-400 font-semibold drop-shadow" : "text-slate-400 hover:text-white"
           }`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span className="text-[10px] mt-1">Browse</span>
+          <span className="text-[10px] mt-1 font-medium">Browse</span>
         </button>
 
         {/* Recents (If Authenticated) */}
@@ -4338,14 +4396,14 @@ export default function Sidebar({
               setViewingStakeholder(null);
               setShowGeminiAi(false);
             }}
-            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
-              showRecents ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+              showRecents ? "text-blue-400 font-semibold drop-shadow" : "text-slate-400 hover:text-white"
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-[10px] mt-1">Recents</span>
+            <span className="text-[10px] mt-1 font-medium">Recents</span>
           </button>
         )}
 
@@ -4362,14 +4420,14 @@ export default function Sidebar({
               setViewingStakeholder(null);
               setShowGeminiAi(false);
             }}
-            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
-              showBookmarks ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+              showBookmarks ? "text-blue-400 font-semibold drop-shadow" : "text-slate-400 hover:text-white"
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l7-5 7 5V3H5z" />
             </svg>
-            <span className="text-[10px] mt-1">Bookmarks</span>
+            <span className="text-[10px] mt-1 font-medium">Bookmarks</span>
           </button>
         )}
 
@@ -4388,12 +4446,12 @@ export default function Sidebar({
               navigate("/startup-dashboard");
             }
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
-            location.pathname.includes("dashboard") ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+            location.pathname.includes("dashboard") ? "text-blue-400 font-semibold drop-shadow" : "text-slate-400 hover:text-white"
           }`}
         >
           <LuLayoutDashboard className="h-5 w-5" />
-          <span className="text-[10px] mt-1">Dashboard</span>
+          <span className="text-[10px] mt-1 font-medium">Dashboard</span>
         </button>
 
         {/* AI Chat */}
@@ -4408,12 +4466,12 @@ export default function Sidebar({
             setStakeholder(null);
             setShowGeminiAi((prev) => !prev);
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer ${
-            showGeminiAi ? "text-indigo-600 font-semibold" : "text-gray-500 hover:text-gray-900"
+          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+            showGeminiAi ? "text-amber-400 font-semibold drop-shadow" : "text-slate-400 hover:text-amber-300"
           }`}
         >
           <Sparkles className="h-5 w-5" />
-          <span className="text-[10px] mt-1">AI Chat</span>
+          <span className="text-[10px] mt-1 font-medium">AI Chat</span>
         </button>
       </nav>
 

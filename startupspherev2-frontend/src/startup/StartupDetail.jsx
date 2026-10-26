@@ -27,7 +27,12 @@ import {
   Linkedin,
   Instagram,
   Clock,
+  ShieldCheck,
+  FileCheck,
+  Layers,
+  BadgeCheck,
 } from "lucide-react";
+import TooltipInfo from "../components/TooltipInfo";
 
 export default function StartupDetail() {
   const { id } = useParams();
@@ -1538,6 +1543,45 @@ export default function StartupDetail() {
                       </div>
                     </div>
                   )}
+
+                  {/* Technology Readiness Level (TRL) Badge */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <Layers size={17} className="text-indigo-500" />
+                      <span>TRL Readiness</span>
+                      <TooltipInfo type="TRL" size="xs" />
+                    </div>
+                    <div>
+                      {startup.trlLevel ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          Level {startup.trlLevel}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Not set</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Government Registration Status Badge */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <ShieldCheck size={17} className={startup.isGovernmentRegistered ? "text-emerald-500" : "text-gray-400"} />
+                      <span>Govt. Reg.</span>
+                      <TooltipInfo type="GOV_REG" size="xs" />
+                    </div>
+                    <div>
+                      {startup.isGovernmentRegistered ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 size={12} className="text-emerald-600" />
+                          {startup.registrationAgency || "Registered"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          Unregistered
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1756,6 +1800,130 @@ export default function StartupDetail() {
                           No business metrics available.
                         </p>
                       )}
+                  </div>
+                </div>
+
+                {/* Technology Readiness & Government Compliance Card */}
+                <div className="bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Technology Readiness & Government Compliance
+                      </h3>
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+                      Compliance Profile
+                    </span>
+                  </div>
+
+                  <div className="px-6 py-5 space-y-6">
+                    {/* TRL Progress & Milestone */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold text-gray-800">Technology Readiness Level (TRL)</span>
+                          <TooltipInfo type="TRL" size="sm" />
+                        </div>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                          {startup.trlLevel ? `TRL ${startup.trlLevel} of 9` : "Not Assessed"}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden border border-gray-200">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            Number(startup.trlLevel) >= 7
+                              ? "bg-gradient-to-r from-blue-500 to-emerald-500"
+                              : Number(startup.trlLevel) >= 4
+                              ? "bg-gradient-to-r from-blue-400 to-amber-500"
+                              : "bg-blue-500"
+                          }`}
+                          style={{ width: `${Math.min(100, (Number(startup.trlLevel || 1) / 9) * 100)}%` }}
+                        ></div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center text-[11px] text-gray-500 mt-2">
+                        <div className={`p-1.5 rounded-md border ${Number(startup.trlLevel) <= 3 && startup.trlLevel ? "bg-emerald-50 border-emerald-200 font-bold text-emerald-800" : "bg-gray-50 border-gray-100"}`}>
+                          TRL 1-3: Research / Concept
+                        </div>
+                        <div className={`p-1.5 rounded-md border ${Number(startup.trlLevel) >= 4 && Number(startup.trlLevel) <= 6 ? "bg-amber-50 border-amber-200 font-bold text-amber-800" : "bg-gray-50 border-gray-100"}`}>
+                          TRL 4-6: Prototype / Validation
+                        </div>
+                        <div className={`p-1.5 rounded-md border ${Number(startup.trlLevel) >= 7 ? "bg-blue-50 border-blue-200 font-bold text-blue-800" : "bg-gray-50 border-gray-100"}`}>
+                          TRL 7-9: Market-Ready / Commercial
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Government Registration & BIR Compliance Details */}
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <span className="text-sm font-semibold text-gray-800">Government Registration & Tax Status</span>
+                        <TooltipInfo type="GOV_REG" size="sm" />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {/* Registration Status */}
+                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-1 font-medium">Registration Status</p>
+                          <div className="flex items-center gap-1.5">
+                            {startup.isGovernmentRegistered ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span className="text-sm font-bold text-emerald-800">Officially Registered</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm font-semibold text-amber-700">Unregistered</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Agency */}
+                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs text-gray-500 font-medium">Registration Agency</p>
+                            {startup.registrationAgency === "BIR" && (
+                              <TooltipInfo type="BIR" size="xs" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {startup.registrationAgency === "BIR" ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                BIR (Bureau of Internal Revenue)
+                              </span>
+                            ) : startup.registrationAgency ? (
+                              <span className="text-sm font-bold text-gray-800">
+                                {startup.registrationAgency}
+                                {startup.otherRegistrationAgency && ` (${startup.otherRegistrationAgency})`}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">None specified</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Registration Number */}
+                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-1 font-medium">Certificate / Reg. Number</p>
+                          <p className="text-sm font-mono font-bold text-gray-800">
+                            {startup.registrationNumber || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Registration Date if present */}
+                      {startup.registrationDate && (
+                        <div className="mt-3 text-xs text-gray-600 flex items-center gap-1.5">
+                          <Calendar size={14} className="text-gray-400" />
+                          <span>Registered Date: <strong>{formatDate(startup.registrationDate)}</strong></span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

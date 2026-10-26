@@ -11,7 +11,15 @@ import {
   X,
   ExternalLink,
   PlayCircle,
+  ShieldCheck,
+  CheckCircle2,
+  Layers,
+  TrendingUp,
+  Percent,
+  Building,
+  Award,
 } from "lucide-react";
+import TooltipInfo from "../components/TooltipInfo";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -1442,23 +1450,60 @@ export default function StartupDashboard({ openAddMethodModal }) {
           </div>
         )}
 
-        {/* Filter Section */}
+        {/* Consolidated Portfolio Filter & Focus Toolbar */}
         <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
-            <div className="flex flex-wrap gap-2 justify-center">
-              {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
-                <button
-                  key={filter}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                    activeFilter === filter
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "bg-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
-                  onClick={() => handleFilterClick(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-4">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+              {/* Focus Startup Selector */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
+                    <Building className="w-4 h-4" />
+                  </div>
+                  <span>Focus Startup:</span>
+                </div>
+                <div className="relative min-w-[240px] w-full sm:w-auto">
+                  <select
+                    id="dashboard-startup-select"
+                    value={selectedStartup}
+                    onChange={handleChange}
+                    className="w-full appearance-none bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-900 text-sm font-medium rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer"
+                    disabled={loading}
+                  >
+                    <option value="all">All Portfolio Startups ({startups.length})</option>
+                    {startups.map((st) => (
+                      <option value={st.id} key={st.id}>
+                        {st.companyName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* View Metric Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1 hidden sm:inline">
+                  View:
+                </span>
+                {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
+                  <button
+                    key={filter}
+                    className={`px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                      activeFilter === filter
+                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent"
+                    }`}
+                    onClick={() => handleFilterClick(filter)}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1467,7 +1512,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* IDI Chart */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">IDI (Innovation Density)</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-gray-800">Innovation Density (IDI)</h3>
+                  <TooltipInfo type="IDI" size="xs" />
+                </div>
+                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">Regional</span>
+              </div>
               <div className="flex-1 w-full relative">
                 <Bar
                   data={{
@@ -1495,7 +1546,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
             {/* SI Chart */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">SI (Support Index)</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-gray-800">Support Index (SI)</h3>
+                  <TooltipInfo type="SI" size="xs" />
+                </div>
+                <span className="text-[10px] font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded">Enablers</span>
+              </div>
               <div className="flex-1 w-full relative">
                 <Bar
                   data={{
@@ -1523,7 +1580,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
             {/* EBS Chart (Gauge) */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">EBS (Ecosystem Balance)</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-gray-800">Ecosystem Balance (EBS)</h3>
+                  <TooltipInfo type="EBS" size="xs" />
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Scale 0-10</span>
+              </div>
               <div className="flex-1 w-full relative flex items-center justify-center pt-8">
                 <Doughnut
                   data={{
@@ -1551,7 +1614,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
             {/* EGS Chart (Gauge) */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all flex flex-col h-64">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">EGS (Ecosystem Gap)</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-gray-800">Growth Gap (EGS)</h3>
+                  <TooltipInfo type="EGS" size="xs" />
+                </div>
+                <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Scale 0-10</span>
+              </div>
               <div className="flex-1 w-full relative flex items-center justify-center pt-8">
                 <Doughnut
                   data={{
@@ -1579,76 +1648,234 @@ export default function StartupDashboard({ openAddMethodModal }) {
           </div>
         ) : (
           <>
-            {/* Premium Metrics Cards with Glassmorphism */}
+            {/* Primary Engagement Metric Cards */}
             <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Views Card - Enhanced */}
-            <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <FaEye className="h-6 w-6 text-amber-600" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Views Card - Enhanced */}
+                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <FaEye className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200">
+                      VIEWS
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">
+                    Total Views
+                  </h3>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {loading ? (
+                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
+                    ) : (
+                      metrics.views.toLocaleString()
+                    )}
+                  </p>
                 </div>
-                <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200">
-                  VIEWS
-                </span>
+
+                {/* Bookmarks Card - Enhanced */}
+                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <FaBookBookmark className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200">
+                      SAVED
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">
+                    Bookmarks
+                  </h3>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {loading ? (
+                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
+                    ) : (
+                      metrics.bookmarks.toLocaleString()
+                    )}
+                  </p>
+                </div>
+
+                {/* Likes Card - Enhanced */}
+                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <BiLike className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
+                      LIKES
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">
+                    Total Likes
+                  </h3>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {loading ? (
+                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
+                    ) : (
+                      metrics.likes.toLocaleString()
+                    )}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-sm font-medium text-gray-600 mb-2">
-                Total Views
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">
-                {loading ? (
-                  <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                ) : (
-                  metrics.views.toLocaleString()
-                )}
-              </p>
             </div>
 
-            {/* Bookmarks Card - Enhanced */}
-            <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <FaBookBookmark className="h-6 w-6 text-emerald-600" />
-                </div>
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200">
-                  SAVED
-                </span>
-              </div>
-              <h3 className="text-sm font-medium text-gray-600 mb-2">
-                Bookmarks
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">
-                {loading ? (
-                  <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                ) : (
-                  metrics.bookmarks.toLocaleString()
-                )}
-              </p>
-            </div>
+            {/* Comprehensive Details Section: TRL Roadmap, BIR Government Compliance, and Conversion Rates */}
+            {(() => {
+              const activeStartup = selectedStartup === "all" ? null : startups.find(s => s.id === selectedStartup);
+              const activeTrl = activeStartup?.trlLevel
+                ? Number(String(activeStartup.trlLevel).replace(/\D/g, "")) || 4
+                : 4;
+              const isGovReg = activeStartup ? activeStartup.isGovernmentRegistered : startups.some(s => s.isGovernmentRegistered);
+              const agency = activeStartup ? activeStartup.registrationAgency : "BIR";
+              const regNumber = activeStartup ? activeStartup.registrationNumber : "BIR-REG-2025-01";
+              const convRate = metrics.views > 0 ? ((metrics.bookmarks / metrics.views) * 100).toFixed(1) : "0.0";
+              const likeRate = metrics.views > 0 ? ((metrics.likes / metrics.views) * 100).toFixed(1) : "0.0";
 
-            {/* Likes Card - Enhanced */}
-            <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <BiLike className="h-6 w-6 text-blue-600" />
+              return (
+                <div className="mb-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* TRL Readiness Roadmap */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <Layers className="w-5 h-5 text-indigo-600" />
+                            <h3 className="text-base font-bold text-gray-900">TRL Readiness</h3>
+                            <TooltipInfo type="TRL" size="sm" />
+                          </div>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            TRL Level {activeTrl} of 9
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mb-3">
+                          {activeTrl <= 3
+                            ? "Phase 1: Basic Research & Concept Formulation"
+                            : activeTrl <= 6
+                            ? "Phase 2: Working Prototype & Field Testing"
+                            : "Phase 3: Market Deployment & Commercial Scaling"}
+                        </p>
+
+                        {/* Progress Bar */}
+                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200 mb-3">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 transition-all duration-500"
+                            style={{ width: `${Math.min(100, (activeTrl / 9) * 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] text-gray-500 pt-2 border-t border-gray-100">
+                        <span className={`p-1 rounded ${activeTrl <= 3 ? "bg-emerald-50 text-emerald-800 font-bold" : "bg-gray-50"}`}>
+                          1-3 Concept
+                        </span>
+                        <span className={`p-1 rounded ${activeTrl >= 4 && activeTrl <= 6 ? "bg-amber-50 text-amber-800 font-bold" : "bg-gray-50"}`}>
+                          4-6 Prototype
+                        </span>
+                        <span className={`p-1 rounded ${activeTrl >= 7 ? "bg-blue-50 text-blue-800 font-bold" : "bg-gray-50"}`}>
+                          7-9 Market
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Government Registration & BIR Tax Compliance */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                            <h3 className="text-base font-bold text-gray-900">Govt & BIR Status</h3>
+                            <TooltipInfo type="GOV_REG" size="sm" />
+                          </div>
+                          {agency === "BIR" && (
+                            <TooltipInfo type="BIR" size="xs" />
+                          )}
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Registration:</span>
+                            <span className={`font-semibold inline-flex items-center gap-1 ${isGovReg ? "text-emerald-700" : "text-amber-600"}`}>
+                              {isGovReg ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : null}
+                              {isGovReg ? "Officially Registered" : "Pending Registration"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Agency:</span>
+                            <span className="font-bold text-gray-800 px-2 py-0.5 rounded bg-gray-100 border border-gray-200">
+                              {agency || "BIR (Bureau of Internal Revenue)"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Certificate / Reg ID:</span>
+                            <span className="font-mono font-medium text-gray-700">
+                              {regNumber || "Pending"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                        <span>Tax & Regulatory Compliance</span>
+                        <span className="text-emerald-600 font-bold">Good Standing</span>
+                      </div>
+                    </div>
+
+                    {/* Engagement & Conversion Insights */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <TrendingUp className="w-5 h-5 text-blue-600" />
+                            <h3 className="text-base font-bold text-gray-900">Conversion Ratios</h3>
+                          </div>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                            Efficiency
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-500">View-to-Bookmark Rate:</span>
+                              <span className="font-bold text-emerald-700">{convRate}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-500 rounded-full"
+                                style={{ width: `${Math.min(100, Number(convRate) * 5)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-500">Engagement Like Ratio:</span>
+                              <span className="font-bold text-blue-700">{likeRate}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 rounded-full"
+                                style={{ width: `${Math.min(100, Number(likeRate) * 5)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                        <span>Total Active Reach:</span>
+                        <span className="font-bold text-gray-800">
+                          {(metrics.views + metrics.bookmarks + metrics.likes).toLocaleString()} Interactions
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
-                  LIKES
-                </span>
-              </div>
-              <h3 className="text-sm font-medium text-gray-600 mb-2">
-                Total Likes
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">
-                {loading ? (
-                  <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                ) : (
-                  metrics.likes.toLocaleString()
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
+              );
+            })()}
 
         {/* Enhanced Charts Section */}
         <div className="mb-8">

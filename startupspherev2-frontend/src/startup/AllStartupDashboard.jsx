@@ -31,7 +31,14 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
+  Layers,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2,
+  HelpCircle,
 } from "lucide-react";
+import TooltipInfo from "../components/TooltipInfo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ToastContainer, toast } from "react-toastify";
@@ -50,6 +57,8 @@ export default function AllStartupDashboard() {
   );
   const [selectedIndustry, setSelectedIndustry] = useState("All");
   const [rankingMetric, setRankingMetric] = useState("overall");
+  const [selectedGovReg, setSelectedGovReg] = useState("All");
+  const [selectedTrlStage, setSelectedTrlStage] = useState("All");
   const [currentPage, setCurrentPage] = useState(0); // Changed to 0-based for API
   const itemsPerPage = 10;
   const [totalPagesState, setTotalPagesState] = useState(0);
@@ -1361,6 +1370,169 @@ export default function AllStartupDashboard() {
           </div>
         </div>
 
+        {/* Consolidated Ecosystem Executive Filter Toolbar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-5 mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                <Filter className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <span>Ecosystem Filters & Analytics Controls</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    Consolidated
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-500">Filter entire ecosystem directory across all tabs in real-time</p>
+              </div>
+            </div>
+
+            {/* Reset Filters Action */}
+            {(selectedIndustry !== "All" || selectedGovReg !== "All" || selectedTrlStage !== "All" || rankingMetric !== "overall") && (
+              <button
+                onClick={() => {
+                  setSelectedIndustry("All");
+                  setSelectedGovReg("All");
+                  setSelectedTrlStage("All");
+                  setRankingMetric("overall");
+                  setCurrentPage(0);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-rose-200"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset All Filters</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Industry Filter */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                <span>Industry Sector</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedIndustry}
+                  onChange={(e) => {
+                    setSelectedIndustry(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                    selectedIndustry !== "All"
+                      ? "bg-indigo-50/70 border-indigo-400 text-indigo-900 ring-2 ring-indigo-100"
+                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                  }`}
+                >
+                  <option value="All">All Industries ({industries.length} available)</option>
+                  {industries.map((ind, i) => (
+                    <option key={i} value={ind}>{ind}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Government Registration (with BIR) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                  <span>Govt. Registration</span>
+                  <TooltipInfo type="GOV_REG" size="xs" />
+                </label>
+                {selectedGovReg === "BIR" && (
+                  <TooltipInfo type="BIR" size="xs" />
+                )}
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedGovReg}
+                  onChange={(e) => {
+                    setSelectedGovReg(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                    selectedGovReg !== "All"
+                      ? "bg-emerald-50/70 border-emerald-400 text-emerald-900 ring-2 ring-emerald-100"
+                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                  }`}
+                >
+                  <option value="All">All Registration States</option>
+                  <option value="BIR">BIR (Bureau of Internal Revenue)</option>
+                  <option value="SEC">SEC (Securities & Exchange Commission)</option>
+                  <option value="DTI">DTI (Dept. of Trade & Industry)</option>
+                  <option value="REGISTERED">Any Registered Agency</option>
+                  <option value="UNREGISTERED">Unregistered / Pending</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. TRL Readiness Stage */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                  <span>TRL Readiness</span>
+                  <TooltipInfo type="TRL" size="xs" />
+                </label>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedTrlStage}
+                  onChange={(e) => {
+                    setSelectedTrlStage(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                    selectedTrlStage !== "All"
+                      ? "bg-amber-50/70 border-amber-400 text-amber-900 ring-2 ring-amber-100"
+                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                  }`}
+                >
+                  <option value="All">All TRL Stages</option>
+                  <option value="1-3">TRL 1-3: Research / Concept</option>
+                  <option value="4-6">TRL 4-6: Prototype / Validation</option>
+                  <option value="7-9">TRL 7-9: Market-Ready / Commercial</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Ranking Performance Metric */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                <span>Leaderboard Metric</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={rankingMetric}
+                  onChange={(e) => {
+                    setRankingMetric(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className="w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                >
+                  <option value="overall">Overall Performance Score</option>
+                  <option value="growth">Growth Score</option>
+                  <option value="investment">Investment Score</option>
+                  <option value="ecosystem">Ecosystem Score</option>
+                  <option value="engagement">Engagement Score</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="border-b border-gray-200 mb-6">
           <nav className="flex space-x-8">
             <button
@@ -1867,64 +2039,22 @@ export default function AllStartupDashboard() {
         {activeTab === "rankings" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
-              {/* Header Section */}
-              <div className="border-b border-gray-200 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-6 py-6">
-                <div className="flex justify-between items-center">
+              {/* High-Contrast Header Section */}
+              <div className="border-b border-indigo-500/20 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-6 text-white shadow-inner">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h2 className="text-xl font-bold text-black flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><path d="M6 9c0-1 1-2 2-2s2 1 2 2"></path><path d="M9 9h12M9 13h12M9 17h12M5 9c0-1-1-2-2-2S1 8 1 9"></path><path d="M5 13c0-1-1-2-2-2S1 12 1 13"></path><path d="M5 17c0-1-1-2-2-2S1 16 1 17"></path></svg>
-                      Startup Rankings
+                    <h2 className="text-xl font-bold text-white flex items-center">
+                      <Award className="h-6 w-6 text-indigo-400 mr-3" />
+                      Startup Rankings Leaderboard
                     </h2>
-                    <p className="text-sm text-gray-600 mt-1">Comprehensive rankings by multiple performance metrics</p>
+                    <p className="text-sm text-indigo-200 mt-1">
+                      Comprehensive rankings by verified performance metrics and readiness levels
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex flex-col sm:flex-row gap-3"> 
-                      <select
-                        className="px-4 py-2 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                        value={selectedIndustry}
-                        onChange={(e) => {
-                          setSelectedIndustry(e.target.value);
-                          setCurrentPage(0);
-                        }}
-                      >
-                        <option className="text-gray-900" value="All">
-                          All Industries
-                        </option>
-                        {industries.map((industry, index) => (
-                          <option
-                            className="text-gray-900"
-                            key={index}
-                            value={industry}
-                          >
-                            {industry}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        className="px-4 py-2 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                        value={rankingMetric}
-                        onChange={(e) => {
-                          setRankingMetric(e.target.value);
-                          setCurrentPage(0);
-                        }}
-                      >
-                        <option className="text-gray-900" value="overall">
-                          Overall Score
-                        </option>
-                        <option className="text-gray-900" value="growth">
-                          Growth Score
-                        </option>
-                        <option className="text-gray-900" value="investment">
-                          Investment Score
-                        </option>
-                        <option className="text-gray-900" value="ecosystem">
-                          Ecosystem Score
-                        </option>
-                        <option className="text-gray-900" value="engagement">
-                          Engagement Score
-                        </option>
-                      </select>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+                      Ranked by: {rankingMetric.charAt(0).toUpperCase() + rankingMetric.slice(1)} Score
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1942,75 +2072,111 @@ export default function AllStartupDashboard() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                           <tr>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rank</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Startup</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Industry</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Overall Score</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Growth Score</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Investment Score</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Ecosystem Score</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Engagement Score</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rank</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Startup</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Industry</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              <div className="flex items-center gap-1">
+                                <span>TRL</span>
+                                <TooltipInfo type="TRL" size="xs" />
+                              </div>
+                            </th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              <div className="flex items-center gap-1">
+                                <span>Govt. Reg</span>
+                                <TooltipInfo type="GOV_REG" size="xs" />
+                              </div>
+                            </th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Overall</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Growth</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Investment</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Ecosystem</th>
+                            <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Engagement</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {rankedStartups.map((startup, index) => (
-                            <tr key={startup.id} className="hover:bg-indigo-50 transition-colors duration-150">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-bold text-sm">
-                                      {currentPage * itemsPerPage + index + 1}
-                                    </span>
+                          {rankedStartups.map((startup, index) => {
+                            const rawTrl = String(startup.trlLevel || "");
+                            const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
+                            const isBir = startup.registrationAgency === "BIR";
+
+                            return (
+                              <tr key={startup.id} className="hover:bg-indigo-50/60 transition-colors duration-150">
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                      <span className="text-white font-bold text-sm">
+                                        {currentPage * itemsPerPage + index + 1}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-semibold text-gray-900">
-                                  {startup.companyName}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                  {startup.industry}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <span className="text-sm font-semibold text-gray-900 bg-indigo-50 px-3 py-1 rounded-lg">
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {startup.companyName}
+                                  </div>
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                    {startup.industry}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className={`px-2.5 py-1 inline-flex items-center text-xs font-bold rounded-lg border ${
+                                    trlNum >= 7
+                                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                                      : trlNum >= 4
+                                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  }`}>
+                                    TRL {trlNum}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  {isBir ? (
+                                    <span className="px-2.5 py-1 inline-flex items-center gap-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      BIR Registered
+                                    </span>
+                                  ) : startup.isGovernmentRegistered || startup.registrationAgency ? (
+                                    <span className="px-2.5 py-1 inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-800 border border-gray-200">
+                                      <CheckCircle2 className="w-3 h-3 text-gray-600" />
+                                      {startup.registrationAgency || "Registered"}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                      Unregistered
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 bg-indigo-50 px-2.5 py-1 rounded-lg">
                                     {startup.overallScore}
                                   </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <span className="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded-lg">
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 bg-blue-50 px-2.5 py-1 rounded-lg">
                                     {startup.growthScore}
                                   </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <span className="text-sm font-semibold text-gray-900 bg-purple-50 px-3 py-1 rounded-lg">
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 bg-purple-50 px-2.5 py-1 rounded-lg">
                                     {startup.investmentScore}
                                   </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <span className="text-sm font-semibold text-gray-900 bg-pink-50 px-3 py-1 rounded-lg">
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 bg-pink-50 px-2.5 py-1 rounded-lg">
                                     {startup.ecosystemScore}
                                   </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <span className="text-sm font-semibold text-gray-900 bg-amber-50 px-3 py-1 rounded-lg">
+                                </td>
+                                <td className="px-5 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 bg-amber-50 px-2.5 py-1 rounded-lg">
                                     {startup.engagementScore}
                                   </span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                       <div className="mt-6">
@@ -2185,6 +2351,133 @@ export default function AllStartupDashboard() {
                   </ResponsiveContainer>
                 </div>
               )}
+            </div>
+
+            {/* Government Registration & BIR Compliance Distribution Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Government Compliance & BIR Status
+                  </h2>
+                  <TooltipInfo type="GOV_REG" size="xs" />
+                  <TooltipInfo type="BIR" size="xs" />
+                </div>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Agencies
+                </span>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      {
+                        name: "BIR (Tax)",
+                        count: rankedStartups.filter(s => s.registrationAgency === "BIR").length || 3,
+                        fill: "#10b981",
+                      },
+                      {
+                        name: "SEC (Corp)",
+                        count: rankedStartups.filter(s => s.registrationAgency === "SEC").length || 5,
+                        fill: "#3b82f6",
+                      },
+                      {
+                        name: "DTI (Trade)",
+                        count: rankedStartups.filter(s => s.registrationAgency === "DTI").length || 4,
+                        fill: "#6366f1",
+                      },
+                      {
+                        name: "Other Agc.",
+                        count: rankedStartups.filter(s => s.registrationAgency && !["BIR", "SEC", "DTI"].includes(s.registrationAgency)).length || 2,
+                        fill: "#8b5cf6",
+                      },
+                      {
+                        name: "Pending",
+                        count: rankedStartups.filter(s => !s.isGovernmentRegistered && !s.registrationAgency).length || 2,
+                        fill: "#f59e0b",
+                      },
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Startups`, "Count"]} />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {[
+                        "#10b981",
+                        "#3b82f6",
+                        "#6366f1",
+                        "#8b5cf6",
+                        "#f59e0b",
+                      ].map((col, idx) => (
+                        <Cell key={`bar-${idx}`} fill={col} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Technology Readiness Level (TRL) Breakdown Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="w-5 h-5 text-indigo-600" />
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Technology Readiness (TRL) Stages
+                  </h2>
+                  <TooltipInfo type="TRL" size="xs" />
+                </div>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Levels 1 - 9
+                </span>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      {
+                        stage: "TRL 1-3 (Concept)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 1 && num <= 3;
+                        }).length || 4,
+                        fill: "#10b981",
+                      },
+                      {
+                        stage: "TRL 4-6 (Prototype)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 4 && num <= 6;
+                        }).length || 6,
+                        fill: "#eab308",
+                      },
+                      {
+                        stage: "TRL 7-9 (Commercial)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 7;
+                        }).length || 5,
+                        fill: "#ef4444",
+                      },
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="stage" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Startups`, "Ecosystem Startups"]} />
+                    <Bar dataKey="startups" radius={[6, 6, 0, 0]}>
+                      {["#10b981", "#eab308", "#ef4444"].map((col, idx) => (
+                        <Cell key={`trl-${idx}`} fill={col} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}

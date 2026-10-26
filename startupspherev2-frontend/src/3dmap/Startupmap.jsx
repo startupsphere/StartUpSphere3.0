@@ -17,6 +17,8 @@ import {
 import debounce from "lodash/debounce";
 import Login from "../modals/Login";
 import EngagementChart from "../components/EngagementChart";
+import TooltipInfo from "../components/TooltipInfo";
+import { Compass, Navigation, Maximize2, RotateCcw } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
@@ -78,6 +80,71 @@ export default function Startupmap({
   const [showLegend, setShowLegend] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [isMobileMap, setIsMobileMap] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  const [mapLoading, setMapLoading] = useState(true);
+
+  // Smooth Navigation Presets
+  const handleNav2D = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.easeTo({
+      pitch: 0,
+      bearing: 0,
+      duration: 1200,
+      essential: true,
+    });
+  }, [mapInstanceRef]);
+
+  const handleNav3D = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.easeTo({
+      pitch: 58,
+      bearing: 42,
+      duration: 1400,
+      essential: true,
+    });
+  }, [mapInstanceRef]);
+
+  const handleFitAllStartups = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !startupMarkers || startupMarkers.length === 0) return;
+    try {
+      const bounds = new mapboxgl.LngLatBounds();
+      let hasValidCoords = false;
+      startupMarkers.forEach((s) => {
+        const lng = parseFloat(s.longitude);
+        const lat = parseFloat(s.latitude);
+        if (!isNaN(lng) && !isNaN(lat)) {
+          bounds.extend([lng, lat]);
+          hasValidCoords = true;
+        }
+      });
+      if (hasValidCoords && !bounds.isEmpty()) {
+        map.fitBounds(bounds, {
+          padding: 80,
+          maxZoom: 16.5,
+          duration: 1600,
+          essential: true,
+        });
+      }
+    } catch (e) {
+      console.warn("Could not fit startup bounds:", e);
+    }
+  }, [mapInstanceRef, startupMarkers]);
+
+  const handleResetMapCamera = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.flyTo({
+      center: [123.8907, 10.3166],
+      zoom: 14.8,
+      pitch: 48,
+      bearing: 25,
+      speed: 0.8,
+      curve: 1.4,
+      essential: true,
+    });
+  }, [mapInstanceRef]);
 
   useEffect(() => {
     const handleResize = () => setIsMobileMap(window.innerWidth < 768);
@@ -429,20 +496,22 @@ export default function Startupmap({
             "interpolate",
             ["linear"],
             ["heatmap-density"],
-            0, "rgba(59, 130, 246, 0)",
-            0.1, "rgba(59, 130, 246, 0.2)",
-            0.5, "rgba(234, 179, 8, 0.5)",
-            1, "rgba(239, 68, 68, 0.8)"
+            0, "rgba(37, 99, 235, 0)",
+            0.12, "rgba(59, 130, 246, 0.75)",
+            0.35, "rgba(16, 185, 129, 0.88)",
+            0.65, "rgba(245, 158, 11, 0.95)",
+            0.9, "rgba(239, 68, 68, 0.98)",
+            1, "rgba(220, 38, 38, 1.0)"
           ],
           "heatmap-radius": [
             "interpolate",
             ["linear"],
             ["zoom"],
-            0, 50,
-            9, 100,
-            15, 250
+            0, 45,
+            9, 90,
+            15, 220
           ],
-          "heatmap-opacity": 1
+          "heatmap-opacity": 0.95
         }
       });
     }
@@ -604,9 +673,11 @@ export default function Startupmap({
               10, 75,
               21, 100
             ],
-            // This blur creates the smooth radial gradient effect!
-            "circle-blur": 0.8,
-            "circle-opacity": 0.7
+            // Solid Heatmap Radial Scaling
+            "circle-blur": 0.28,
+            "circle-opacity": 0.92,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "rgba(255, 255, 255, 0.45)"
           }
         }, layerId); // insert before the icon layer
 
@@ -636,8 +707,10 @@ export default function Startupmap({
               10, 25,
               21, 30
             ],
-            "circle-blur": 0.2,
-            "circle-opacity": 0.9
+            "circle-blur": 0.15,
+            "circle-opacity": 1.0,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff"
           }
         }, layerId);
 
@@ -685,8 +758,10 @@ export default function Startupmap({
               12, 75,
               16, 120
             ],
-            "circle-blur": 0.85,
-            "circle-opacity": 0.8
+            "circle-blur": 0.25,
+            "circle-opacity": 0.95,
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "rgba(255, 255, 255, 0.6)"
           }
         }, layerId);
 
@@ -3116,14 +3191,17 @@ export default function Startupmap({
         lightPreset: "day", // Options: dawn, day, dusk, night
         theme: "default",
       },
-      center: [123.8907, 10.3166], // Cebu City coordinates
-      zoom: 18, // Professional zoom level matching the reference
-      pitch: 67.95, // High pitch for dramatic 3D view
-      bearing: 56.76, // Angled bearing for better perspective
+      center: [123.8907, 10.3166], // Cebu City Innovation Hub
+      zoom: 14.8, // Smooth balanced initial overview
+      pitch: 48, // Natural 3D isometric perspective
+      bearing: 25, // Angled bearing for better depth
       antialias: true, // Smoother edges for 3D buildings
       maxPitch: 85, // Allow steeper pitch
       projection: "globe", // Globe projection for better 3D effect
     });
+
+    // Configure smooth wheel zoom interaction
+    map.scrollZoom.setWheelZoomRate(1 / 450);
 
     // Navigation controls with rotation
     const navControl = new mapboxgl.NavigationControl({
@@ -3261,7 +3339,10 @@ export default function Startupmap({
       // loadInvestorMarkers(map); // removed
 
       // Ensure data refresh shortly after load
-      setTimeout(() => loadStakeholders(map), 500);
+      setTimeout(() => {
+        loadStakeholders(map);
+        setMapLoading(false);
+      }, 500);
 
       // Load stakeholder connections (associations) - with longer delay to ensure markers are ready
       setTimeout(() => {
@@ -3559,6 +3640,35 @@ export default function Startupmap({
       />
       <SearchComponent />
 
+      {/* Dynamic Map Loading & Ecosystem Status Banner */}
+      <div
+        style={{ zIndex: 9999 }}
+        className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300"
+      >
+        <div className={`px-4 py-1.5 rounded-full backdrop-blur-md border shadow-md flex items-center gap-2 text-xs font-semibold ${
+          mapLoading || isLoading
+            ? "bg-slate-900/90 border-blue-500/60 text-white shadow-blue-500/20"
+            : "bg-white/95 border-slate-200/90 text-slate-700 shadow-sm"
+        }`}>
+          {mapLoading || isLoading ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+              <span>Syncing Live Ecosystem & Solid Heatmap...</span>
+            </>
+          ) : (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>
+                Live Ecosystem: {startupMarkers.length} Startups • {stakeholderMarkers.length} Stakeholders
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Map Controls Container & Toggle Button */}
       <div
         style={{
@@ -3572,7 +3682,7 @@ export default function Startupmap({
       >
         {/* Expanded Controls Container */}
         {showControls && (
-          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[92vw] md:max-w-none transition-all duration-200">
+          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[94vw] md:max-w-none transition-all duration-200">
             {/* Legend Toggle Button */}
             <button
               onClick={() => {
@@ -3617,6 +3727,26 @@ export default function Startupmap({
               )}
             </button>
 
+            {/* Quick Fit All Presets */}
+            <button
+              onClick={handleFitAllStartups}
+              title="Fit map view to display all innovations"
+              className="px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-blue-700 border border-transparent"
+            >
+              <Maximize2 className="h-3.5 w-3.5 text-emerald-600" />
+              Fit All
+            </button>
+
+            {/* Quick Reset Camera Presets */}
+            <button
+              onClick={handleResetMapCamera}
+              title="Reset camera to default overview"
+              className="px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-amber-700 border border-transparent"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
+              Reset
+            </button>
+
             {/* Heatmap Toggle Button */}
             <button
               onClick={toggleHeatmapVisibility}
@@ -3630,7 +3760,7 @@ export default function Startupmap({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9" />
               </svg>
-              {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+              {showHeatmap ? "Solid Heatmap" : "Heatmap"}
             </button>
 
             {/* Connections Toggle Button */}
@@ -3645,7 +3775,7 @@ export default function Startupmap({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              {showConnections ? "Hide Connections" : "Show Connections"}
+              {showConnections ? "Hide Links" : "Show Links"}
             </button>
 
             {/* Map / Satellite Toggle Button */}
@@ -3660,7 +3790,7 @@ export default function Startupmap({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {isSatelliteView ? "Map View" : "Satellite"}
+              {isSatelliteView ? "Street View" : "Satellite"}
             </button>
           </div>
         )}
@@ -3690,14 +3820,14 @@ export default function Startupmap({
       {showLegend ? (
         <div
           style={{ zIndex: 99999 }}
-          className="absolute top-16 md:top-20 right-3 md:right-4 w-[260px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
+          className="absolute top-16 md:top-20 right-3 md:right-4 w-[275px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
               <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase">
-                Legend
+                Heatmap Legend
               </span>
             </div>
 
@@ -3706,13 +3836,14 @@ export default function Startupmap({
               <div className="flex bg-gray-100/90 p-0.5 rounded-lg text-[10px] font-semibold">
                 <button
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
-                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-0.5 ${
                     heatmapMode === "TRL"
                       ? "bg-white text-indigo-600 shadow-2xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
-                  TRL
+                  <span>TRL</span>
+                  <TooltipInfo type="TRL" size="xs" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("ENGAGEMENT"); }}
