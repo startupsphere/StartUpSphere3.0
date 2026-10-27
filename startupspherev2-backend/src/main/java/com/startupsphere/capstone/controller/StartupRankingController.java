@@ -23,43 +23,131 @@ public class StartupRankingController {
     @Autowired
     private StartupRankingService rankingService;
 
+    private List<Startup> filterAndRankStartups(List<Startup> startups, String industry, String govReg, String trl, String metric) {
+        List<Startup> filtered = startups.stream()
+                .filter(startup -> "Approved".equalsIgnoreCase(startup.getStatus()))
+                .filter(startup -> {
+                    if (industry == null || industry.trim().isEmpty() || "All".equalsIgnoreCase(industry.trim())) {
+                        return true;
+                    }
+                    return industry.equalsIgnoreCase(startup.getIndustry());
+                })
+                .filter(startup -> {
+                    if (govReg == null || govReg.trim().isEmpty() || "All".equalsIgnoreCase(govReg.trim())) {
+                        return true;
+                    }
+                    String regAgency = startup.getRegistrationAgency() != null ? startup.getRegistrationAgency().trim() : "";
+                    Boolean isGovReg = startup.getIsGovernmentRegistered();
+
+                    if ("BIR".equalsIgnoreCase(govReg)) {
+                        return "BIR".equalsIgnoreCase(regAgency);
+                    } else if ("SEC".equalsIgnoreCase(govReg)) {
+                        return "SEC".equalsIgnoreCase(regAgency);
+                    } else if ("DTI".equalsIgnoreCase(govReg)) {
+                        return "DTI".equalsIgnoreCase(regAgency);
+                    } else if ("REGISTERED".equalsIgnoreCase(govReg)) {
+                        return Boolean.TRUE.equals(isGovReg) || !regAgency.isEmpty();
+                    } else if ("UNREGISTERED".equalsIgnoreCase(govReg)) {
+                        return !Boolean.TRUE.equals(isGovReg) && regAgency.isEmpty();
+                    } else {
+                        return govReg.equalsIgnoreCase(regAgency);
+                    }
+                })
+                .filter(startup -> {
+                    if (trl == null || trl.trim().isEmpty() || "All".equalsIgnoreCase(trl.trim())) {
+                        return true;
+                    }
+                    String raw = startup.getTrlLevel();
+                    if (raw == null || raw.trim().isEmpty()) {
+                        return false;
+                    }
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d+").matcher(raw);
+                    if (!m.find()) return false;
+                    int sTrl = Integer.parseInt(m.group());
+
+                    if (trl.contains("-")) {
+                        String[] parts = trl.split("-");
+                        int low = Integer.parseInt(parts[0].replaceAll("\\D+", ""));
+                        int high = Integer.parseInt(parts[1].replaceAll("\\D+", ""));
+                        return sTrl >= low && sTrl <= high;
+                    } else {
+                        java.util.regex.Matcher targetM = java.util.regex.Pattern.compile("\\d+").matcher(trl);
+                        if (!targetM.find()) return false;
+                        int target = Integer.parseInt(targetM.group());
+                        return sTrl == target;
+                    }
+                })
+                .collect(Collectors.toList());
+
+        Comparator<Startup> comparator;
+        String m = metric != null ? metric.toLowerCase() : "overall";
+        switch (m) {
+            case "growth":
+                comparator = Comparator.comparingDouble(rankingService::calculateGrowthScore);
+                break;
+            case "investment":
+                comparator = Comparator.comparingDouble(rankingService::calculateInvestmentScore);
+                break;
+            case "ecosystem":
+                comparator = Comparator.comparingDouble(rankingService::calculateEcosystemScore);
+                break;
+            case "engagement":
+                comparator = Comparator.comparingDouble(rankingService::calculateEngagementScore);
+                break;
+            case "overall":
+            default:
+                comparator = Comparator.comparingDouble(rankingService::calculateOverallScore);
+        }
+
+        return filtered.stream().sorted(comparator.reversed()).collect(Collectors.toList());
+    }
+
+    private Map<String, Object> mapStartupToData(Startup startup) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", startup.getId());
+        data.put("companyName", startup.getCompanyName());
+        data.put("industry", startup.getIndustry());
+        data.put("trlLevel", startup.getTrlLevel());
+        data.put("isGovernmentRegistered", startup.getIsGovernmentRegistered());
+        data.put("registrationAgency", startup.getRegistrationAgency());
+        data.put("facebook", startup.getFacebook());
+        data.put("instagram", startup.getInstagram());
+        data.put("facebookFollowers", startup.getFacebookFollowers());
+        data.put("facebookLikes", startup.getFacebookLikes());
+        data.put("instagramFollowers", startup.getInstagramFollowers());
+        data.put("overallScore", Math.round(rankingService.calculateOverallScore(startup)));
+        data.put("score", Math.round(rankingService.calculateOverallScore(startup)));
+        data.put("growthScore", Math.round(rankingService.calculateGrowthScore(startup) * 100));
+        data.put("growthRate", startup.getAverageStartupGrowthRate());
+        data.put("investmentScore", Math.round(rankingService.calculateInvestmentScore(startup) * 100));
+        data.put("ecosystemScore", Math.round(rankingService.calculateEcosystemScore(startup) * 100));
+        data.put("engagementScore", Math.round(rankingService.calculateEngagementScore(startup) * 100));
+        data.put("totalFunding", startup.getTotalStartupFundingReceived());
+        return data;
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> getRankedStartups(
             @RequestParam(required = false) String industry,
+            @RequestParam(required = false) String govReg,
+            @RequestParam(required = false) String trl,
             @RequestParam(required = false, defaultValue = "overall") String metric,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         List<Startup> allStartups = startupRepository.findAll();
-        List<Startup> approvedStartups = allStartups.stream()
-                .filter(startup -> "Approved".equalsIgnoreCase(startup.getStatus())) // Filter by status
-                .collect(Collectors.toList());
-
-        List<Startup> rankedStartups;
-        if (industry != null && !industry.trim().isEmpty() && !industry.equalsIgnoreCase("All")) {
-            rankedStartups = rankingService.rankStartupsByIndustry(approvedStartups, industry);
-        } else {
-            rankedStartups = rankingService.rankStartupsByMetric(approvedStartups, metric);
-        }
+        List<Startup> rankedStartups = filterAndRankStartups(allStartups, industry, govReg, trl, metric);
 
         // Apply pagination
         int start = page * size;
         int end = Math.min(start + size, rankedStartups.size());
-        List<Startup> paginatedStartups = rankedStartups.subList(start, end);
+        List<Startup> paginatedStartups = start < rankedStartups.size()
+                ? rankedStartups.subList(start, end)
+                : Collections.emptyList();
 
-        List<Map<String, Object>> startupData = paginatedStartups.stream().map(startup -> {
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", startup.getId());
-            data.put("companyName", startup.getCompanyName());
-            data.put("industry", startup.getIndustry());
-            data.put("overallScore", Math.round(rankingService.calculateOverallScore(startup)));
-            data.put("growthScore", Math.round(rankingService.calculateGrowthScore(startup) * 100));
-            data.put("investmentScore", Math.round(rankingService.calculateInvestmentScore(startup) * 100));
-            data.put("ecosystemScore", Math.round(rankingService.calculateEcosystemScore(startup) * 100));
-            data.put("engagementScore", Math.round(rankingService.calculateEngagementScore(startup) * 100));
-            data.put("totalFunding", startup.getTotalStartupFundingReceived());
-            return data;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> startupData = paginatedStartups.stream()
+                .map(this::mapStartupToData)
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", startupData);
@@ -83,6 +171,14 @@ public class StartupRankingController {
                     details.put("id", startup.getId());
                     details.put("companyName", startup.getCompanyName());
                     details.put("industry", startup.getIndustry());
+                    details.put("trlLevel", startup.getTrlLevel());
+                    details.put("isGovernmentRegistered", startup.getIsGovernmentRegistered());
+                    details.put("registrationAgency", startup.getRegistrationAgency());
+                    details.put("facebook", startup.getFacebook());
+                    details.put("instagram", startup.getInstagram());
+                    details.put("facebookFollowers", startup.getFacebookFollowers());
+                    details.put("facebookLikes", startup.getFacebookLikes());
+                    details.put("instagramFollowers", startup.getInstagramFollowers());
 
                     details.put("overallScore", Math.round(rankingService.calculateOverallScore(startup)));
                     details.put("growthScore", Math.round(rankingService.calculateGrowthScore(startup) * 100));
@@ -102,6 +198,9 @@ public class StartupRankingController {
                     metrics.put("views", startup.getViewsCount());
                     metrics.put("likes", startup.getLikes() != null ? startup.getLikes().size() : 0);
                     metrics.put("bookmarks", startup.getBookmarks() != null ? startup.getBookmarks().size() : 0);
+                    metrics.put("facebookFollowers", startup.getFacebookFollowers());
+                    metrics.put("facebookLikes", startup.getFacebookLikes());
+                    metrics.put("instagramFollowers", startup.getInstagramFollowers());
 
                     details.put("metrics", metrics);
                     return ResponseEntity.ok(details);
@@ -113,20 +212,14 @@ public class StartupRankingController {
     public ResponseEntity<Map<String, Object>> getTopStartups(
             @RequestParam(required = false, defaultValue = "10") Integer limit,
             @RequestParam(required = false) String industry,
+            @RequestParam(required = false) String govReg,
+            @RequestParam(required = false) String trl,
+            @RequestParam(required = false, defaultValue = "overall") String metric,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         List<Startup> allStartups = startupRepository.findAll();
-        List<Startup> approvedStartups = allStartups.stream()
-                .filter(startup -> "Approved".equalsIgnoreCase(startup.getStatus())) // Filter by status
-                .collect(Collectors.toList());
-
-        List<Startup> rankedStartups;
-        if (industry != null && !industry.trim().isEmpty() && !industry.equalsIgnoreCase("All")) {
-            rankedStartups = rankingService.rankStartupsByIndustry(approvedStartups, industry);
-        } else {
-            rankedStartups = rankingService.rankStartups(approvedStartups);
-        }
+        List<Startup> rankedStartups = filterAndRankStartups(allStartups, industry, govReg, trl, metric);
 
         // Apply limit first, then pagination
         rankedStartups = rankedStartups.stream().limit(limit).collect(Collectors.toList());
@@ -137,16 +230,9 @@ public class StartupRankingController {
             ? rankedStartups.subList(start, end) 
             : Collections.emptyList();
 
-        List<Map<String, Object>> startupData = paginatedStartups.stream().map(startup -> {
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", startup.getId());
-            data.put("companyName", startup.getCompanyName());
-            data.put("industry", startup.getIndustry());
-            data.put("score", Math.round(rankingService.calculateOverallScore(startup)));
-            data.put("growthRate", startup.getAverageStartupGrowthRate());
-            data.put("totalFunding", startup.getTotalStartupFundingReceived());
-            return data;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> startupData = paginatedStartups.stream()
+                .map(this::mapStartupToData)
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", startupData);
@@ -163,15 +249,19 @@ public class StartupRankingController {
     }
 
     @GetMapping("/dashboard-analytics")
-    public ResponseEntity<Map<String, Object>> getDashboardAnalytics() {
+    public ResponseEntity<Map<String, Object>> getDashboardAnalytics(
+            @RequestParam(required = false) String industry,
+            @RequestParam(required = false) String govReg,
+            @RequestParam(required = false) String trl) {
         List<Startup> allStartups = startupRepository.findAll();
+        List<Startup> filtered = filterAndRankStartups(allStartups, industry, govReg, trl, "overall");
+        List<Startup> dataSet = (filtered.isEmpty() && (industry == null && govReg == null && trl == null)) ? allStartups : filtered;
+
         Map<String, Object> response = new HashMap<>();
 
-        response.put("growthData", generateGrowthData(allStartups));
-
-        response.put("fundingData", generateFundingData(allStartups));
-
-        response.put("locationData", generateLocationData(allStartups));
+        response.put("growthData", generateGrowthData(dataSet));
+        response.put("fundingData", generateFundingData(dataSet));
+        response.put("locationData", generateLocationData(dataSet));
 
         return ResponseEntity.ok(response);
     }

@@ -1,6 +1,6 @@
 import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { FaEye } from "react-icons/fa";
+import { FaEye, FaFacebook, FaInstagram } from "react-icons/fa";
 import { BiLike } from "react-icons/bi";
 import { FaBookBookmark } from "react-icons/fa6";
 import {
@@ -1644,76 +1644,181 @@ export default function StartupDashboard({ openAddMethodModal }) {
           </div>
         ) : (
           <>
-            {/* Primary Engagement Metric Cards */}
-            <div className="mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Views Card - Enhanced */}
-                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <FaEye className="h-6 w-6 text-amber-600" />
-                    </div>
-                    <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200">
-                      VIEWS
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">
-                    Total Views
-                  </h3>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {loading ? (
-                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                    ) : (
-                      metrics.views.toLocaleString()
-                    )}
-                  </p>
-                </div>
+            {/* Primary Engagement Metric Cards with Social Engagement */}
+            {(() => {
+              const activeStartup = selectedStartup === "all" ? null : startups.find(s => s.id === selectedStartup);
+              const fbFollowers = activeStartup 
+                ? (activeStartup.facebookFollowers || 0)
+                : startups.reduce((acc, s) => acc + (s.facebookFollowers || 0), 0);
+              const fbLikes = activeStartup 
+                ? (activeStartup.facebookLikes || 0)
+                : startups.reduce((acc, s) => acc + (s.facebookLikes || 0), 0);
+              const igFollowers = activeStartup 
+                ? (activeStartup.instagramFollowers || 0)
+                : startups.reduce((acc, s) => acc + (s.instagramFollowers || 0), 0);
+              const fbUrl = activeStartup ? activeStartup.facebook : null;
+              const igUrl = activeStartup ? activeStartup.instagram : null;
+              const fbCount = startups.filter(s => s.facebook).length;
+              const igCount = startups.filter(s => s.instagram).length;
 
-                {/* Bookmarks Card - Enhanced */}
-                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <FaBookBookmark className="h-6 w-6 text-emerald-600" />
+              return (
+                <div className="mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                    {/* Views Card - Enhanced */}
+                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <FaEye className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200">
+                          VIEWS
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-medium text-gray-500 mb-1">
+                        Total Views
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {loading ? (
+                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
+                        ) : (
+                          metrics.views.toLocaleString()
+                        )}
+                      </p>
                     </div>
-                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200">
-                      SAVED
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">
-                    Bookmarks
-                  </h3>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {loading ? (
-                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                    ) : (
-                      metrics.bookmarks.toLocaleString()
-                    )}
-                  </p>
-                </div>
 
-                {/* Likes Card - Enhanced */}
-                <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BiLike className="h-6 w-6 text-blue-600" />
+                    {/* Bookmarks Card - Enhanced */}
+                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <FaBookBookmark className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200">
+                          SAVED
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-medium text-gray-500 mb-1">
+                        Bookmarks
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {loading ? (
+                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
+                        ) : (
+                          metrics.bookmarks.toLocaleString()
+                        )}
+                      </p>
                     </div>
-                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
-                      LIKES
-                    </span>
+
+                    {/* Likes Card - Enhanced */}
+                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <BiLike className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
+                          LIKES
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-medium text-gray-500 mb-1">
+                        Platform Likes
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {loading ? (
+                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
+                        ) : (
+                          metrics.likes.toLocaleString()
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Facebook Page Engagement Card */}
+                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <FaFacebook className="h-5 w-5 text-[#1877F2]" />
+                        </div>
+                        {fbUrl ? (
+                          <a
+                            href={fbUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#1877F2] text-xs font-semibold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors"
+                            title="Open Facebook Page"
+                          >
+                            <span>PAGE</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
+                            {selectedStartup === "all" ? `${fbCount} Linked` : "OPTIONAL"}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-xs font-medium text-gray-500 mb-1">
+                        FB Followers & Likes
+                      </h3>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-gray-900">
+                          {loading ? (
+                            <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
+                          ) : (
+                            fbFollowers.toLocaleString()
+                          )}
+                        </p>
+                        <span className="text-xs text-gray-500 font-medium">followers</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 truncate">
+                        {fbLikes > 0
+                          ? `👍 ${fbLikes.toLocaleString()} page likes`
+                          : fbUrl
+                          ? "Connected Facebook page"
+                          : "Optional in startup form"}
+                      </p>
+                    </div>
+
+                    {/* Instagram Audience Card */}
+                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+                          <FaInstagram className="h-5 w-5" />
+                        </div>
+                        {igUrl ? (
+                          <a
+                            href={igUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 text-xs font-semibold rounded-md border border-pink-200 hover:bg-pink-100 transition-colors"
+                            title="Open Instagram Profile"
+                          >
+                            <span>IG</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
+                            {selectedStartup === "all" ? `${igCount} Linked` : "OPTIONAL"}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-xs font-medium text-gray-500 mb-1">
+                        Instagram Audience
+                      </h3>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-gray-900">
+                          {loading ? (
+                            <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
+                          ) : (
+                            igFollowers.toLocaleString()
+                          )}
+                        </p>
+                        <span className="text-xs text-gray-500 font-medium">followers</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 truncate">
+                        {igUrl ? "Connected profile" : "Optional in startup form"}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">
-                    Total Likes
-                  </h3>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {loading ? (
-                      <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
-                    ) : (
-                      metrics.likes.toLocaleString()
-                    )}
-                  </p>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Comprehensive Details Section: TRL Roadmap, BIR Government Compliance, and Conversion Rates */}
             {(() => {

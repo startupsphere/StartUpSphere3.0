@@ -163,9 +163,14 @@ export default function AllStartupDashboard() {
     const fetchDashboardAnalytics = async () => {
       setDashboardLoading(true);
       try {
-        const response = await fetch(
-          `${getBackendUrl()}/api/rankings/dashboard-analytics`,
+        const params = new URLSearchParams();
+        if (selectedIndustry !== "All") params.append("industry", selectedIndustry);
+        if (selectedGovReg !== "All") params.append("govReg", selectedGovReg);
+        if (selectedTrlStage !== "All") params.append("trl", selectedTrlStage);
+        const queryStr = params.toString() ? `?${params.toString()}` : "";
 
+        const response = await fetch(
+          `${getBackendUrl()}/api/rankings/dashboard-analytics${queryStr}`,
           {
             credentials: "include",
           }
@@ -194,16 +199,18 @@ export default function AllStartupDashboard() {
 
     fetchDashboardAnalytics();
     fetchRole();
-  }, [refreshTrigger]);
+  }, [selectedIndustry, selectedGovReg, selectedTrlStage, refreshTrigger]);
 
   useEffect(() => {
     const fetchTopStartups = async () => {
-      // Always fetch fresh data when filtering by a specific industry
-      // Only use cache when viewing all industries
-      const isFiltered = selectedIndustry !== "All";
+      // Always fetch fresh data when filtering by a specific industry, govt reg, or TRL
+      // Only use cache when viewing all
+      const isFiltered = selectedIndustry !== "All" || selectedGovReg !== "All" || selectedTrlStage !== "All";
       
       if (!isFiltered && topStartupsCache && 
           topStartupsCache.industry === selectedIndustry && 
+          topStartupsCache.govReg === selectedGovReg &&
+          topStartupsCache.trl === selectedTrlStage &&
           topStartupsCache.metric === rankingMetric) {
         setTopStartups(topStartupsCache.data);
         setTopStartupsError(null);
@@ -224,6 +231,12 @@ export default function AllStartupDashboard() {
         if (selectedIndustry !== "All") {
           params.append("industry", selectedIndustry);
         }
+        if (selectedGovReg !== "All") {
+          params.append("govReg", selectedGovReg);
+        }
+        if (selectedTrlStage !== "All") {
+          params.append("trl", selectedTrlStage);
+        }
         
         const response = await fetch(
           `${getBackendUrl()}/api/rankings/top?${params.toString()}`,
@@ -240,8 +253,8 @@ export default function AllStartupDashboard() {
         // Normalize startup data to ensure all score fields are properly set
         const normalizedStartups = startups.map(startup => {
           // Get overall score from various possible field names
-          const overallScore = startup.overallScore ?? startup.score ?? startup.overallScore ?? 0;
-          const growthRate = startup.growthScore ?? startup.growthRate ?? startup.growth ?? 0;
+          const overallScore = startup.overallScore ?? startup.score ?? 0;
+          const growthRate = startup.growthScore ?? startup.growthRate ?? 0;
           
           return {
             ...startup,
@@ -262,6 +275,8 @@ export default function AllStartupDashboard() {
         if (!isFiltered) {
           setTopStartupsCache({
             industry: selectedIndustry,
+            govReg: selectedGovReg,
+            trl: selectedTrlStage,
             metric: rankingMetric,
             data: normalizedStartups
           });
@@ -276,7 +291,7 @@ export default function AllStartupDashboard() {
     };
 
     fetchTopStartups();
-  }, [selectedIndustry, rankingMetric, refreshTrigger]);
+  }, [selectedIndustry, selectedGovReg, selectedTrlStage, rankingMetric, refreshTrigger]);
 
   useEffect(() => {
     const fetchRankedStartups = async () => {
@@ -296,6 +311,12 @@ export default function AllStartupDashboard() {
         
         if (selectedIndustry !== "All") {
           params.append("industry", selectedIndustry);
+        }
+        if (selectedGovReg !== "All") {
+          params.append("govReg", selectedGovReg);
+        }
+        if (selectedTrlStage !== "All") {
+          params.append("trl", selectedTrlStage);
         }
         
         const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
@@ -356,7 +377,7 @@ export default function AllStartupDashboard() {
         setTotalElements(data.totalElements || 0);
 
         // Update industries only if we're fetching all industries AND not cached
-        if (selectedIndustry === "All" && !industriesCache) {
+        if (selectedIndustry === "All" && selectedGovReg === "All" && selectedTrlStage === "All" && !industriesCache) {
           // Fetch all rankings to get complete industry list (only once)
           const allRankingsResponse = await fetch(
             `${getBackendUrl()}/api/rankings?page=0&size=1000&metric=${rankingMetric}`,
@@ -393,6 +414,8 @@ export default function AllStartupDashboard() {
             setTopStartups(topStartupsFromRankings);
             setTopStartupsCache({
               industry: "All",
+              govReg: "All",
+              trl: "All",
               metric: rankingMetric,
               data: topStartupsFromRankings
             });
@@ -410,7 +433,7 @@ export default function AllStartupDashboard() {
     };
 
     fetchRankedStartups();
-  }, [selectedIndustry, rankingMetric, currentPage, refreshTrigger]);
+  }, [selectedIndustry, selectedGovReg, selectedTrlStage, rankingMetric, currentPage, refreshTrigger]);
 
   useEffect(() => {
     if (activeTab === "reports") {
@@ -1488,10 +1511,16 @@ export default function AllStartupDashboard() {
                       : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
                   }`}
                 >
-                  <option value="All">All TRL Stages</option>
-                  <option value="1-3">TRL 1-3: Research / Concept</option>
-                  <option value="4-6">TRL 4-6: Prototype / Validation</option>
-                  <option value="7-9">TRL 7-9: Market-Ready / Commercial</option>
+                  <option value="All">All TRL Levels</option>
+                  <option value="TRL 1">TRL 1 - Basic Principles Observed</option>
+                  <option value="TRL 2">TRL 2 - Technology Concept Formulated</option>
+                  <option value="TRL 3">TRL 3 - Experimental Proof of Concept</option>
+                  <option value="TRL 4">TRL 4 - Technology Validated in Lab</option>
+                  <option value="TRL 5">TRL 5 - Technology Validated in Relevant Environment</option>
+                  <option value="TRL 6">TRL 6 - Technology Demonstrated in Relevant Environment</option>
+                  <option value="TRL 7">TRL 7 - System Prototype Demonstration</option>
+                  <option value="TRL 8">TRL 8 - System Complete and Qualified</option>
+                  <option value="TRL 9">TRL 9 - Actual System Proven in Operational Environment</option>
                 </select>
               </div>
             </div>
@@ -2362,27 +2391,27 @@ export default function AllStartupDashboard() {
                     data={[
                       {
                         name: "BIR (Tax)",
-                        count: rankedStartups.filter(s => s.registrationAgency === "BIR").length || 3,
+                        count: rankedStartups.filter(s => s.registrationAgency === "BIR").length,
                         fill: "#10b981",
                       },
                       {
                         name: "SEC (Corp)",
-                        count: rankedStartups.filter(s => s.registrationAgency === "SEC").length || 5,
+                        count: rankedStartups.filter(s => s.registrationAgency === "SEC").length,
                         fill: "#3b82f6",
                       },
                       {
                         name: "DTI (Trade)",
-                        count: rankedStartups.filter(s => s.registrationAgency === "DTI").length || 4,
+                        count: rankedStartups.filter(s => s.registrationAgency === "DTI").length,
                         fill: "#6366f1",
                       },
                       {
                         name: "Other Agc.",
-                        count: rankedStartups.filter(s => s.registrationAgency && !["BIR", "SEC", "DTI"].includes(s.registrationAgency)).length || 2,
+                        count: rankedStartups.filter(s => s.registrationAgency && !["BIR", "SEC", "DTI"].includes(s.registrationAgency)).length,
                         fill: "#8b5cf6",
                       },
                       {
-                        name: "Pending",
-                        count: rankedStartups.filter(s => !s.isGovernmentRegistered && !s.registrationAgency).length || 2,
+                        name: "Unregistered",
+                        count: rankedStartups.filter(s => !s.isGovernmentRegistered && !s.registrationAgency).length,
                         fill: "#f59e0b",
                       },
                     ]}
@@ -2431,7 +2460,7 @@ export default function AllStartupDashboard() {
                           const raw = String(s.trlLevel || "");
                           const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
                           return num >= 1 && num <= 3;
-                        }).length || 4,
+                        }).length,
                         fill: "#10b981",
                       },
                       {
@@ -2440,7 +2469,7 @@ export default function AllStartupDashboard() {
                           const raw = String(s.trlLevel || "");
                           const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
                           return num >= 4 && num <= 6;
-                        }).length || 6,
+                        }).length,
                         fill: "#eab308",
                       },
                       {
@@ -2449,7 +2478,7 @@ export default function AllStartupDashboard() {
                           const raw = String(s.trlLevel || "");
                           const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
                           return num >= 7;
-                        }).length || 5,
+                        }).length,
                         fill: "#ef4444",
                       },
                     ]}

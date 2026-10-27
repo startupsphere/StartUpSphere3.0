@@ -27,6 +27,9 @@ public class StartupDTO {
     private String twitter;
     private String instagram;
     private String linkedIn;
+    private Integer facebookFollowers = 0;
+    private Integer facebookLikes = 0;
+    private Integer instagramFollowers = 0;
     private Double locationLat;
     private Double locationLng;
     private String locationName;
@@ -78,6 +81,9 @@ public class StartupDTO {
         this.twitter = startup.getTwitter();
         this.instagram = startup.getInstagram();
         this.linkedIn = startup.getLinkedIn();
+        this.facebookFollowers = startup.getFacebookFollowers();
+        this.facebookLikes = startup.getFacebookLikes();
+        this.instagramFollowers = startup.getInstagramFollowers();
         this.locationLat = startup.getLocationLat();
         this.locationLng = startup.getLocationLng();
         this.locationName = startup.getLocationName();
@@ -256,6 +262,30 @@ public class StartupDTO {
 
     public void setInstagram(String instagram) {
         this.instagram = instagram;
+    }
+
+    public Integer getFacebookFollowers() {
+        return facebookFollowers != null ? facebookFollowers : 0;
+    }
+
+    public void setFacebookFollowers(Integer facebookFollowers) {
+        this.facebookFollowers = facebookFollowers;
+    }
+
+    public Integer getFacebookLikes() {
+        return facebookLikes != null ? facebookLikes : 0;
+    }
+
+    public void setFacebookLikes(Integer facebookLikes) {
+        this.facebookLikes = facebookLikes;
+    }
+
+    public Integer getInstagramFollowers() {
+        return instagramFollowers != null ? instagramFollowers : 0;
+    }
+
+    public void setInstagramFollowers(Integer instagramFollowers) {
+        this.instagramFollowers = instagramFollowers;
     }
 
     public String getLinkedIn() {
