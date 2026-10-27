@@ -8,7 +8,8 @@ const Bookmarks = ({
   mapInstanceRef,
   setViewingStartup,
   setViewingStakeholder,
-  setContainerMode
+  setContainerMode,
+  setShowBookmarks
 }) => {
   const [startups, setStartups] = useState([]);
   const [stakeholders, setStakeholders] = useState([]);
@@ -112,6 +113,7 @@ const Bookmarks = ({
         essential: true,
       });
       setViewingStartup(startup);
+      setShowBookmarks?.(false);
       setContainerMode(null); // Close the bookmarks panel
     }
   };
@@ -124,6 +126,7 @@ const Bookmarks = ({
         essential: true,
       });
       setViewingStakeholder(stakeholder);
+      setShowBookmarks?.(false);
       setContainerMode(null); // Close the bookmarks panel
     }
   };
@@ -141,9 +144,11 @@ const Bookmarks = ({
             if (container) {
               container.classList.add('animate-slide-out');
               setTimeout(() => {
+                setShowBookmarks?.(false);
                 setContainerMode(null);
               }, 300); // Match the duration of the animation
             } else {
+              setShowBookmarks?.(false);
               setContainerMode(null);
             }
           }}

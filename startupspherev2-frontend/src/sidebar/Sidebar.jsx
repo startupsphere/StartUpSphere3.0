@@ -231,8 +231,12 @@ export default function Sidebar({
   }, []);
 
   // Calculate dynamic margins to resize map / dashboard layout when sidebars slide open
+  const isBrowseActive = showSearchContainer && (containerMode === "search" || !containerMode);
+  const isRecentsActive = showRecents && containerMode === "recents";
+  const isBookmarksActive = showBookmarks && containerMode === "bookmarks";
+
   const hasLeftPanel420 = (stakeholder && !viewingStartup) || (startup && !viewingStartup);
-  const hasLeftPanel384 = showSearchContainer || (containerMode === "recents" && showRecents) || (containerMode === "bookmarks" && showBookmarks);
+  const hasLeftPanel384 = isBrowseActive || isRecentsActive || isBookmarksActive;
 
   let marginLeft = "0px";
   if (!isMobile) {
@@ -438,6 +442,7 @@ export default function Sidebar({
       setShowRecents(false);
       setShowBookmarks(false);
       setShowGeminiAi(false);
+      setContainerMode(null);
       setViewingStartup(null);
       setViewingStakeholder(null);
       setStartup(null);
@@ -1746,12 +1751,12 @@ export default function Sidebar({
               <ul className="space-y-1.5">
                 {/* Browse Icon */}
                 <li className="flex justify-center relative">
-                  {showSearchContainer && (
+                  {isBrowseActive && (
                     <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                   )}
                   <button
                     className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                      showSearchContainer
+                      isBrowseActive
                         ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                         : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                     }`}
@@ -1762,11 +1767,18 @@ export default function Sidebar({
                       fetchStartups();
                       fetchStakeholders();
                       fetchUserLikes();
-                      setContainerMode("search");
-                      setShowSearchContainer((prev) => !prev);
+                      setShowRecents(false);
+                      setShowBookmarks(false);
+                      setShowGeminiAi(false);
                       setViewingStartup(null);
                       setViewingStakeholder(null);
-                      setShowGeminiAi(false);
+                      if (showSearchContainer && (containerMode === "search" || !containerMode)) {
+                        setShowSearchContainer(false);
+                        setContainerMode(null);
+                      } else {
+                        setContainerMode("search");
+                        setShowSearchContainer(true);
+                      }
                     }}
                     aria-label="Browse"
                   >
@@ -1785,12 +1797,12 @@ export default function Sidebar({
                   <>
                     {/* Recents Icon */}
                     <li className="flex justify-center relative">
-                      {showRecents && (
+                      {isRecentsActive && (
                         <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                       )}
                       <button
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                          showRecents
+                          isRecentsActive
                             ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                             : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                         }`}
@@ -1798,14 +1810,20 @@ export default function Sidebar({
                           if (location.pathname !== "/") {
                             navigate("/");
                           }
-                          setContainerMode("recents");
-                          setShowRecents(!showRecents);
                           setShowSearchContainer(false);
+                          setShowBookmarks(false);
+                          setShowGeminiAi(false);
                           setStartup(null);
                           setStakeholder(null);
                           setViewingStartup(null);
                           setViewingStakeholder(null);
-                          setShowGeminiAi(false);
+                          if (showRecents && containerMode === "recents") {
+                            setShowRecents(false);
+                            setContainerMode(null);
+                          } else {
+                            setContainerMode("recents");
+                            setShowRecents(true);
+                          }
                         }}
                         aria-label="Recents"
                       >
@@ -1834,12 +1852,12 @@ export default function Sidebar({
 
                     {/* Bookmarks Icon */}
                     <li className="flex justify-center relative">
-                      {showBookmarks && (
+                      {isBookmarksActive && (
                         <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                       )}
                       <button
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                          showBookmarks
+                          isBookmarksActive
                             ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                             : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                         }`}
@@ -1847,14 +1865,20 @@ export default function Sidebar({
                           if (location.pathname !== "/") {
                             navigate("/");
                           }
-                          setContainerMode("bookmarks");
-                          setShowBookmarks(!showBookmarks);
                           setShowSearchContainer(false);
+                          setShowRecents(false);
+                          setShowGeminiAi(false);
                           setStartup(null);
                           setStakeholder(null);
                           setViewingStartup(null);
                           setViewingStakeholder(null);
-                          setShowGeminiAi(false);
+                          if (showBookmarks && containerMode === "bookmarks") {
+                            setShowBookmarks(false);
+                            setContainerMode(null);
+                          } else {
+                            setContainerMode("bookmarks");
+                            setShowBookmarks(true);
+                          }
                         }}
                         aria-label="Bookmarks"
                       >
@@ -2690,9 +2714,13 @@ export default function Sidebar({
                   const container = document.querySelector(".animate-slide-in");
                   if (container) {
                     container.classList.add("animate-slide-out");
-                    setTimeout(() => setShowSearchContainer(false), 300);
+                    setTimeout(() => {
+                      setShowSearchContainer(false);
+                      setContainerMode(null);
+                    }, 300);
                   } else {
                     setShowSearchContainer(false);
+                    setContainerMode(null);
                   }
                 }}
                 aria-label="Close"
@@ -2812,7 +2840,7 @@ export default function Sidebar({
             </div>
 
             {/* Filters Row - Consolidated & Visible */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5">
+            <div className="grid grid-cols-3 gap-1.5 mt-2.5">
               {viewingType === "startups" ? (
                 <>
                   <div className="relative">
@@ -2826,7 +2854,7 @@ export default function Sidebar({
                           startups: { ...prev.startups, actorType: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
                       title="Filter by stakeholder type"
                     >
                       <option value="All">All Types</option>
@@ -2834,8 +2862,8 @@ export default function Sidebar({
                       <option value="ROLE_HEI">University / HEI</option>
                       <option value="ROLE_RESEARCH">Research Body</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
-                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
                     </div>
@@ -2852,17 +2880,17 @@ export default function Sidebar({
                           startups: { ...prev.startups, govReg: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
                       title="Filter by government registration agency"
                     >
-                      <option value="All">All Registrations</option>
+                      <option value="All">All Regs</option>
                       <option value="BIR">BIR Registered</option>
                       <option value="SEC">SEC Registered</option>
                       <option value="DTI">DTI Registered</option>
-                      <option value="REGISTERED">Gov Registered (Any)</option>
+                      <option value="REGISTERED">Gov Registered</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
-                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
                     </div>
@@ -2879,10 +2907,10 @@ export default function Sidebar({
                           startups: { ...prev.startups, searchField: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
                       title="Search in specific field"
                     >
-                      <option value="All">In: All Fields</option>
+                      <option value="All">All Fields</option>
                       <option value="companyName">Company Name</option>
                       <option value="industry">Industry</option>
                       <option value="companyDescription">Description</option>
@@ -2890,15 +2918,15 @@ export default function Sidebar({
                       <option value="foundedDate">Founded Date</option>
                       <option value="registrationDate">Registration Date</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
-                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="relative col-span-1 sm:col-span-3">
+                <div className="relative col-span-3">
                   <select
                     value={filters.stakeholders.searchField || "All"}
                     onChange={(e) => {
@@ -2908,7 +2936,7 @@ export default function Sidebar({
                         stakeholders: { ...prev.stakeholders, searchField: value },
                       }));
                     }}
-                    className="bg-white text-gray-900 text-xs font-semibold rounded-lg px-2.5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none pr-6 cursor-pointer truncate"
+                    className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-3 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
                   >
                     <option value="All">Search In: All Fields</option>
                     <option value="name">Name</option>
@@ -2916,8 +2944,8 @@ export default function Sidebar({
                     <option value="sector">Sector</option>
                     <option value="biography">Biography</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
-                    <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                  <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1.5 text-gray-500">
+                    <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
                       <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                     </svg>
                   </div>
@@ -3178,9 +3206,11 @@ export default function Sidebar({
                 if (container) {
                   container.classList.add("animate-slide-out");
                   setTimeout(() => {
+                    setShowRecents(false);
                     setContainerMode(null);
                   }, 300);
                 } else {
+                  setShowRecents(false);
                   setContainerMode(null);
                 }
               }}
@@ -3321,6 +3351,7 @@ export default function Sidebar({
           setViewingStartup={setViewingStartup}
           setViewingStakeholder={setViewingStakeholder}
           setContainerMode={setContainerMode}
+          setShowBookmarks={setShowBookmarks}
         />
       )}
 
@@ -4429,16 +4460,21 @@ export default function Sidebar({
             fetchStartups();
             fetchStakeholders();
             fetchUserLikes();
-            setContainerMode("search");
-            setShowSearchContainer((prev) => !prev);
             setShowRecents(false);
             setShowBookmarks(false);
             setViewingStartup(null);
             setViewingStakeholder(null);
             setShowGeminiAi(false);
+            if (showSearchContainer && (containerMode === "search" || !containerMode)) {
+              setShowSearchContainer(false);
+              setContainerMode(null);
+            } else {
+              setContainerMode("search");
+              setShowSearchContainer(true);
+            }
           }}
           className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
-            showSearchContainer ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
+            isBrowseActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
           }`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -4452,16 +4488,21 @@ export default function Sidebar({
           <button
             onClick={() => {
               if (location.pathname !== "/") navigate("/");
-              setContainerMode("recents");
-              setShowRecents((prev) => !prev);
               setShowSearchContainer(false);
               setShowBookmarks(false);
               setViewingStartup(null);
               setViewingStakeholder(null);
               setShowGeminiAi(false);
+              if (showRecents && containerMode === "recents") {
+                setShowRecents(false);
+                setContainerMode(null);
+              } else {
+                setContainerMode("recents");
+                setShowRecents(true);
+              }
             }}
             className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
-              showRecents ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
+              isRecentsActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -4476,16 +4517,21 @@ export default function Sidebar({
           <button
             onClick={() => {
               if (location.pathname !== "/") navigate("/");
-              setContainerMode("bookmarks");
-              setShowBookmarks((prev) => !prev);
               setShowSearchContainer(false);
               setShowRecents(false);
               setViewingStartup(null);
               setViewingStakeholder(null);
               setShowGeminiAi(false);
+              if (showBookmarks && containerMode === "bookmarks") {
+                setShowBookmarks(false);
+                setContainerMode(null);
+              } else {
+                setContainerMode("bookmarks");
+                setShowBookmarks(true);
+              }
             }}
             className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
-              showBookmarks ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
+              isBookmarksActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
