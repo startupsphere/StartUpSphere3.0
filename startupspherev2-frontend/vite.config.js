@@ -24,6 +24,12 @@ export default defineConfig({
         secure: false,
         rewrite: (p) => p.replace(/^\/xai-proxy/, ''),
       },
+      '/social-proxy': {
+        target: 'https://api.facebookscraperapi.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (p) => p.replace(/^\/social-proxy/, ''),
+      },
     },
     https: {
       key: fs.readFileSync(path.resolve(__dirname, 'cert.key')),

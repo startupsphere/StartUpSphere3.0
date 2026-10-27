@@ -647,21 +647,63 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
     setSyncingSocialId(startupToSync.id);
     try {
-      const res = await fetchStartupSocialMetrics(startupToSync);
+      let syncedData = null;
+      try {
+        const syncRes = await fetch(`${getBackendUrl()}/api/social/sync/${startupToSync.id}`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        });
+        if (syncRes.ok) {
+          const body = await syncRes.json();
+          if (body && body.success) {
+            syncedData = body;
+          }
+        }
+      } catch (beErr) {
+        console.debug("Backend sync endpoint error, falling back to client proxy:", beErr);
+      }
+
       let updatedFbFollowers = startupToSync.facebookFollowers || 0;
       let updatedFbLikes = startupToSync.facebookLikes || 0;
       let updatedIgFollowers = startupToSync.instagramFollowers || 0;
       let successCount = 0;
 
-      if (res.facebook && res.facebook.success) {
-        if (res.facebook.followers) updatedFbFollowers = res.facebook.followers;
-        if (res.facebook.likes) updatedFbLikes = res.facebook.likes;
+      if (syncedData) {
+        if (syncedData.facebookFollowers != null) updatedFbFollowers = syncedData.facebookFollowers;
+        if (syncedData.facebookLikes != null) updatedFbLikes = syncedData.facebookLikes;
+        if (syncedData.instagramFollowers != null) updatedIgFollowers = syncedData.instagramFollowers;
         successCount++;
-      }
+      } else {
+        const res = await fetchStartupSocialMetrics(startupToSync);
+        if (res.facebook && res.facebook.success) {
+          if (res.facebook.followers != null) updatedFbFollowers = res.facebook.followers;
+          if (res.facebook.likes != null) updatedFbLikes = res.facebook.likes;
+          successCount++;
+        }
 
-      if (res.instagram && res.instagram.success) {
-        if (res.instagram.followers) updatedIgFollowers = res.instagram.followers;
-        successCount++;
+        if (res.instagram && res.instagram.success) {
+          if (res.instagram.followers != null) updatedIgFollowers = res.instagram.followers;
+          successCount++;
+        }
+
+        // Persist to backend database
+        try {
+          await fetch(`${getBackendUrl()}/startups/${startupToSync.id}`, {
+            method: "PUT",
+            headers: {
+              ...getAuthHeaders(),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...startupToSync,
+              facebookFollowers: updatedFbFollowers,
+              facebookLikes: updatedFbLikes,
+              instagramFollowers: updatedIgFollowers,
+            }),
+          });
+        } catch (saveErr) {
+          console.warn("Could not persist social metrics to backend:", saveErr);
+        }
       }
 
       setStartups((prev) =>
@@ -676,25 +718,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
             : s
         )
       );
-
-      // Persist to backend database
-      try {
-        await fetch(`${getBackendUrl()}/startups/${startupToSync.id}`, {
-          method: "PUT",
-          headers: {
-            ...getAuthHeaders(),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...startupToSync,
-            facebookFollowers: updatedFbFollowers,
-            facebookLikes: updatedFbLikes,
-            instagramFollowers: updatedIgFollowers,
-          }),
-        });
-      } catch (saveErr) {
-        console.warn("Could not persist social metrics to backend:", saveErr);
-      }
 
       if (successCount > 0) {
         toast.success("Social engagement metrics synced live!");

@@ -1,24 +1,20 @@
+import { getBackendUrl } from "../config/apiConfig";
+
 /**
  * Social Engagement Service
  * Automatically fetches real-time Facebook and Instagram followers and engagement metrics
- * from startup social links via the Facebook Scraper API.
+ * from startup social links via backend proxy or Vite dev proxy to eliminate CORS restrictions.
  */
 
 const API_KEY = import.meta.env.VITE_FACEBOOK_SCRAPER_API_KEY || "cd_live_VMvBF9bbnTmw9n4w-UKWbCM0FwjAfJLj";
-const BASE_URL = "https://api.facebookscraperapi.com/api/v1";
+const PROXY_URL = "/social-proxy/api/v1";
+const DIRECT_URL = "https://api.facebookscraperapi.com/api/v1";
 
 // Cache duration: 1 hour in milliseconds
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Extracts a Facebook handle or numeric ID from any user-provided Facebook URL or text.
- * Examples:
- * - https://www.facebook.com/NASA/ -> NASA
- * - https://facebook.com/techcorp -> techcorp
- * - https://www.facebook.com/pages/TechCorp/100082218812038 -> 100082218812038
- * - https://www.facebook.com/profile.php?id=100082218812038&ref=ts -> 100082218812038
- * - facebook.com/mycompany -> mycompany
- * - mycompany -> mycompany
  */
 export function extractFbHandle(input) {
   if (!input) return null;
@@ -57,10 +53,6 @@ export function extractFbHandle(input) {
 
 /**
  * Extracts an Instagram username from any user-provided Instagram URL or text.
- * Examples:
- * - https://www.instagram.com/github/ -> github
- * - instagram.com/techcorp?igsh=123 -> techcorp
- * - @techcorp -> techcorp
  */
 export function extractIgHandle(input) {
   if (!input) return null;
@@ -80,9 +72,6 @@ export function extractIgHandle(input) {
   return parts[0];
 }
 
-/**
- * Reads cached result from sessionStorage to preserve API quota
- */
 function getCached(key) {
   try {
     const raw = sessionStorage.getItem(key);
@@ -97,9 +86,6 @@ function getCached(key) {
   return null;
 }
 
-/**
- * Writes result to sessionStorage cache
- */
 function setCached(key, data) {
   try {
     sessionStorage.setItem(
@@ -116,7 +102,7 @@ function setCached(key, data) {
 
 /**
  * Fetches real-time Facebook page engagement (followers & likes)
- * @param {string} facebookUrl - The startup's Facebook page URL or handle
+ * Prioritizes backend endpoint -> Vite proxy -> Direct API
  */
 export async function fetchFacebookEngagement(facebookUrl) {
   const handle = extractFbHandle(facebookUrl);
@@ -130,66 +116,84 @@ export async function fetchFacebookEngagement(facebookUrl) {
     return cached;
   }
 
+  // 1. Try Backend API first (avoids CORS completely)
   try {
-    const url = `${BASE_URL}/facebook/page?page=${encodeURIComponent(handle)}&api_key=${API_KEY}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.results || data.results.length === 0) {
-      return { followers: 0, likes: 0, success: false, message: "Page not found" };
-    }
-
-    const item = data.results[0];
-    let followers = 0;
-    let likes = 0;
-
-    // Follower extraction
-    if (item.followers) {
-      followers = parseInt(String(item.followers).replace(/,/g, ""), 10) || 0;
-    } else if (item.description) {
-      const match = item.description.match(/([\d,\.]+)\s*(?:followers|follower)/i);
-      if (match && match[1]) {
-        followers = parseInt(match[1].replace(/,/g, ""), 10) || 0;
+    const backendRes = await fetch(
+      `${getBackendUrl()}/api/social/facebook?url=${encodeURIComponent(facebookUrl)}`,
+      { method: "GET" }
+    );
+    if (backendRes.ok) {
+      const data = await backendRes.json();
+      if (data && data.success) {
+        setCached(cacheKey, data);
+        return data;
       }
     }
-
-    // Likes extraction
-    if (item.likes) {
-      likes = parseInt(String(item.likes).replace(/,/g, ""), 10) || 0;
-    } else if (item.description) {
-      const match = item.description.match(/([\d,\.]+)\s*(?:likes|like)/i);
-      if (match && match[1]) {
-        likes = parseInt(match[1].replace(/,/g, ""), 10) || 0;
-      }
-    }
-
-    // Fallback for likes: talking_about_count
-    if (!likes && item.talking_about_count) {
-      likes = parseInt(String(item.talking_about_count).replace(/,/g, ""), 10) || 0;
-    }
-
-    const result = {
-      handle,
-      name: item.name || item.title || handle,
-      followers,
-      likes,
-      success: true,
-    };
-
-    setCached(cacheKey, result);
-    return result;
-  } catch (error) {
-    console.warn(`[FacebookScraper] Failed to fetch Facebook engagement for ${handle}:`, error.message);
-    return { followers: 0, likes: 0, success: false, error: error.message };
+  } catch (e) {
+    console.debug("[SocialService] Backend Facebook endpoint not reachable, trying Vite proxy...", e);
   }
+
+  // 2. Try Vite /social-proxy or Direct API
+  const urlsToTry = [
+    `${PROXY_URL}/facebook/page?page=${encodeURIComponent(handle)}&api_key=${API_KEY}`,
+    `${DIRECT_URL}/facebook/page?page=${encodeURIComponent(handle)}&api_key=${API_KEY}`,
+  ];
+
+  for (const url of urlsToTry) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      if (!data.results || data.results.length === 0) continue;
+
+      const item = data.results[0];
+      let followers = 0;
+      let likes = 0;
+
+      if (item.followers) {
+        followers = parseInt(String(item.followers).replace(/,/g, ""), 10) || 0;
+      } else if (item.description) {
+        const match = item.description.match(/([\d,\.]+)\s*(?:followers|follower)/i);
+        if (match && match[1]) {
+          followers = parseInt(match[1].replace(/,/g, ""), 10) || 0;
+        }
+      }
+
+      if (item.likes) {
+        likes = parseInt(String(item.likes).replace(/,/g, ""), 10) || 0;
+      } else if (item.description) {
+        const match = item.description.match(/([\d,\.]+)\s*(?:likes|like)/i);
+        if (match && match[1]) {
+          likes = parseInt(match[1].replace(/,/g, ""), 10) || 0;
+        }
+      }
+
+      if (!likes && item.talking_about_count) {
+        likes = parseInt(String(item.talking_about_count).replace(/,/g, ""), 10) || 0;
+      }
+
+      const result = {
+        handle,
+        name: item.name || item.title || handle,
+        followers,
+        likes,
+        success: true,
+      };
+
+      setCached(cacheKey, result);
+      return result;
+    } catch (err) {
+      console.warn(`[SocialService] Proxy fetch attempt failed for ${url}:`, err.message);
+    }
+  }
+
+  return { followers: 0, likes: 0, success: false, message: "Could not fetch Facebook page stats" };
 }
 
 /**
  * Fetches real-time Instagram audience (followers & posts)
- * @param {string} instagramUrl - The startup's Instagram page URL or handle
+ * Prioritizes backend endpoint -> Vite proxy -> Direct API
  */
 export async function fetchInstagramEngagement(instagramUrl) {
   const username = extractIgHandle(instagramUrl);
@@ -203,36 +207,58 @@ export async function fetchInstagramEngagement(instagramUrl) {
     return cached;
   }
 
+  // 1. Try Backend API first (avoids CORS completely)
   try {
-    const url = `${BASE_URL}/instagram/profile?username=${encodeURIComponent(username)}&api_key=${API_KEY}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
+    const backendRes = await fetch(
+      `${getBackendUrl()}/api/social/instagram?url=${encodeURIComponent(instagramUrl)}`,
+      { method: "GET" }
+    );
+    if (backendRes.ok) {
+      const data = await backendRes.json();
+      if (data && data.success) {
+        setCached(cacheKey, data);
+        return data;
+      }
     }
-
-    const data = await response.json();
-    const followers = data.follower_count || 0;
-    const posts = data.posts_count || 0;
-
-    const result = {
-      username,
-      name: data.full_name || username,
-      followers,
-      posts,
-      success: true,
-    };
-
-    setCached(cacheKey, result);
-    return result;
-  } catch (error) {
-    console.warn(`[InstagramScraper] Failed to fetch Instagram engagement for ${username}:`, error.message);
-    return { followers: 0, posts: 0, success: false, error: error.message };
+  } catch (e) {
+    console.debug("[SocialService] Backend Instagram endpoint not reachable, trying Vite proxy...", e);
   }
+
+  // 2. Try Vite /social-proxy or Direct API
+  const urlsToTry = [
+    `${PROXY_URL}/instagram/profile?username=${encodeURIComponent(username)}&api_key=${API_KEY}`,
+    `${DIRECT_URL}/instagram/profile?username=${encodeURIComponent(username)}&api_key=${API_KEY}`,
+  ];
+
+  for (const url of urlsToTry) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const followers = data.follower_count || 0;
+      const posts = data.posts_count || 0;
+
+      const result = {
+        username,
+        name: data.full_name || username,
+        followers,
+        posts,
+        success: true,
+      };
+
+      setCached(cacheKey, result);
+      return result;
+    } catch (err) {
+      console.warn(`[SocialService] Instagram proxy fetch attempt failed for ${url}:`, err.message);
+    }
+  }
+
+  return { followers: 0, posts: 0, success: false, message: "Could not fetch Instagram stats" };
 }
 
 /**
  * Helper to fetch both Facebook and Instagram engagement for a startup object
- * @param {object} startup - Startup entity with facebook and/or instagram properties
  */
 export async function fetchStartupSocialMetrics(startup) {
   if (!startup) return { facebook: null, instagram: null };
