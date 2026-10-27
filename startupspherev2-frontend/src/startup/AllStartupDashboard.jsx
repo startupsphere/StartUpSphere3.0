@@ -1419,7 +1419,7 @@ export default function AllStartupDashboard() {
                     setSelectedIndustry(e.target.value);
                     setCurrentPage(0);
                   }}
-                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
                     selectedIndustry !== "All"
                       ? "bg-indigo-50/70 border-indigo-400 text-indigo-900 ring-2 ring-indigo-100"
                       : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
@@ -1430,9 +1430,6 @@ export default function AllStartupDashboard() {
                     <option key={i} value={ind}>{ind}</option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <ChevronRight className="w-4 h-4 rotate-90" />
-                </div>
               </div>
             </div>
 
@@ -1454,7 +1451,7 @@ export default function AllStartupDashboard() {
                     setSelectedGovReg(e.target.value);
                     setCurrentPage(0);
                   }}
-                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
                     selectedGovReg !== "All"
                       ? "bg-emerald-50/70 border-emerald-400 text-emerald-900 ring-2 ring-emerald-100"
                       : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
@@ -1467,9 +1464,6 @@ export default function AllStartupDashboard() {
                   <option value="REGISTERED">Any Registered Agency</option>
                   <option value="UNREGISTERED">Unregistered / Pending</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <ChevronRight className="w-4 h-4 rotate-90" />
-                </div>
               </div>
             </div>
 
@@ -1488,7 +1482,7 @@ export default function AllStartupDashboard() {
                     setSelectedTrlStage(e.target.value);
                     setCurrentPage(0);
                   }}
-                  className={`w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${
                     selectedTrlStage !== "All"
                       ? "bg-amber-50/70 border-amber-400 text-amber-900 ring-2 ring-amber-100"
                       : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
@@ -1499,9 +1493,6 @@ export default function AllStartupDashboard() {
                   <option value="4-6">TRL 4-6: Prototype / Validation</option>
                   <option value="7-9">TRL 7-9: Market-Ready / Commercial</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <ChevronRight className="w-4 h-4 rotate-90" />
-                </div>
               </div>
             </div>
 
@@ -1517,7 +1508,7 @@ export default function AllStartupDashboard() {
                     setRankingMetric(e.target.value);
                     setCurrentPage(0);
                   }}
-                  className="w-full appearance-none rounded-xl px-3.5 py-2.5 pr-9 text-xs md:text-sm font-semibold bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                 >
                   <option value="overall">Overall Performance Score</option>
                   <option value="growth">Growth Score</option>
@@ -1525,9 +1516,6 @@ export default function AllStartupDashboard() {
                   <option value="ecosystem">Ecosystem Score</option>
                   <option value="engagement">Engagement Score</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <ChevronRight className="w-4 h-4 rotate-90" />
-                </div>
               </div>
             </div>
           </div>
