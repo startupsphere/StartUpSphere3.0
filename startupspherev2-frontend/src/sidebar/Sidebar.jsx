@@ -1702,325 +1702,327 @@ export default function Sidebar({
 
       {/* Desktop Sidebar with Polished Modern Theme */}
       <aside 
-        className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-50 sidebar-container" 
+        className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-50 sidebar-container overflow-hidden select-none" 
         style={{ zIndex: 50 }}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex justify-center items-center py-4 border-b border-slate-100">
-            <button
-              onClick={() => {
-                navigate("/");
-                setShowSearchContainer(false);
-                setShowRecents(false);
-                setShowBookmarks(false);
-                setViewingStartup(null);
-                setViewingStakeholder(null);
-                setStartup(null);
-                setStakeholder(null);
-                setContainerMode(null);
-                setShowGeminiAi(false);
-              }}
-              className="group relative flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 duration-200"
-              aria-label="Home"
-            >
-              <div className="p-2.5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-cyan-500/10 border border-blue-200/70 shadow-xs group-hover:shadow-md group-hover:border-blue-400/80 transition-all duration-200">
-                <img
-                  src="/StartUpSphere_logo.png"
-                  alt="StartUpSphere Logo"
-                  className="h-7 w-7 object-contain drop-shadow-xs"
-                />
-              </div>
-              <span
-                className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                style={{ zIndex: 99999 }}
+        <div className="flex flex-col h-full justify-between overflow-hidden">
+          <div className="flex flex-col overflow-hidden">
+            {/* Logo */}
+            <div className="flex justify-center items-center py-4 border-b border-slate-100 flex-shrink-0">
+              <button
+                onClick={() => {
+                  navigate("/");
+                  setShowSearchContainer(false);
+                  setShowRecents(false);
+                  setShowBookmarks(false);
+                  setViewingStartup(null);
+                  setViewingStakeholder(null);
+                  setStartup(null);
+                  setStakeholder(null);
+                  setContainerMode(null);
+                  setShowGeminiAi(false);
+                }}
+                className="group relative flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 duration-200"
+                aria-label="Home"
               >
-                Home
-              </span>
-            </button>
-          </div>
-
-          {/* Navigation Items */}
-          <div className="flex-1 overflow-y-auto py-3 px-2 scrollbar-none">
-            <ul className="space-y-2">
-              {/* Browse Icon */}
-              <li className="flex justify-center relative">
-                {showSearchContainer && (
-                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                )}
-                <button
-                  className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                    showSearchContainer
-                      ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                  }`}
-                  onClick={() => {
-                    if (location.pathname !== "/") {
-                      navigate("/");
-                    }
-                    fetchStartups();
-                    fetchStakeholders();
-                    fetchUserLikes();
-                    setContainerMode("search");
-                    setShowSearchContainer((prev) => !prev);
-                    setViewingStartup(null);
-                    setViewingStakeholder(null);
-                    setShowGeminiAi(false);
-                  }}
-                  aria-label="Browse"
+                <div className="p-2.5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-cyan-500/10 border border-blue-200/70 shadow-xs group-hover:shadow-md group-hover:border-blue-400/80 transition-all duration-200">
+                  <img
+                    src="/StartUpSphere_logo.png"
+                    alt="StartUpSphere Logo"
+                    className="h-7 w-7 object-contain drop-shadow-xs"
+                  />
+                </div>
+                <span
+                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                  style={{ zIndex: 99999 }}
                 >
-                  <FaGlobe className="h-5.5 w-5.5" />
-                  <span
-                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                    style={{ zIndex: 99999 }}
+                  Home
+                </span>
+              </button>
+            </div>
+
+            {/* Navigation Items */}
+            <div className="py-2.5 px-2 overflow-hidden">
+              <ul className="space-y-1.5">
+                {/* Browse Icon */}
+                <li className="flex justify-center relative">
+                  {showSearchContainer && (
+                    <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                  )}
+                  <button
+                    className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                      showSearchContainer
+                        ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                        : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                    }`}
+                    onClick={() => {
+                      if (location.pathname !== "/") {
+                        navigate("/");
+                      }
+                      fetchStartups();
+                      fetchStakeholders();
+                      fetchUserLikes();
+                      setContainerMode("search");
+                      setShowSearchContainer((prev) => !prev);
+                      setViewingStartup(null);
+                      setViewingStakeholder(null);
+                      setShowGeminiAi(false);
+                    }}
+                    aria-label="Browse"
                   >
-                    Browse Directory
-                  </span>
-                </button>
-              </li>
-
-              {/* Recents and Bookmarks Icons (Only if Authenticated) */}
-              {isAuthenticated && (
-                <>
-                  {/* Recents Icon */}
-                  <li className="flex justify-center relative">
-                    {showRecents && (
-                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                    )}
-                    <button
-                      className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                        showRecents
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                      }`}
-                      onClick={() => {
-                        if (location.pathname !== "/") {
-                          navigate("/");
-                        }
-                        setContainerMode("recents");
-                        setShowRecents(!showRecents);
-                        setShowSearchContainer(false);
-                        setStartup(null);
-                        setStakeholder(null);
-                        setViewingStartup(null);
-                        setViewingStakeholder(null);
-                        setShowGeminiAi(false);
-                      }}
-                      aria-label="Recents"
+                    <FaGlobe className="h-5.5 w-5.5" />
+                    <span
+                      className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                      style={{ zIndex: 99999 }}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5.5 w-5.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span
-                        className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                        style={{ zIndex: 99999 }}
-                      >
-                        Recents
-                      </span>
-                    </button>
-                  </li>
+                      Browse Directory
+                    </span>
+                  </button>
+                </li>
 
-                  {/* Bookmarks Icon */}
-                  <li className="flex justify-center relative">
-                    {showBookmarks && (
-                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                    )}
-                    <button
-                      className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                        showBookmarks
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                      }`}
-                      onClick={() => {
-                        if (location.pathname !== "/") {
-                          navigate("/");
-                        }
-                        setContainerMode("bookmarks");
-                        setShowBookmarks(!showBookmarks);
-                        setShowSearchContainer(false);
-                        setStartup(null);
-                        setStakeholder(null);
-                        setViewingStartup(null);
-                        setViewingStakeholder(null);
-                        setShowGeminiAi(false);
-                      }}
-                      aria-label="Bookmarks"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5.5 w-5.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 3v18l7-5 7 5V3H5z"
-                        />
-                      </svg>
-                      <span
-                        className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                        style={{ zIndex: 99999 }}
-                      >
-                        Bookmarks
-                      </span>
-                    </button>
-                  </li>
-
-                  {/* Dashboard Icon */}
-                  <li className="flex justify-center relative">
-                    {(location.pathname === "/startup-dashboard" ||
-                      (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard")) && (
-                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                    )}
-                    <button
-                      onClick={() => {
-                        setShowRecents(false);
-                        setShowSearchContainer(false);
-                        setShowBookmarks(false);
-                        setShowGeminiAi(false);
-                        if (!isAuthenticated) {
-                          setOpenLogin(true);
-                        } else if (currentUser?.role === "ROLE_ADMIN") {
-                          navigate("/all-startup-dashboard");
-                        } else {
-                          navigate("/startup-dashboard");
-                        }
-                      }}
-                      className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                        (location.pathname === "/startup-dashboard" ||
-                          (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard"))
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                      }`}
-                      aria-label="Dashboard"
-                    >
-                      <LuLayoutDashboard className="h-5.5 w-5.5" />
-                      <span
-                        className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                        style={{ zIndex: 99999 }}
-                      >
-                        Dashboard
-                      </span>
-                    </button>
-                  </li>
-
-                  {/* All Startups Icon */}
-                  <li className="flex justify-center relative">
-                    {location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN" && (
-                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                    )}
-                    <button
-                      onClick={() => {
-                        setShowRecents(false);
-                        setShowSearchContainer(false);
-                        setShowBookmarks(false);
-                        setShowGeminiAi(false);
-                        navigate("/all-startup-dashboard");
-                      }}
-                      className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                        location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN"
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                      }`}
-                      aria-label="All Startups"
-                    >
-                      <Award className="h-5.5 w-5.5" />
-                      <span
-                        className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                        style={{ zIndex: 99999 }}
-                      >
-                        All Startups & Rankings
-                      </span>
-                    </button>
-                  </li>
-
-                  {/* Notifications Bell - Only show for non-admin users */}
-                  {currentUser?.role !== "ROLE_ADMIN" && (
+                {/* Recents and Bookmarks Icons (Only if Authenticated) */}
+                {isAuthenticated && (
+                  <>
+                    {/* Recents Icon */}
                     <li className="flex justify-center relative">
-                      {location.pathname === "/notifications" && (
+                      {showRecents && (
                         <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                       )}
                       <button
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                          location.pathname === "/notifications"
+                          showRecents
                             ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                             : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                         }`}
-                        onClick={() => { setShowGeminiAi(false); navigate("/notifications"); }}
-                        aria-label="Notifications"
+                        onClick={() => {
+                          if (location.pathname !== "/") {
+                            navigate("/");
+                          }
+                          setContainerMode("recents");
+                          setShowRecents(!showRecents);
+                          setShowSearchContainer(false);
+                          setStartup(null);
+                          setStakeholder(null);
+                          setViewingStartup(null);
+                          setViewingStakeholder(null);
+                          setShowGeminiAi(false);
+                        }}
+                        aria-label="Recents"
                       >
-                        <div className="relative">
-                          <FaBell className="h-5.5 w-5.5" />
-                          {notificationsCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-full font-bold shadow-xs">
-                              {notificationsCount > 9 ? "9+" : notificationsCount}
-                            </span>
-                          )}
-                        </div>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5.5 w-5.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
                         <span
                           className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
                           style={{ zIndex: 99999 }}
                         >
-                          Notifications
+                          Recents
                         </span>
                       </button>
                     </li>
-                  )}
-                </>
-              )}
 
-              {/* Gemini AI Sparkles Icon */}
-              <li className="flex justify-center relative">
-                {showGeminiAi && (
-                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-600 rounded-r-full" />
+                    {/* Bookmarks Icon */}
+                    <li className="flex justify-center relative">
+                      {showBookmarks && (
+                        <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                      )}
+                      <button
+                        className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                          showBookmarks
+                            ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                            : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                        }`}
+                        onClick={() => {
+                          if (location.pathname !== "/") {
+                            navigate("/");
+                          }
+                          setContainerMode("bookmarks");
+                          setShowBookmarks(!showBookmarks);
+                          setShowSearchContainer(false);
+                          setStartup(null);
+                          setStakeholder(null);
+                          setViewingStartup(null);
+                          setViewingStakeholder(null);
+                          setShowGeminiAi(false);
+                        }}
+                        aria-label="Bookmarks"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5.5 w-5.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 3v18l7-5 7 5V3H5z"
+                          />
+                        </svg>
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                          style={{ zIndex: 99999 }}
+                        >
+                          Bookmarks
+                        </span>
+                      </button>
+                    </li>
+
+                    {/* Dashboard Icon */}
+                    <li className="flex justify-center relative">
+                      {(location.pathname === "/startup-dashboard" ||
+                        (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard")) && (
+                        <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowRecents(false);
+                          setShowSearchContainer(false);
+                          setShowBookmarks(false);
+                          setShowGeminiAi(false);
+                          if (!isAuthenticated) {
+                            setOpenLogin(true);
+                          } else if (currentUser?.role === "ROLE_ADMIN") {
+                            navigate("/all-startup-dashboard");
+                          } else {
+                            navigate("/startup-dashboard");
+                          }
+                        }}
+                        className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                          (location.pathname === "/startup-dashboard" ||
+                            (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard"))
+                            ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                            : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                        }`}
+                        aria-label="Dashboard"
+                      >
+                        <LuLayoutDashboard className="h-5.5 w-5.5" />
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                          style={{ zIndex: 99999 }}
+                        >
+                          Dashboard
+                        </span>
+                      </button>
+                    </li>
+
+                    {/* All Startups Icon */}
+                    <li className="flex justify-center relative">
+                      {location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN" && (
+                        <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowRecents(false);
+                          setShowSearchContainer(false);
+                          setShowBookmarks(false);
+                          setShowGeminiAi(false);
+                          navigate("/all-startup-dashboard");
+                        }}
+                        className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                          location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN"
+                            ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                            : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                        }`}
+                        aria-label="All Startups"
+                      >
+                        <Award className="h-5.5 w-5.5" />
+                        <span
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                          style={{ zIndex: 99999 }}
+                        >
+                          All Startups & Rankings
+                        </span>
+                      </button>
+                    </li>
+
+                    {/* Notifications Bell - Only show for non-admin users */}
+                    {currentUser?.role !== "ROLE_ADMIN" && (
+                      <li className="flex justify-center relative">
+                        {location.pathname === "/notifications" && (
+                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                        )}
+                        <button
+                          className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                            location.pathname === "/notifications"
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                              : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                          }`}
+                          onClick={() => { setShowGeminiAi(false); navigate("/notifications"); }}
+                          aria-label="Notifications"
+                        >
+                          <div className="relative">
+                            <FaBell className="h-5.5 w-5.5" />
+                            {notificationsCount > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-full font-bold shadow-xs">
+                                {notificationsCount > 9 ? "9+" : notificationsCount}
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                            style={{ zIndex: 99999 }}
+                          >
+                            Notifications
+                          </span>
+                        </button>
+                      </li>
+                    )}
+                  </>
                 )}
-                <button
-                  className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                    showGeminiAi
-                      ? "bg-gradient-to-tr from-indigo-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/30 scale-105"
-                      : "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 hover:scale-105 active:scale-95"
-                  }`}
-                  onClick={() => {
-                    setShowSearchContainer(false);
-                    setShowRecents(false);
-                    setShowBookmarks(false);
-                    setViewingStartup(null);
-                    setViewingStakeholder(null);
-                    setStartup(null);
-                    setStakeholder(null);
-                    setContainerMode(null);
-                    setShowGeminiAi(!showGeminiAi);
-                  }}
-                  aria-label="AI Assistant"
-                >
-                  <Sparkles className="h-5.5 w-5.5" />
-                  <span
-                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                    style={{ zIndex: 99999 }}
+
+                {/* Gemini AI Sparkles Icon */}
+                <li className="flex justify-center relative">
+                  {showGeminiAi && (
+                    <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-600 rounded-r-full" />
+                  )}
+                  <button
+                    className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
+                      showGeminiAi
+                        ? "bg-gradient-to-tr from-indigo-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/30 scale-105"
+                        : "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 hover:scale-105 active:scale-95"
+                    }`}
+                    onClick={() => {
+                      setShowSearchContainer(false);
+                      setShowRecents(false);
+                      setShowBookmarks(false);
+                      setViewingStartup(null);
+                      setViewingStakeholder(null);
+                      setStartup(null);
+                      setStakeholder(null);
+                      setContainerMode(null);
+                      setShowGeminiAi(!showGeminiAi);
+                    }}
+                    aria-label="AI Assistant"
                   >
-                    Groq AI Assistant
-                  </span>
-                </button>
-              </li>
-            </ul>
+                    <Sparkles className="h-5.5 w-5.5" />
+                    <span
+                      className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                      style={{ zIndex: 99999 }}
+                    >
+                      Groq AI Assistant
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
 
           {/* Sidebar Footer */}
-          <div className="border-t border-slate-100 bg-slate-50/60 p-2.5">
+          <div className="border-t border-slate-100 bg-slate-50/60 p-2.5 flex-shrink-0">
             {isAuthenticated ? (
               <div className="flex justify-center">
                 <button
