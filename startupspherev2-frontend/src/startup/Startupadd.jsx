@@ -2845,11 +2845,6 @@ const handleSubmit = async () => {
                     <option value="TRL 8">TRL 8 - System complete and qualified</option>
                     <option value="TRL 9">TRL 9 - Actual system proven in operational environment</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.trlLevel && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -3107,11 +3102,6 @@ const handleSubmit = async () => {
                     <option value="Sole Proprietorship">Sole Proprietorship</option>
                     <option value="Stock Corporation">Stock Corporation</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.typeOfCompany && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -3269,11 +3259,6 @@ const handleSubmit = async () => {
                   <option value="Other Services">Other Services</option>
                 </optgroup>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.industry && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -3345,11 +3330,6 @@ const handleSubmit = async () => {
                     <option value={true}>Yes, my startup is registered</option>
                     <option value={false}>No, not yet registered</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.isGovernmentRegistered && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -3408,11 +3388,6 @@ const handleSubmit = async () => {
                       <option value="LGU">LGU (Local Government Unit / Mayor's Permit)</option>
                       <option value="other">Other (Please specify)</option>
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
                   </div>
                   {fieldErrors.registrationAgency && (
                     <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -4163,11 +4138,6 @@ const handleSubmit = async () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.region && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -4228,11 +4198,6 @@ const handleSubmit = async () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.province && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -4290,11 +4255,6 @@ const handleSubmit = async () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.city && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -4350,11 +4310,6 @@ const handleSubmit = async () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.barangay && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
@@ -4870,11 +4825,6 @@ const handleSubmit = async () => {
                     <option value="Series D+">Series D+</option>
                     <option value="Venture Capital">Venture Capital</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
                 {fieldErrors.fundingStage && (
                   <p className="text-xs text-red-600 flex items-center gap-1 mt-1">

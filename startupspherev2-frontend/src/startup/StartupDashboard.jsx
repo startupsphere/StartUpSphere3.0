@@ -1468,7 +1468,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     id="dashboard-startup-select"
                     value={selectedStartup}
                     onChange={handleChange}
-                    className="w-full appearance-none bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-900 text-sm font-medium rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer"
+                    className="w-full text-gray-900 text-sm font-semibold rounded-xl px-4 py-2.5 pr-10 outline-none cursor-pointer"
                     disabled={loading}
                   >
                     <option value="all">All Portfolio Startups ({startups.length})</option>
@@ -1478,11 +1478,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
               </div>
 

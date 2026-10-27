@@ -2922,7 +2922,7 @@ export default function Sidebar({
                           startups: { ...prev.startups, actorType: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
                       title="Filter by stakeholder type"
                     >
                       <option value="All">All Types</option>
@@ -2930,11 +2930,6 @@ export default function Sidebar({
                       <option value="ROLE_HEI">University / HEI</option>
                       <option value="ROLE_RESEARCH">Research Body</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
-                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                      </svg>
-                    </div>
                   </div>
 
                   <div className="relative">
@@ -2948,7 +2943,7 @@ export default function Sidebar({
                           startups: { ...prev.startups, govReg: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
                       title="Filter by government registration agency"
                     >
                       <option value="All">All Regs</option>
@@ -2957,11 +2952,6 @@ export default function Sidebar({
                       <option value="DTI">DTI Registered</option>
                       <option value="REGISTERED">Gov Registered</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
-                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                      </svg>
-                    </div>
                   </div>
 
                   <div className="relative">
@@ -2975,7 +2965,7 @@ export default function Sidebar({
                           startups: { ...prev.startups, searchField: value },
                         }));
                       }}
-                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-5 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
                       title="Search in specific field"
                     >
                       <option value="All">All Fields</option>
@@ -2986,11 +2976,6 @@ export default function Sidebar({
                       <option value="foundedDate">Founded Date</option>
                       <option value="registrationDate">Registration Date</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1 text-gray-500">
-                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                      </svg>
-                    </div>
                   </div>
                 </>
               ) : (
@@ -3004,7 +2989,7 @@ export default function Sidebar({
                         stakeholders: { ...prev.stakeholders, searchField: value },
                       }));
                     }}
-                    className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-3 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full appearance-none cursor-pointer truncate"
+                    className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-3 pr-7 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
                   >
                     <option value="All">Search In: All Fields</option>
                     <option value="name">Name</option>
@@ -3012,11 +2997,6 @@ export default function Sidebar({
                     <option value="sector">Sector</option>
                     <option value="biography">Biography</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1.5 text-gray-500">
-                    <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                  </div>
                 </div>
               )}
             </div>

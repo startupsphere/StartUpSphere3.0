@@ -2215,12 +2215,6 @@ export default function StartupDetail() {
                                           </option>
                                           <option value="Other">Other</option>
                                         </select>
-                                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                          <ChevronDown
-                                            size={14}
-                                            className="text-gray-500"
-                                          />
-                                        </div>
                                       </div>
                                     </div>
 
@@ -2431,12 +2425,6 @@ export default function StartupDetail() {
                                           </option>
                                           <option value="Former">Former</option>
                                         </select>
-                                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                          <ChevronDown
-                                            size={14}
-                                            className="text-gray-500"
-                                          />
-                                        </div>
                                       </div>
                                     </div>
                                   </div>

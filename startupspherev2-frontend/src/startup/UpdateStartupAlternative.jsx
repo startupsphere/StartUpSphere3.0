@@ -963,9 +963,6 @@ export default function UpdateStartup() {
                         <option value="Other Services">Other Services</option>
                       </optgroup>
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                      <ChevronRight size={18} className="text-gray-400 rotate-90" />
-                    </div>
                   </div>
                 </div>
 
@@ -1036,9 +1033,6 @@ export default function UpdateStartup() {
                       <option value="Nonprofit Organization">Nonprofit Organization</option>
                       <option value="Franchise">Franchise</option>
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                      <ChevronRight size={18} className="text-gray-400 rotate-90" />
-                    </div>
                   </div>
                 </div>
               </div>
