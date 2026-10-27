@@ -1970,14 +1970,14 @@ const handleSubmit = async () => {
         }
       );
 
-      let emailResponseData;
+      let emailResponseData = {};
       try {
         emailResponseData = await emailResponse.json();
       } catch (jsonError) {
         console.error("Failed to parse email response:", jsonError);
-        toast.error(
-          "Failed to send verification email: Invalid server response."
-        );
+        setIsSubmittingStartup(false);
+        toast.error("Failed to send verification email: Invalid server response.");
+        setVerificationModal(true);
         return;
       }
 
@@ -2006,11 +2006,13 @@ const handleSubmit = async () => {
           setIsSubmittingStartup(false);
         }, 500);
       } else {
-        toast.error(
-          `Failed to send verification email: ${
-            emailResponseData.error || "Unknown error"
-          }`
-        );
+        setIsSubmittingStartup(false);
+        const errorMsg =
+          emailResponseData.error ||
+          emailResponseData.message ||
+          "Failed to send verification email.";
+        toast.error(errorMsg);
+        setVerificationModal(true);
       }
 
   } catch (error) {

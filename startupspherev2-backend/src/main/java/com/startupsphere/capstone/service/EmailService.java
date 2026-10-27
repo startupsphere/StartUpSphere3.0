@@ -31,13 +31,13 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username:cabigasanrey@gmail.com}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password:ipttavepjcgreujc}")
     private String mailPassword;
 
-    @Value("${spring.mail.from:}")
+    @Value("${spring.mail.from:cabigasanrey@gmail.com}")
     private String mailFrom;
 
     @Value("${sendgrid.api.key:}")
@@ -50,31 +50,43 @@ public class EmailService {
     private String sendgridFromName;
 
     private synchronized JavaMailSender getOrCreateMailSender() {
-        if (mailSender != null) {
-            return mailSender;
-        }
         String username = getEffectiveUsername();
         String password = getEffectivePassword();
+
+        if (mailSender instanceof JavaMailSenderImpl impl) {
+            if (impl.getUsername() == null || impl.getUsername().isBlank()) {
+                impl.setUsername(username);
+            }
+            if (impl.getPassword() == null || impl.getPassword().isBlank()) {
+                impl.setPassword(password);
+            }
+            configureMailProperties(impl);
+            return impl;
+        }
+
         if (username != null && !username.isBlank() && password != null && !password.isBlank()) {
             JavaMailSenderImpl impl = new JavaMailSenderImpl();
             impl.setHost("smtp.gmail.com");
             impl.setPort(587);
             impl.setUsername(username);
             impl.setPassword(password);
-
-            Properties props = impl.getJavaMailProperties();
-            props.put("mail.transport.protocol", "smtp");
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.starttls.required", "true");
-            props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-            props.put("mail.smtp.connectiontimeout", "10000");
-            props.put("mail.smtp.timeout", "10000");
-            props.put("mail.smtp.writetimeout", "10000");
+            configureMailProperties(impl);
             this.mailSender = impl;
             return impl;
         }
-        return null;
+        return mailSender;
+    }
+
+    private void configureMailProperties(JavaMailSenderImpl impl) {
+        Properties props = impl.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.starttls.required", "true");
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.connectiontimeout", "10000");
+        props.put("mail.smtp.timeout", "10000");
+        props.put("mail.smtp.writetimeout", "10000");
     }
 
     public String getEffectiveUsername() {
