@@ -1702,11 +1702,11 @@ export default function Sidebar({
 
       {/* Desktop Sidebar with Polished Modern Theme */}
       <aside 
-        className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-50 sidebar-container overflow-hidden select-none" 
+        className="hidden md:flex relative h-screen w-20 flex-col justify-between border-r border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-50 sidebar-container select-none" 
         style={{ zIndex: 50 }}
       >
-        <div className="flex flex-col h-full justify-between overflow-hidden">
-          <div className="flex flex-col overflow-hidden">
+        <div className="flex flex-col h-full justify-between">
+          <div className="flex flex-col">
             {/* Logo */}
             <div className="flex justify-center items-center py-4 border-b border-slate-100 flex-shrink-0">
               <button
@@ -1742,7 +1742,7 @@ export default function Sidebar({
             </div>
 
             {/* Navigation Items */}
-            <div className="py-2.5 px-2 overflow-hidden">
+            <div className="py-2.5 px-2">
               <ul className="space-y-1.5">
                 {/* Browse Icon */}
                 <li className="flex justify-center relative">
@@ -2013,7 +2013,7 @@ export default function Sidebar({
                       className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
                       style={{ zIndex: 99999 }}
                     >
-                      Groq AI Assistant
+                      AI Agent
                     </span>
                   </button>
                 </li>
