@@ -8,8 +8,6 @@ export default function DashboardVerification({ setVerificationModal, startupId,
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [devCode, setDevCode] = useState(null);
-  const [isSandbox, setIsSandbox] = useState(false);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -34,8 +32,8 @@ export default function DashboardVerification({ setVerificationModal, startupId,
 const handleVerify = async () => {
   const cleanCode = verificationCode.trim();
   if (!cleanCode || cleanCode.length < 4) {
-    toast.error("Please enter a valid verification code (at least 4 digits).");
-    setError("Please enter a valid verification code (at least 4 digits).");
+    toast.error("Please enter the verification code sent to your email.");
+    setError("Please enter the verification code sent to your email.");
     return;
   }
 
@@ -110,18 +108,7 @@ const handleVerify = async () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.sandbox && data.devCode) {
-          setIsSandbox(true);
-          setDevCode(data.devCode);
-          toast.info(`Sandbox Mode: Gmail not configured in .env. Test code: ${data.devCode}`, {
-            autoClose: 10000,
-          });
-        } else {
-          setIsSandbox(false);
-          setDevCode(null);
-          toast.success("Verification code sent to your email!");
-        }
+        toast.success("Verification code sent to your email!");
         setResendTimer(60);
         setCanResend(false);
       } else {
@@ -158,35 +145,6 @@ const handleVerify = async () => {
           A verification code has been sent to <span className="font-semibold text-gray-800">{contactEmail}</span>. Please enter the code below.
         </p>
 
-        {/* Sandbox Notice Banner (if Gmail is not configured in backend .env) */}
-        {isSandbox && devCode && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
-            <div className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800">
-              <svg className="w-4 h-4 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span>Development Sandbox Mode</span>
-            </div>
-            <p className="text-amber-800 mb-2 leading-relaxed">
-              Gmail credentials are not configured in <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code>. To deliver real emails, set <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">MAIL_USERNAME</code> and <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">MAIL_PASSWORD</code> in <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">backend/.env</code>.
-            </p>
-            <div className="flex items-center gap-2 pt-1 border-t border-amber-200/60">
-              <span className="font-medium">Test Code:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setVerificationCode(devCode);
-                  setError("");
-                }}
-                className="font-mono font-bold text-sm bg-white hover:bg-amber-100 text-amber-950 px-2.5 py-1 rounded border border-amber-300 shadow-sm cursor-pointer transition-colors"
-                title="Click to auto-fill this code"
-              >
-                {devCode} <span className="text-xs font-normal text-amber-700 underline ml-1">(click to fill)</span>
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="mb-4">
           <label className="block text-gray-700 mb-1 text-sm font-medium">Verification Code</label>
           <input
@@ -206,7 +164,7 @@ const handleVerify = async () => {
                 handleVerify();
               }
             }}
-            placeholder="Enter verification code"
+            placeholder="Enter 6-digit code"
             className="w-full border text-gray-800 border-gray-300 rounded-md px-4 py-2.5 text-center text-lg tracking-widest font-mono font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
           {error && <p className="text-red-500 text-sm mt-1">{error}</p>}

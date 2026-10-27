@@ -298,8 +298,6 @@ export default function Startupadd() {
   });
 
   const [verificationModal, setVerificationModal] = useState(false);
-  const [initialDevCode, setInitialDevCode] = useState(null);
-  const [isInitialSandbox, setIsInitialSandbox] = useState(false);
   const [error, setError] = useState("");
   const [uploadedImage, setUploadedImage] = useState(null);
   const [draftLogoUrl, setDraftLogoUrl] = useState(null);
@@ -1987,17 +1985,7 @@ const handleSubmit = async () => {
         setSubmissionProgress(95);
         setSubmissionStatus("Finalizing submission...");
         
-        if (emailResponseData.sandbox && emailResponseData.devCode) {
-          toast.info(`Sandbox Mode: Gmail not configured in .env. Test code: ${emailResponseData.devCode}`, {
-            autoClose: 10000,
-          });
-          setInitialDevCode(emailResponseData.devCode);
-          setIsInitialSandbox(true);
-        } else {
-          toast.success("Startup added successfully! Verification email sent.");
-          setIsInitialSandbox(false);
-          setInitialDevCode(null);
-        }
+        toast.success("Startup added successfully! Verification email sent.");
 
         try {
           await fetch(`${getBackendUrl()}/startups/draft`, {
@@ -5456,8 +5444,6 @@ const handleSubmit = async () => {
           startupId={startupId}
           contactEmail={formData.contactEmail}
           resetForm={resetForm}
-          initialDevCode={initialDevCode}
-          isInitialSandbox={isInitialSandbox}
         />
       )}
 

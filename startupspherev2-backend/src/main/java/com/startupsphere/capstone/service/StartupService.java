@@ -466,7 +466,7 @@ public class StartupService {
         logger.info("Successfully deleted draft with ID: {}", id);
     }
 
-    public Map<String, Object> sendVerificationEmail(Long startupId, String email) {
+    public void sendVerificationEmail(Long startupId, String email) {
         logger.info("Attempting to send verification email for startup ID: {} to email: {}", startupId, email);
 
         Startup startup = startupRepository.findById(startupId)
@@ -488,22 +488,7 @@ public class StartupService {
         startup.setEmailVerified(false);
         startupRepository.save(startup);
 
-        boolean emailSent = emailService.sendOtpVerificationEmail(recipientEmail, startup.getCompanyName(), verificationCode);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("sent", emailSent);
-        result.put("isConfigured", emailService.isMailConfigured());
-        result.put("recipientEmail", recipientEmail);
-        if (!emailService.isMailConfigured()) {
-            result.put("devCode", verificationCode);
-        }
-        return result;
-    }
-
-    public String getVerificationCodeForStartup(Long startupId) {
-        return startupRepository.findById(startupId)
-                .map(Startup::getVerificationCode)
-                .orElse(null);
+        emailService.sendOtpVerificationEmail(recipientEmail, startup.getCompanyName(), verificationCode);
     }
 
     @Transactional

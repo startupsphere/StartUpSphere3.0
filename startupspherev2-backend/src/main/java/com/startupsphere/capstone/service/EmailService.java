@@ -1,12 +1,14 @@
 package com.startupsphere.capstone.service;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
@@ -31,6 +34,9 @@ public class EmailService {
     @Value("${spring.mail.username:}")
     private String mailUsername;
 
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
     @Value("${spring.mail.from:}")
     private String mailFrom;
 
@@ -43,18 +49,80 @@ public class EmailService {
     @Value("${sendgrid.from.name:StartupSphere}")
     private String sendgridFromName;
 
+    private synchronized JavaMailSender getOrCreateMailSender() {
+        if (mailSender != null) {
+            return mailSender;
+        }
+        String username = getEffectiveUsername();
+        String password = getEffectivePassword();
+        if (username != null && !username.isBlank() && password != null && !password.isBlank()) {
+            JavaMailSenderImpl impl = new JavaMailSenderImpl();
+            impl.setHost("smtp.gmail.com");
+            impl.setPort(587);
+            impl.setUsername(username);
+            impl.setPassword(password);
+
+            Properties props = impl.getJavaMailProperties();
+            props.put("mail.transport.protocol", "smtp");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.starttls.required", "true");
+            props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+            props.put("mail.smtp.connectiontimeout", "10000");
+            props.put("mail.smtp.timeout", "10000");
+            props.put("mail.smtp.writetimeout", "10000");
+            this.mailSender = impl;
+            return impl;
+        }
+        return null;
+    }
+
+    public String getEffectiveUsername() {
+        if (mailUsername != null && !mailUsername.isBlank()) {
+            return mailUsername.trim();
+        }
+        String val = System.getProperty("spring.mail.username");
+        if (val != null && !val.isBlank()) return val.trim();
+        val = System.getenv("MAIL_USERNAME");
+        if (val != null && !val.isBlank()) return val.trim();
+        try {
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+            val = dotenv.get("MAIL_USERNAME");
+            if (val != null && !val.isBlank()) return val.trim();
+        } catch (Exception ignored) {}
+        return "cabigasanrey@gmail.com";
+    }
+
+    public String getEffectivePassword() {
+        if (mailPassword != null && !mailPassword.isBlank()) {
+            return mailPassword.replace(" ", "").trim();
+        }
+        String val = System.getProperty("spring.mail.password");
+        if (val != null && !val.isBlank()) return val.replace(" ", "").trim();
+        val = System.getenv("MAIL_PASSWORD");
+        if (val != null && !val.isBlank()) return val.replace(" ", "").trim();
+        try {
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+            val = dotenv.get("MAIL_PASSWORD");
+            if (val != null && !val.isBlank()) return val.replace(" ", "").trim();
+        } catch (Exception ignored) {}
+        return "ipttavepjcgreujc";
+    }
+
     /**
      * Checks if a live mail provider (Gmail SMTP or SendGrid) is properly configured.
      */
     public boolean isMailConfigured() {
-        boolean hasGmail = (mailSender != null && mailUsername != null && !mailUsername.isBlank());
+        String username = getEffectiveUsername();
+        String password = getEffectivePassword();
+        boolean hasGmail = (username != null && !username.isBlank() && password != null && !password.isBlank());
         boolean hasSendgrid = (sendgridApiKey != null && !sendgridApiKey.isBlank() && !sendgridApiKey.equals("SG.placeholder"));
         return hasGmail || hasSendgrid;
     }
 
     /**
      * Send OTP verification email to verify the business contact email.
-     * Uses Gmail SMTP (JavaMailSender) as primary, with fallback to SendGrid or console logging.
+     * Connects directly to Gmail SMTP and sends the email to the recipient's inbox.
      */
     public boolean sendOtpVerificationEmail(String toEmail, String companyName, String otpCode) {
         logger.info("Initiating OTP verification email to: {} for startup: {}", toEmail, companyName);
@@ -68,24 +136,24 @@ public class EmailService {
                 + "If you did not request this, please ignore this email.\n\n"
                 + "Best regards,\nStartupSphere Team";
 
-        // 1. Try sending via Gmail SMTP (JavaMailSender)
-        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+        // 1. Send via Gmail SMTP
+        JavaMailSender sender = getOrCreateMailSender();
+        if (sender != null) {
             try {
-                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessage message = sender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
+                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : getEffectiveUsername();
                 helper.setFrom(senderAddress, "StartupSphere");
                 helper.setTo(toEmail);
                 helper.setSubject(subject);
                 helper.setText(textBody, htmlBody);
 
-                mailSender.send(message);
-                logger.info("Successfully sent OTP verification email via Gmail SMTP to {}", toEmail);
+                sender.send(message);
+                logger.info("Successfully delivered OTP verification email via Gmail SMTP to {}", toEmail);
                 return true;
             } catch (Exception e) {
                 logger.error("Failed to send OTP email via Gmail SMTP to {}: {}", toEmail, e.getMessage(), e);
-                // If Gmail SMTP credentials were specifically configured but failed, notify through exception
                 throw new RuntimeException("Failed to send email via Gmail: " + e.getMessage(), e);
             }
         }
@@ -109,22 +177,16 @@ public class EmailService {
                     logger.info("Successfully sent OTP verification email via SendGrid to {}", toEmail);
                     return true;
                 } else {
-                    logger.warn("SendGrid failed with status {}: {}", response.getStatusCode(), response.getBody());
+                    logger.error("SendGrid failed with status {}: {}", response.getStatusCode(), response.getBody());
+                    throw new RuntimeException("Failed to send email via SendGrid: HTTP " + response.getStatusCode());
                 }
             } catch (IOException e) {
                 logger.error("IOException with SendGrid for {}: {}", toEmail, e.getMessage(), e);
+                throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
             }
         }
 
-        // 3. Sandbox / Dev fallback: Log the OTP clearly so testing is never blocked
-        logger.warn("==================================================================================");
-        logger.warn("[SANDBOX MODE] No working mail provider configured (MAIL_USERNAME / SENDGRID_API_KEY).");
-        logger.warn(">> Target Email: {}", toEmail);
-        logger.warn(">> Mock OTP Code: {}", otpCode);
-        logger.warn("To receive real emails via Gmail, set MAIL_USERNAME and MAIL_PASSWORD in your .env");
-        logger.warn("==================================================================================");
-
-        return true;
+        throw new RuntimeException("No working mail provider configured. Could not send verification code.");
     }
 
     /**
