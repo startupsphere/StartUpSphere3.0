@@ -624,6 +624,11 @@ export default function Sidebar({
           localStorage.removeItem("user");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("token");
+          localStorage.removeItem("startupsphere_ai_chat");
+          localStorage.removeItem("pending_ai_startup_desc");
+          try {
+            sessionStorage.clear();
+          } catch (e) {}
           document.cookie =
             "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           setUserDetails(null);

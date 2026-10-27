@@ -5,23 +5,43 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, Trash2, X, Bot, User, RotateCcw, ArrowLeft, Zap } from "lucide-react";
 
 export default function GroqAiChat({ currentUser, onClose }) {
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem("startupsphere_ai_chat");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.warn("Failed to parse saved chat history, resetting", e);
+  // Get account-specific session storage key for privacy isolation
+  const getStorageKey = (user) => {
+    if (user && user.id) return `startupsphere_ai_chat_user_${user.id}`;
+    if (user && user.email) return `startupsphere_ai_chat_user_${user.email}`;
+    return "startupsphere_ai_chat_guest";
+  };
+
+  const getInitialMessages = (user) => {
+    // Purge any legacy shared localStorage chat to protect account privacy
+    try {
+      localStorage.removeItem("startupsphere_ai_chat");
+    } catch (e) {}
+
+    const key = getStorageKey(user);
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
+    } catch (e) {
+      console.warn("Failed to parse saved session chat history", e);
     }
-    const userName = currentUser ? (currentUser.firstname || currentUser.name || "there") : "there";
+
+    const userName = user ? (user.firstname || user.name || "there") : "there";
     return [
       {
         role: "assistant",
         content: `Hello, ${userName}! Welcome to StartUpSphere AI Agent. I am here to help you scale your venture.\n\nPlease feel free to ask me anything about:\n* **Startup Valuation & Cap Tables**\n* **Finding Investors & Ecosystem Matching**\n* **Business Compliance in the Philippines**\n* **Pitch Deck Strategies & Traction Metrics**\n* **Technology Trends & Readiness (TRL)**\n* **Ecosystem Index Insights (IDI, SI, EBS, EGS)**\n\nHow can I help you scale your venture today?`
       }
     ];
-  });
+  };
+
+  const [messages, setMessages] = useState(() => getInitialMessages(currentUser));
+  const prevUserIdRef = useRef(currentUser?.id || currentUser?.email || "guest");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -38,24 +58,39 @@ export default function GroqAiChat({ currentUser, onClose }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Switch chat space immediately when switching accounts in the same browser
+  useEffect(() => {
+    const currentId = currentUser?.id || currentUser?.email || "guest";
+    if (prevUserIdRef.current !== currentId) {
+      prevUserIdRef.current = currentId;
+      setMessages(getInitialMessages(currentUser));
+    }
+  }, [currentUser]);
+
   // Scroll to bottom whenever messages list changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Save chat history to localStorage whenever messages change
+  // Save chat history to sessionStorage (strictly tab-scoped and account-isolated)
   useEffect(() => {
-    localStorage.setItem("startupsphere_ai_chat", JSON.stringify(messages));
-  }, [messages]);
+    try {
+      const key = getStorageKey(currentUser);
+      sessionStorage.setItem(key, JSON.stringify(messages));
+    } catch (e) {
+      console.warn("Failed to save session chat", e);
+    }
+  }, [messages, currentUser]);
 
   // Auto-describe pinpointed startup from map heatmap
   useEffect(() => {
     const handleHeatmapClick = async (event) => {
       const startup = event?.detail;
       if (!startup) {
-        // Try reading from localStorage as a fallback
-        const pendingStr = localStorage.getItem("pending_ai_startup_desc");
+        // Try reading from sessionStorage as a fallback
+        const pendingStr = sessionStorage.getItem("pending_ai_startup_desc") || localStorage.getItem("pending_ai_startup_desc");
         if (!pendingStr) return;
+        sessionStorage.removeItem("pending_ai_startup_desc");
         localStorage.removeItem("pending_ai_startup_desc");
         try {
           describeStartup(JSON.parse(pendingStr));
@@ -63,6 +98,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
           console.error(e);
         }
       } else {
+        sessionStorage.removeItem("pending_ai_startup_desc");
         localStorage.removeItem("pending_ai_startup_desc");
         describeStartup(startup);
       }
@@ -135,9 +171,10 @@ export default function GroqAiChat({ currentUser, onClose }) {
     // Register listener for heatmap clicks while open
     window.addEventListener("open-ai-chat-with-startup", handleHeatmapClick);
 
-    // Also check on mount if there is a pending startup description in localStorage
-    const pendingStr = localStorage.getItem("pending_ai_startup_desc");
+    // Also check on mount if there is a pending startup description in sessionStorage
+    const pendingStr = sessionStorage.getItem("pending_ai_startup_desc") || localStorage.getItem("pending_ai_startup_desc");
     if (pendingStr) {
+      sessionStorage.removeItem("pending_ai_startup_desc");
       localStorage.removeItem("pending_ai_startup_desc");
       try {
         describeStartup(JSON.parse(pendingStr));
@@ -308,7 +345,11 @@ export default function GroqAiChat({ currentUser, onClose }) {
       }
     ];
     setMessages(initialMsg);
-    localStorage.removeItem("startupsphere_ai_chat");
+    try {
+      const key = getStorageKey(currentUser);
+      sessionStorage.removeItem(key);
+      localStorage.removeItem("startupsphere_ai_chat");
+    } catch (e) {}
   };
 
   return (

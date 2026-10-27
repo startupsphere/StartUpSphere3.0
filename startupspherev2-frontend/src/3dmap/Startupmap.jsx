@@ -18,7 +18,7 @@ import debounce from "lodash/debounce";
 import Login from "../modals/Login";
 import EngagementChart from "../components/EngagementChart";
 import TooltipInfo from "../components/TooltipInfo";
-import { Compass, Navigation, Maximize2, RotateCcw } from "lucide-react";
+import { Compass, Navigation, RotateCcw } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
@@ -647,11 +647,20 @@ export default function Startupmap({
 
 
       // Clean up gradient / glare layers if they exist
-      if (map.getLayer("startups-zone-gradients")) {
-        try { map.removeLayer("startups-zone-gradients"); } catch (e) { }
-      }
-      if (map.getLayer("startups-unclustered-gradient")) {
-        try { map.removeLayer("startups-unclustered-gradient"); } catch (e) { }
+      [
+        "startups-zone-gradients",
+        "startups-unclustered-gradient",
+        "startups-heatmap",
+        "startups-true-heatmap"
+      ].forEach((layerName) => {
+        if (map.getLayer(layerName)) {
+          try { map.removeLayer(layerName); } catch (e) { }
+        }
+      });
+
+      // Ensure engagement heatmap layer is never visible when in TRL mode
+      if (map.getLayer("engagement-heatmap-layer") && heatmapModeRef.current !== "ENGAGEMENT") {
+        try { map.setLayoutProperty("engagement-heatmap-layer", "visibility", "none"); } catch (e) { }
       }
 
       // Add solid circles for distinct color zones per area (glare removed, solid circle only)
@@ -1312,18 +1321,27 @@ export default function Startupmap({
 
     setShowHeatmap((prev) => {
       const next = !prev;
-      const layers = [
-        "startups-true-heatmap", "startups-heatmap", "startups-zone-core", "startups-zone-count",
-        "startups-unclustered-core",
-        "engagement-heatmap-layer", "engagement-click-zone"
-      ];
-      layers.forEach(layerId => {
+      const isTrl = heatmapModeRef.current === "TRL";
+      const isEngagement = heatmapModeRef.current === "ENGAGEMENT";
+
+      const trlLayers = ["startups-zone-core", "startups-zone-count", "startups-unclustered-core"];
+      trlLayers.forEach((layerId) => {
         if (map.getLayer(layerId)) {
           try {
-            map.setLayoutProperty(layerId, "visibility", next ? "visible" : "none");
+            map.setLayoutProperty(layerId, "visibility", next && isTrl ? "visible" : "none");
           } catch (e) { }
         }
       });
+
+      const engagementLayers = ["engagement-heatmap-layer", "engagement-click-zone"];
+      engagementLayers.forEach((layerId) => {
+        if (map.getLayer(layerId)) {
+          try {
+            map.setLayoutProperty(layerId, "visibility", next && isEngagement ? "visible" : "none");
+          } catch (e) { }
+        }
+      });
+
       return next;
     });
   };
@@ -3657,16 +3675,6 @@ export default function Startupmap({
               )}
             </button>
 
-            {/* Quick Fit All Presets */}
-            <button
-              onClick={handleFitAllStartups}
-              title="Fit map view to display all innovations"
-              className="px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-blue-700 border border-transparent"
-            >
-              <Maximize2 className="h-3.5 w-3.5 text-emerald-600" />
-              Fit All
-            </button>
-
             {/* Quick Reset Camera Presets */}
             <button
               onClick={handleResetMapCamera}
@@ -3691,21 +3699,6 @@ export default function Startupmap({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9" />
               </svg>
               {showHeatmap ? "Solid Heatmap" : "Heatmap"}
-            </button>
-
-            {/* Connections Toggle Button */}
-            <button
-              onClick={toggleConnectionsVisibility}
-              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                showConnections
-                  ? "bg-teal-50 text-teal-700 border border-teal-200/70 shadow-2xs"
-                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              {showConnections ? "Hide Links" : "Show Links"}
             </button>
 
             {/* Map / Satellite Toggle Button */}
@@ -3755,7 +3748,6 @@ export default function Startupmap({
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
             <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
               <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase">
                 Heatmap Legend
               </span>
@@ -3856,7 +3848,6 @@ export default function Startupmap({
           className="absolute top-16 md:top-20 right-3 md:right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
           title="Show Map Legend"
         >
-          <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
           <span>Legend</span>
         </button>
       )}
