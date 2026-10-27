@@ -24,6 +24,9 @@ public class    CapstoneApplication {
         setSystemProperty(dotenv, "SPRING_DATASOURCE_PASSWORD", "spring.datasource.password");
         setSystemProperty(dotenv, "SECURITY_JWT_SECRET_KEY", "security.jwt.secret-key");
         setSystemProperty(dotenv, "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE", "spring.datasource.hikari.maximum-pool-size");
+        setSystemProperty(dotenv, "MAIL_USERNAME", "spring.mail.username");
+        setSystemProperty(dotenv, "MAIL_PASSWORD", "spring.mail.password");
+        setSystemProperty(dotenv, "MAIL_FROM", "spring.mail.from");
 
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");
@@ -35,6 +38,9 @@ public class    CapstoneApplication {
             value = System.getenv(dotenvKey);
         }
         if (value != null && !value.isBlank()) {
+            if ("MAIL_PASSWORD".equals(dotenvKey)) {
+                value = value.replace(" ", "").trim();
+            }
             System.setProperty(systemPropertyKey, value);
         }
     }

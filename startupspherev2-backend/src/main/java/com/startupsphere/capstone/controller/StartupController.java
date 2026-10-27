@@ -508,16 +508,27 @@ public class StartupController {
     }
 
     @PostMapping("/send-verification-email")
-    public ResponseEntity<Map<String, String>> sendVerificationEmail(@RequestBody VerificationRequest request) {
+    public ResponseEntity<Map<String, Object>> sendVerificationEmail(@RequestBody VerificationRequest request) {
         try {
-            startupService.sendVerificationEmail(request.getStartupId(), request.getEmail());
-            return ResponseEntity.ok(Map.of("message", "Verification email sent successfully."));
+            Map<String, Object> result = startupService.sendVerificationEmail(request.getStartupId(), request.getEmail());
+            boolean isConfigured = Boolean.TRUE.equals(result.get("isConfigured"));
+            Map<String, Object> response = new HashMap<>();
+
+            if (isConfigured) {
+                response.put("message", "Verification email sent successfully.");
+                response.put("sandbox", false);
+            } else {
+                response.put("message", "Sandbox Mode: Mail credentials not configured in backend .env");
+                response.put("sandbox", true);
+                response.put("devCode", result.get("devCode"));
+            }
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             logger.error("Error sending verification email: {}", e.getMessage(), e);
-            if (e.getMessage().contains("Email is already verified")) {
+            if (e.getMessage() != null && e.getMessage().contains("Email is already verified")) {
                 logger.info("Email already verified for startup ID: {}. Resending verification email.",
                         request.getStartupId());
-                return ResponseEntity.ok(Map.of("message", "Verification email resent successfully."));
+                return ResponseEntity.ok(Map.of("message", "Verification email resent successfully.", "sandbox", false));
             }
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Error sending verification email: " + e.getMessage()));

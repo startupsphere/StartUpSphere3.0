@@ -110,6 +110,9 @@ public class Startup {
     @Column(name = "verification_code")
     private String verificationCode;
 
+    @Column(name = "verification_code_expires_at")
+    private LocalDateTime verificationCodeExpiresAt;
+
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
@@ -644,6 +647,14 @@ public class Startup {
 
     public void setVerificationCode(String verificationCode) {
         this.verificationCode = verificationCode;
+    }
+
+    public LocalDateTime getVerificationCodeExpiresAt() {
+        return verificationCodeExpiresAt;
+    }
+
+    public void setVerificationCodeExpiresAt(LocalDateTime verificationCodeExpiresAt) {
+        this.verificationCodeExpiresAt = verificationCodeExpiresAt;
     }
 
     public Boolean getEmailVerified() {

@@ -1,6 +1,7 @@
 package com.startupsphere.capstone.service;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -13,7 +14,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -23,13 +23,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
 import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.repository.BookmarksRepository;
@@ -42,33 +35,26 @@ public class StartupService {
 
     private static final Logger logger = LoggerFactory.getLogger(StartupService.class);
     
-    @Value("${sendgrid.api.key:}")
-    private String sendgridApiKey;
-
-    @Value("${sendgrid.from.email:default@startupsphere.com}")
-    private String fromEmail;
-
-    @Value("${sendgrid.from.name:StartupSphere}")
-    private String fromName;
-
     private final StartupRepository startupRepository;
     private final ViewsRepository viewsRepository;
     private final LikeRepository likeRepository;
     private final BookmarksRepository bookmarksRepository;
     private final EntityManager entityManager;
-    // Removed JavaMailSender dependency
+    private final EmailService emailService;
 
     public StartupService(
             StartupRepository startupRepository,
             ViewsRepository viewsRepository,
             LikeRepository likeRepository,
             BookmarksRepository bookmarksRepository,
-            EntityManager entityManager) {
+            EntityManager entityManager,
+            EmailService emailService) {
         this.startupRepository = startupRepository;
         this.viewsRepository = viewsRepository;
         this.likeRepository = likeRepository;
         this.bookmarksRepository = bookmarksRepository;
         this.entityManager = entityManager;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -189,6 +175,7 @@ public class StartupService {
                     startup.setPublicPrivatePartnershipsInvolvingStartups(
                             updatedStartup.getPublicPrivatePartnershipsInvolvingStartups());
                     startup.setVerificationCode(updatedStartup.getVerificationCode());
+                    startup.setVerificationCodeExpiresAt(updatedStartup.getVerificationCodeExpiresAt());
                     startup.setEmailVerified(updatedStartup.getEmailVerified());
                     startup.setTrlLevel(updatedStartup.getTrlLevel());
                     startup.setVerifiedCredentials(updatedStartup.getVerifiedCredentials());
@@ -479,7 +466,7 @@ public class StartupService {
         logger.info("Successfully deleted draft with ID: {}", id);
     }
 
-    public void sendVerificationEmail(Long startupId, String email) {
+    public Map<String, Object> sendVerificationEmail(Long startupId, String email) {
         logger.info("Attempting to send verification email for startup ID: {} to email: {}", startupId, email);
 
         Startup startup = startupRepository.findById(startupId)
@@ -488,69 +475,60 @@ public class StartupService {
                     return new RuntimeException("Startup not found with id: " + startupId);
                 });
 
-        String verificationCode = String.format("%06d", new Random().nextInt(999999));
-        if (sendgridApiKey == null || sendgridApiKey.isBlank() || sendgridApiKey.equals("SG.placeholder")) {
-            verificationCode = "123456";
+        String recipientEmail = (email != null && !email.isBlank()) ? email.trim() : startup.getContactEmail();
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            throw new RuntimeException("No email address provided for verification.");
         }
+
+        // Generate a secure 6-digit verification code using SecureRandom
+        SecureRandom secureRandom = new SecureRandom();
+        String verificationCode = String.format("%06d", 100000 + secureRandom.nextInt(900000));
         startup.setVerificationCode(verificationCode);
+        startup.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(10));
         startup.setEmailVerified(false);
         startupRepository.save(startup);
 
-        // Use SendGrid configuration
-        Email from = new Email(fromEmail, fromName);
-        Email to = new Email(email);
-        Content content = new Content("text/plain",
-            "Hello,\n\nYour verification code for StartupSphere is: " + verificationCode +
-            "\n\nPlease enter this code to verify your email address.\n\n" +
-            "If you didn't request this, please ignore this email.\n\n" +
-            "Best regards,\nStartupSphere Team");
+        boolean emailSent = emailService.sendOtpVerificationEmail(recipientEmail, startup.getCompanyName(), verificationCode);
 
-        Mail mail = new Mail(from, "Verify Your Email - StartupSphere", to, content);
-
-        if (sendgridApiKey == null || sendgridApiKey.isBlank() || sendgridApiKey.equals("SG.placeholder")) {
-            logger.warn("[SANDBOX MODE] SendGrid API key not configured or is placeholder; skipping verification email to {}. Use mock verification code: {}", email, verificationCode);
-            return;
+        Map<String, Object> result = new HashMap<>();
+        result.put("sent", emailSent);
+        result.put("isConfigured", emailService.isMailConfigured());
+        result.put("recipientEmail", recipientEmail);
+        if (!emailService.isMailConfigured()) {
+            result.put("devCode", verificationCode);
         }
+        return result;
+    }
 
-        SendGrid sg = new SendGrid(sendgridApiKey);
-        Request request = new Request();
-        try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            Response response = sg.api(request);
-
-            logger.info("SendGrid response status: {}", response.getStatusCode());
-            logger.debug("SendGrid response body: {}", response.getBody());
-
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                logger.info("Verification email sent successfully to {}", email);
-            } else if (response.getStatusCode() == 401) {
-                logger.warn("[SANDBOX MODE] SendGrid API Key is invalid, expired, or revoked (HTTP 401). Mocking successful email send. Use mock verification code: {}", verificationCode);
-            } else {
-                logger.error("Failed to send verification email to {}: Status {} - {}",
-                    email, response.getStatusCode(), response.getBody());
-                throw new RuntimeException("Failed to send email: HTTP " + response.getStatusCode() + " - " + response.getBody());
-            }
-        } catch (IOException e) {
-            logger.error("IOException while sending verification email to {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
-        }
+    public String getVerificationCodeForStartup(Long startupId) {
+        return startupRepository.findById(startupId)
+                .map(Startup::getVerificationCode)
+                .orElse(null);
     }
 
     @Transactional
     public void verifyEmail(Long startupId, String email, String code) {
         Startup startup = startupRepository.findById(startupId)
-                .orElseThrow(() -> new RuntimeException("Startup not found"));
+                .orElseThrow(() -> new RuntimeException("Startup not found with id: " + startupId));
 
-        if (startup.getVerificationCode() == null || !startup.getVerificationCode().equals(code)) {
-            throw new RuntimeException("Invalid verification code");
+        if (code == null || code.trim().length() < 4) {
+            throw new RuntimeException("Please enter a valid verification code (at least 4 digits).");
+        }
+
+        String sanitizedCode = code.trim().replace(" ", "").replace("-", "");
+        if (startup.getVerificationCode() == null || !startup.getVerificationCode().trim().equals(sanitizedCode)) {
+            throw new RuntimeException("Invalid verification code. Please check your email and try again.");
+        }
+
+        if (startup.getVerificationCodeExpiresAt() != null && LocalDateTime.now().isAfter(startup.getVerificationCodeExpiresAt())) {
+            throw new RuntimeException("Verification code has expired. Please click 'Resend Code' to receive a new one.");
         }
 
         startup.setEmailVerified(true);
         startup.setVerificationCode(null);
+        startup.setVerificationCodeExpiresAt(null);
         startupRepository.save(startup);
-        logger.info("Email verified for startup ID: {}", startupId);
+        logger.info("Email verified successfully for startup ID: {}", startupId);
     }
 
     public Page<Startup> getAllEmailVerifiedStartups(Pageable pageable) {
@@ -605,41 +583,7 @@ public class StartupService {
     }
 
     private void sendReminderEmail(String toEmail, String companyName) {
-        Email from = new Email(fromEmail, fromName);
-        Email to = new Email(toEmail);
-        Content content = new Content("text/plain",
-            "Dear " + companyName + ",\n\n" +
-            "It has been over 6 months since your startup information was last updated. " +
-            "To ensure your data remains relevant and verified, please update your details.\n\n" +
-            "You can update your information by logging into your account and visiting the startup dashboard.\n\n" +
-            "Thank you,\nStartupSphere Team");
-
-        Mail mail = new Mail(from, "Reminder: Update Your Startup Information", to, content);
-
-        if (sendgridApiKey == null || sendgridApiKey.isBlank()) {
-            logger.warn("SendGrid API key not configured; skipping reminder email to {}", toEmail);
-            return;
-        }
-
-        SendGrid sg = new SendGrid(sendgridApiKey);
-        Request request = new Request();
-        try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            Response response = sg.api(request);
-
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                logger.info("Reminder email sent successfully to {}", toEmail);
-            } else {
-                logger.error("Failed to send reminder email to {}: Status {} - {}",
-                    toEmail, response.getStatusCode(), response.getBody());
-                throw new RuntimeException("Failed to send reminder email: HTTP " + response.getStatusCode() + " - " + response.getBody());
-            }
-        } catch (IOException e) {
-            logger.error("IOException while sending reminder email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Failed to send reminder email: " + e.getMessage(), e);
-        }
+        emailService.sendReminderEmail(toEmail, companyName);
     }
 
     public Page<Startup> getStartupsWithFilters(
