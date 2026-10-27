@@ -183,6 +183,17 @@ public class StartupService {
                     startup.setSupportProvider(updatedStartup.getSupportProvider());
                     startup.setSupportProgram(updatedStartup.getSupportProgram());
 
+                    // Social metrics
+                    if (updatedStartup.getFacebookFollowers() != null) {
+                        startup.setFacebookFollowers(updatedStartup.getFacebookFollowers());
+                    }
+                    if (updatedStartup.getFacebookLikes() != null) {
+                        startup.setFacebookLikes(updatedStartup.getFacebookLikes());
+                    }
+                    if (updatedStartup.getInstagramFollowers() != null) {
+                        startup.setInstagramFollowers(updatedStartup.getInstagramFollowers());
+                    }
+
                     // Registration & Compliance fields
                     startup.setIsGovernmentRegistered(updatedStartup.getIsGovernmentRegistered());
                     startup.setRegistrationAgency(updatedStartup.getRegistrationAgency());
@@ -400,6 +411,15 @@ public class StartupService {
         existingDraft.setTwitter(updatedDraft.getTwitter());
         existingDraft.setInstagram(updatedDraft.getInstagram());
         existingDraft.setLinkedIn(updatedDraft.getLinkedIn());
+        if (updatedDraft.getFacebookFollowers() != null) {
+            existingDraft.setFacebookFollowers(updatedDraft.getFacebookFollowers());
+        }
+        if (updatedDraft.getFacebookLikes() != null) {
+            existingDraft.setFacebookLikes(updatedDraft.getFacebookLikes());
+        }
+        if (updatedDraft.getInstagramFollowers() != null) {
+            existingDraft.setInstagramFollowers(updatedDraft.getInstagramFollowers());
+        }
         existingDraft.setLocationLat(updatedDraft.getLocationLat());
         existingDraft.setLocationLng(updatedDraft.getLocationLng());
         existingDraft.setLocationName(updatedDraft.getLocationName());

@@ -18,7 +18,9 @@ import {
   Percent,
   Building,
   Award,
+  RefreshCw,
 } from "lucide-react";
+import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
 import TooltipInfo from "../components/TooltipInfo";
 import {
   Chart as ChartJS,
@@ -56,6 +58,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [drafts, setDrafts] = useState([]);
   const [selectedStartup, setSelectedStartup] = useState("all");
   const [logoUrls, setLogoUrls] = useState({});
+  const [syncingSocialId, setSyncingSocialId] = useState(null);
 
   const [metrics, setMetrics] = useState({
     views: 0,
@@ -572,6 +575,55 @@ export default function StartupDashboard({ openAddMethodModal }) {
       if (Array.isArray(data)) {
         const unique = Array.from(new Map(data.map((s) => [s.id, s])).values());
         setStartups(unique);
+
+        // Auto-sync social metrics in background for startups with links that haven't fetched yet
+        unique.forEach((s) => {
+          if (
+            (s.facebook || s.instagram) &&
+            ((!s.facebookFollowers && !s.facebookLikes) || !s.instagramFollowers)
+          ) {
+            fetchStartupSocialMetrics(s)
+              .then((res) => {
+                let updatedFbFollowers = s.facebookFollowers || 0;
+                let updatedFbLikes = s.facebookLikes || 0;
+                let updatedIgFollowers = s.instagramFollowers || 0;
+                let changed = false;
+
+                if (res.facebook && res.facebook.success) {
+                  if (res.facebook.followers) {
+                    updatedFbFollowers = res.facebook.followers;
+                    changed = true;
+                  }
+                  if (res.facebook.likes) {
+                    updatedFbLikes = res.facebook.likes;
+                    changed = true;
+                  }
+                }
+
+                if (res.instagram && res.instagram.success && res.instagram.followers) {
+                  updatedIgFollowers = res.instagram.followers;
+                  changed = true;
+                }
+
+                if (changed) {
+                  setStartups((prev) =>
+                    prev.map((item) =>
+                      item.id === s.id
+                        ? {
+                            ...item,
+                            facebookFollowers: updatedFbFollowers,
+                            facebookLikes: updatedFbLikes,
+                            instagramFollowers: updatedIgFollowers,
+                          }
+                        : item
+                    )
+                  );
+                }
+              })
+              .catch(() => {});
+          }
+        });
+
         return unique;
       } else {
         console.error("Expected array of startups but got:", data);
@@ -583,6 +635,77 @@ export default function StartupDashboard({ openAddMethodModal }) {
       setError("Failed to load startup details. Please try again later.");
       setStartups([]);
       return [];
+    }
+  };
+
+  const handleSyncSocial = async (startupToSync) => {
+    if (!startupToSync) return;
+    if (!startupToSync.facebook && !startupToSync.instagram) {
+      toast.info("Please add a Facebook or Instagram link in the startup profile first.");
+      return;
+    }
+
+    setSyncingSocialId(startupToSync.id);
+    try {
+      const res = await fetchStartupSocialMetrics(startupToSync);
+      let updatedFbFollowers = startupToSync.facebookFollowers || 0;
+      let updatedFbLikes = startupToSync.facebookLikes || 0;
+      let updatedIgFollowers = startupToSync.instagramFollowers || 0;
+      let successCount = 0;
+
+      if (res.facebook && res.facebook.success) {
+        if (res.facebook.followers) updatedFbFollowers = res.facebook.followers;
+        if (res.facebook.likes) updatedFbLikes = res.facebook.likes;
+        successCount++;
+      }
+
+      if (res.instagram && res.instagram.success) {
+        if (res.instagram.followers) updatedIgFollowers = res.instagram.followers;
+        successCount++;
+      }
+
+      setStartups((prev) =>
+        prev.map((s) =>
+          s.id === startupToSync.id
+            ? {
+                ...s,
+                facebookFollowers: updatedFbFollowers,
+                facebookLikes: updatedFbLikes,
+                instagramFollowers: updatedIgFollowers,
+              }
+            : s
+        )
+      );
+
+      // Persist to backend database
+      try {
+        await fetch(`${getBackendUrl()}/startups/${startupToSync.id}`, {
+          method: "PUT",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...startupToSync,
+            facebookFollowers: updatedFbFollowers,
+            facebookLikes: updatedFbLikes,
+            instagramFollowers: updatedIgFollowers,
+          }),
+        });
+      } catch (saveErr) {
+        console.warn("Could not persist social metrics to backend:", saveErr);
+      }
+
+      if (successCount > 0) {
+        toast.success("Social engagement metrics synced live!");
+      } else {
+        toast.warning("Could not reach social page or no public followers found.");
+      }
+    } catch (err) {
+      console.error("Error syncing social metrics:", err);
+      toast.error("Failed to sync social metrics. Please try again.");
+    } finally {
+      setSyncingSocialId(null);
     }
   };
 
@@ -1736,22 +1859,35 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                           <FaFacebook className="h-5 w-5 text-[#1877F2]" />
                         </div>
-                        {fbUrl ? (
-                          <a
-                            href={fbUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#1877F2] text-xs font-semibold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors"
-                            title="Open Facebook Page"
-                          >
-                            <span>PAGE</span>
-                            <ExternalLink size={10} />
-                          </a>
-                        ) : (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
-                            {selectedStartup === "all" ? `${fbCount} Linked` : "OPTIONAL"}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {activeStartup && (activeStartup.facebook || activeStartup.instagram) && (
+                            <button
+                              onClick={() => handleSyncSocial(activeStartup)}
+                              disabled={syncingSocialId === activeStartup.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold rounded-md border border-blue-200 transition-colors"
+                              title="Sync Live Metrics from Page Link"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${syncingSocialId === activeStartup.id ? "animate-spin text-blue-600" : ""}`} />
+                              <span>{syncingSocialId === activeStartup.id ? "Syncing..." : "Sync"}</span>
+                            </button>
+                          )}
+                          {fbUrl ? (
+                            <a
+                              href={fbUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#1877F2] text-xs font-semibold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors"
+                              title="Open Facebook Page"
+                            >
+                              <span>PAGE</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
+                              {selectedStartup === "all" ? `${fbCount} Linked` : "OPTIONAL"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="text-xs font-medium text-gray-500 mb-1">
                         FB Followers & Likes
@@ -1781,22 +1917,35 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
                           <FaInstagram className="h-5 w-5" />
                         </div>
-                        {igUrl ? (
-                          <a
-                            href={igUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 text-xs font-semibold rounded-md border border-pink-200 hover:bg-pink-100 transition-colors"
-                            title="Open Instagram Profile"
-                          >
-                            <span>IG</span>
-                            <ExternalLink size={10} />
-                          </a>
-                        ) : (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
-                            {selectedStartup === "all" ? `${igCount} Linked` : "OPTIONAL"}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {activeStartup && activeStartup.instagram && (
+                            <button
+                              onClick={() => handleSyncSocial(activeStartup)}
+                              disabled={syncingSocialId === activeStartup.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 hover:bg-pink-100 text-xs font-semibold rounded-md border border-pink-200 transition-colors"
+                              title="Sync Live Metrics from Instagram Link"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${syncingSocialId === activeStartup.id ? "animate-spin text-pink-600" : ""}`} />
+                              <span>{syncingSocialId === activeStartup.id ? "Syncing..." : "Sync"}</span>
+                            </button>
+                          )}
+                          {igUrl ? (
+                            <a
+                              href={igUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 text-xs font-semibold rounded-md border border-pink-200 hover:bg-pink-100 transition-colors"
+                              title="Open Instagram Profile"
+                            >
+                              <span>IG</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
+                              {selectedStartup === "all" ? `${igCount} Linked` : "OPTIONAL"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="text-xs font-medium text-gray-500 mb-1">
                         Instagram Audience
