@@ -31,13 +31,13 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:cabigasanrey@gmail.com}")
+    @Value("${spring.mail.username:startupsphere2026@gmail.com}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:ipttavepjcgreujc}")
+    @Value("${spring.mail.password:kfbacagiwacjyhwp}")
     private String mailPassword;
 
-    @Value("${spring.mail.from:cabigasanrey@gmail.com}")
+    @Value("${spring.mail.from:startupsphere2026@gmail.com}")
     private String mailFrom;
 
     @Value("${sendgrid.api.key:}")
@@ -88,7 +88,7 @@ public class EmailService {
             val = dotenv.get("MAIL_USERNAME");
             if (val != null && !val.isBlank()) return val.trim();
         } catch (Exception ignored) {}
-        return "cabigasanrey@gmail.com";
+        return "startupsphere2026@gmail.com";
     }
 
     public String getEffectivePassword() {
@@ -104,7 +104,7 @@ public class EmailService {
             val = dotenv.get("MAIL_PASSWORD");
             if (val != null && !val.isBlank()) return val.replace(" ", "").trim();
         } catch (Exception ignored) {}
-        return "ipttavepjcgreujc";
+        return "kfbacagiwacjyhwp";
     }
 
     /**
