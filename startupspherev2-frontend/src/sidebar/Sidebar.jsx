@@ -2073,7 +2073,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {location.pathname === "/" && (
+      {location.pathname === "/" && !showGeminiAi && (
         <div className="hidden md:block absolute top-4 right-4 z-50">
           <div className="relative">
             <div

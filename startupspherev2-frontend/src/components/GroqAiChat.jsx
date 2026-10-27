@@ -18,7 +18,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
     return [
       {
         role: "assistant",
-        content: `Hello, ${userName}! Welcome to StartUpSphere Groq AI. I am your ultra-fast startup consultant powered by Groq LPUs.\n\nPlease feel free to ask me anything about:\n* **Startup Valuation & Cap Tables**\n* **Finding Investors & Ecosystem Matching**\n* **Business Compliance in the Philippines**\n* **Pitch Deck Strategies & Traction Metrics**\n* **Technology Trends & Readiness (TRL)**\n* **Ecosystem Index Insights (IDI, SI, EBS, EGS)**\n\nHow can I help you scale your venture today?`
+        content: `Hello, ${userName}! Welcome to StartUpSphere AI Agent. I am here to help you scale your venture.\n\nPlease feel free to ask me anything about:\n* **Startup Valuation & Cap Tables**\n* **Finding Investors & Ecosystem Matching**\n* **Business Compliance in the Philippines**\n* **Pitch Deck Strategies & Traction Metrics**\n* **Technology Trends & Readiness (TRL)**\n* **Ecosystem Index Insights (IDI, SI, EBS, EGS)**\n\nHow can I help you scale your venture today?`
       }
     ];
   });
@@ -95,7 +95,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
 
         // 3. Format dynamic system instructions and prompt
         const systemInstruction = 
-          "You are the StartUpSphere Groq AI Consultant, an expert startup advisor and data analyst for the StartUpSphere platform powered by Groq. " +
+          "You are the StartUpSphere AI Agent, an expert startup advisor and data analyst for the StartUpSphere platform. " +
           "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
           "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output nicely with clean bullet points and bold headers if needed.\n\n" +
           "**CRITICAL RESPONSE RULES:**\n" +
@@ -226,7 +226,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
     try {
       // Format system instructions for Groq API
       let systemInstruction = 
-        "You are StartUpSphere Groq AI Consultant, an expert startup advisor, venture strategist, and data analyst for the StartUpSphere platform powered by Groq LPU inference. " +
+        "You are the StartUpSphere AI Agent, an expert startup advisor, venture strategist, and data analyst for the StartUpSphere platform. " +
         "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
         "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology readiness levels (TRL), cap tables, and government compliance (BIR, SEC, DTI). " +
         "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output with clear executive summaries, bullet points, and bold headers.\n\n" +
@@ -304,7 +304,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
     const initialMsg = [
       {
         role: "assistant",
-        content: "Hello! Chat cleared. Groq AI is ready to advise you on your next big startup idea, finding partners, or platform mechanics on StartUpSphere!"
+        content: "Hello! Chat cleared. AI Agent is ready to advise you on your next big startup idea, finding partners, or platform mechanics on StartUpSphere!"
       }
     ];
     setMessages(initialMsg);
@@ -318,66 +318,46 @@ export default function GroqAiChat({ currentUser, onClose }) {
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-40 md:z-[110] h-[calc(100vh-120px)] md:h-screen sidebar-drawer-420 border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.12)] flex flex-col"
+      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-[120] h-[calc(100vh-120px)] md:h-screen sidebar-drawer-420 border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.12)] flex flex-col"
       style={{
         width: isMobile ? "100%" : "420px",
         maxWidth: isMobile ? "100vw" : "420px",
       }}
     >
-      {/* Header with High-Contrast Background & Prominent Back Button */}
-      <div
-        className="p-3.5 sm:p-4 text-white flex items-center justify-between shadow-md relative overflow-hidden flex-shrink-0"
-        style={{
-          backgroundColor: "#0f172a",
-          backgroundImage: "linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #0f172a 100%)",
-        }}
-      >
-        {/* Shimmering glass effects */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 pointer-events-none blur-xl"></div>
-
-        <div className="flex items-center space-x-2.5 relative z-10 min-w-0">
-          {/* Prominent Back Button */}
+      {/* Minimal Clean Header */}
+      <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between relative z-10 flex-shrink-0">
+        <div className="flex items-center space-x-3 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all text-xs font-semibold cursor-pointer border border-white/15 shadow-xs focus:outline-none flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors cursor-pointer text-xs font-medium border border-slate-700"
             aria-label="Back"
-            title="Back to Map / Dashboard"
+            title="Back"
           >
-            <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
-            <span className="font-medium">Back</span>
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
           </button>
 
-          <div className="p-2 bg-gradient-to-tr from-orange-500/30 to-indigo-500/30 rounded-xl backdrop-blur-sm border border-orange-400/30 flex items-center justify-center shadow-inner flex-shrink-0">
-            <Zap className="h-4.5 w-4.5 text-amber-300" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
+            <Bot className="h-4.5 w-4.5" />
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-bold text-sm sm:text-base text-white tracking-wide leading-tight truncate">
-                StartUpSphere AI
-              </h3>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-orange-500/30 border border-orange-400/40 rounded text-amber-200 tracking-wider uppercase">
-                Groq
-              </span>
-            </div>
-            <div className="flex items-center text-xs font-medium text-emerald-300 mt-0.5">
-              <span className="relative flex h-2 w-2 mr-1.5 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-              <span className="text-emerald-200 font-semibold tracking-wide text-[11px] truncate">
-                Powered by Groq LPUs
-              </span>
+            <h3 className="font-semibold text-sm sm:text-base text-white tracking-tight leading-tight truncate">
+              AI Agent
+            </h3>
+            <div className="flex items-center text-[11px] text-emerald-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
+              <span>Online</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-1 relative z-10 flex-shrink-0 ml-2">
+        <div className="flex items-center space-x-1 flex-shrink-0">
           <button
             type="button"
             onClick={clearChat}
-            className="p-2 hover:bg-white/15 rounded-lg transition-colors border-0 bg-transparent text-white/80 hover:text-white cursor-pointer"
+            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             title="Clear Chat"
             aria-label="Clear Chat"
           >
@@ -386,9 +366,9 @@ export default function GroqAiChat({ currentUser, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-white/15 rounded-lg transition-colors border-0 bg-transparent text-white/80 hover:text-white cursor-pointer"
-            title="Close Assistant"
-            aria-label="Close Assistant"
+            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close"
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
@@ -446,7 +426,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
                   <Zap className="h-4 w-4 animate-pulse text-amber-300" />
                 </div>
                 <div className="bg-white text-gray-500 border border-gray-100 p-3 rounded-2xl rounded-tl-none shadow-sm flex items-center space-x-2">
-                  <span className="text-xs text-gray-500 font-medium">Groq is thinking</span>
+                  <span className="text-xs text-gray-500 font-medium">AI Agent is thinking</span>
                   <div className="flex space-x-1">
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -474,7 +454,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask Groq AI Consultant..."
+          placeholder="Ask AI Agent..."
           disabled={loading}
           className="flex-1 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-gray-50/70 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:bg-white disabled:opacity-50 transition-all shadow-inner font-medium"
         />
@@ -486,7 +466,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
               ? "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed shadow-none"
               : "bg-indigo-600 hover:bg-indigo-700 border-indigo-700 shadow-indigo-200/50"
           }`}
-          title="Send Message to Groq"
+          title="Send Message"
         >
           <Send className={`h-4.5 w-4.5 sm:h-5 sm:w-5 stroke-[2.2] ${!input.trim() || loading ? "text-gray-400" : "text-white"}`} />
         </button>

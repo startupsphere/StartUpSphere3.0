@@ -646,42 +646,17 @@ export default function Startupmap({
 
 
 
-      // Add gradient orbs (blurred circles) for distinct color zones per area
-      if (!map.getLayer("startups-zone-gradients")) {
-        map.addLayer({
-          id: "startups-zone-gradients",
-          type: "circle",
-          source: sourceId,
-          filter: ["has", "point_count"],
-          layout: {
-            visibility: showHeatmap ? "visible" : "none"
-          },
-          paint: {
-            "circle-color": [
-              "match",
-              ["get", "maxColorClass"],
-              1, "#22c55e", // Green
-              2, "#eab308", // Yellow
-              3, "#ef4444", // Red
-              "#22c55e" // Default
-            ],
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              40, // Base radius
-              4, 55,
-              10, 75,
-              21, 100
-            ],
-            // Solid Heatmap Radial Scaling
-            "circle-blur": 0.28,
-            "circle-opacity": 0.92,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "rgba(255, 255, 255, 0.45)"
-          }
-        }, layerId); // insert before the icon layer
+      // Clean up gradient / glare layers if they exist
+      if (map.getLayer("startups-zone-gradients")) {
+        try { map.removeLayer("startups-zone-gradients"); } catch (e) { }
+      }
+      if (map.getLayer("startups-unclustered-gradient")) {
+        try { map.removeLayer("startups-unclustered-gradient"); } catch (e) { }
+      }
 
-        // Inner solid core for the gradient to look like a hotspot
+      // Add solid circles for distinct color zones per area (glare removed, solid circle only)
+      if (!map.getLayer("startups-zone-core")) {
+        // Solid core for cluster hotspots (applies to all 3 TRL levels: 1=Green, 2=Yellow, 3=Red)
         map.addLayer({
           id: "startups-zone-core",
           type: "circle",
@@ -694,10 +669,10 @@ export default function Startupmap({
             "circle-color": [
               "match",
               ["get", "maxColorClass"],
-              1, "#16a34a", // Darker Green
-              2, "#ca8a04", // Darker Yellow
-              3, "#dc2626", // Darker Red
-              "#16a34a" // Default
+              1, "#16a34a", // Green (TRL 1-3)
+              2, "#ca8a04", // Yellow (TRL 4-6)
+              3, "#dc2626", // Red (TRL 7-9)
+              "#16a34a" // Default Green
             ],
             "circle-radius": [
               "step",
@@ -707,7 +682,7 @@ export default function Startupmap({
               10, 25,
               21, 30
             ],
-            "circle-blur": 0.15,
+            "circle-blur": 0,
             "circle-opacity": 1.0,
             "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
@@ -731,40 +706,7 @@ export default function Startupmap({
           }
         });
 
-        // Unclustered isolated points
-        map.addLayer({
-          id: "startups-unclustered-gradient",
-          type: "circle",
-          source: sourceId,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            visibility: showHeatmap ? "visible" : "none"
-          },
-          paint: {
-            "circle-color": [
-              "match",
-              ["get", "colorClass"],
-              1, "#22c55e", // Green (TRL 1-3: Basic Research / Concept)
-              2, "#eab308", // Yellow (TRL 4-6: Prototype / Testing)
-              3, "#ef4444", // Red (TRL 7-9: Market-ready / Deployed)
-              "#22c55e"
-            ],
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              0, 25,
-              8, 45,
-              12, 75,
-              16, 120
-            ],
-            "circle-blur": 0.25,
-            "circle-opacity": 0.95,
-            "circle-stroke-width": 1.5,
-            "circle-stroke-color": "rgba(255, 255, 255, 0.6)"
-          }
-        }, layerId);
-
+        // Unclustered solid circle in the middle (glare removed, applies to all 3 TRL levels: 1=Green, 2=Yellow, 3=Red)
         map.addLayer({
           id: "startups-unclustered-core",
           type: "circle",
@@ -777,18 +719,18 @@ export default function Startupmap({
             "circle-color": [
               "match",
               ["get", "colorClass"],
-              1, "#16a34a",
-              2, "#ca8a04",
-              3, "#dc2626",
+              1, "#16a34a", // Green (TRL 1-3: Basic Research / Concept)
+              2, "#ca8a04", // Yellow (TRL 4-6: Prototype / Testing)
+              3, "#dc2626", // Red (TRL 7-9: Market-ready / Deployed)
               "#16a34a"
             ],
             "circle-radius": 12,
-            "circle-blur": 0.2,
-            "circle-opacity": 0.9
+            "circle-blur": 0,
+            "circle-opacity": 1.0
           }
         }, layerId);
 
-        // Add click event to expand zones (making gradients, core, and text count all clickable)
+        // Add click event to expand zones
         if (!map.__zoneEventsAdded) {
           map.__zoneEventsAdded = true;
 
@@ -811,6 +753,7 @@ export default function Startupmap({
           };
 
           const setupClusterLayerEvents = (layerName) => {
+            if (!map.getLayer(layerName)) return;
             map.on('click', layerName, (e) => handleClusterClick(e, layerName));
             map.on('mouseenter', layerName, () => {
               map.getCanvas().style.cursor = 'pointer';
@@ -821,7 +764,6 @@ export default function Startupmap({
           };
 
           setupClusterLayerEvents('startups-zone-core');
-          setupClusterLayerEvents('startups-zone-gradients');
           setupClusterLayerEvents('startups-zone-count');
         }
       }
@@ -1194,18 +1136,6 @@ export default function Startupmap({
           if (!e.features?.length) return;
           handleSingleStartupClick(e.features[0]);
         });
-
-        // Heatmap Unclustered gradient events
-        map.on("mouseenter", "startups-unclustered-gradient", () => {
-          map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", "startups-unclustered-gradient", () => {
-          map.getCanvas().style.cursor = "";
-        });
-        map.on("click", "startups-unclustered-gradient", (e) => {
-          if (!e.features?.length) return;
-          handleSingleStartupClick(e.features[0]);
-        });
       }
     };
 
@@ -1383,8 +1313,8 @@ export default function Startupmap({
     setShowHeatmap((prev) => {
       const next = !prev;
       const layers = [
-        "startups-true-heatmap", "startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count",
-        "startups-unclustered-gradient", "startups-unclustered-core",
+        "startups-true-heatmap", "startups-heatmap", "startups-zone-core", "startups-zone-count",
+        "startups-unclustered-core",
         "engagement-heatmap-layer", "engagement-click-zone"
       ];
       layers.forEach(layerId => {
@@ -1416,7 +1346,7 @@ export default function Startupmap({
     const map = mapInstanceRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    const trlLayers = ["startups-heatmap", "startups-zone-gradients", "startups-zone-core", "startups-zone-count", "startups-unclustered-gradient", "startups-unclustered-core"];
+    const trlLayers = ["startups-heatmap", "startups-zone-core", "startups-zone-count", "startups-unclustered-core"];
     const engagementLayers = ["engagement-heatmap-layer", "engagement-click-zone"];
 
     trlLayers.forEach(layer => {

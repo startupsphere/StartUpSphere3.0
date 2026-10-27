@@ -570,8 +570,9 @@ export default function StartupDashboard({ openAddMethodModal }) {
       console.log("Startups fetched successfully: ", data);
 
       if (Array.isArray(data)) {
-        setStartups(data);
-        return data;
+        const unique = Array.from(new Map(data.map((s) => [s.id, s])).values());
+        setStartups(unique);
+        return unique;
       } else {
         console.error("Expected array of startups but got:", data);
         setStartups([]);
@@ -1471,7 +1472,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     disabled={loading}
                   >
                     <option value="all">All Portfolio Startups ({startups.length})</option>
-                    {startups.map((st) => (
+                    {Array.from(new Map(startups.map((st) => [st.id, st])).values()).map((st) => (
                       <option value={st.id} key={st.id}>
                         {st.companyName}
                       </option>
@@ -1894,45 +1895,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       </span>
                     </span>
                     <span>Total Startups</span>
-                  </div>
-                </div>
-                <div className="w-full sm:w-64">
-                  <label
-                    htmlFor="startup-select"
-                    className="block mb-2 text-xs font-semibold text-gray-700 uppercase"
-                  >
-                    Select Startup
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="startup-select"
-                      value={selectedStartup}
-                      onChange={handleChange}
-                      className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-900 text-sm font-medium rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={loading}
-                    >
-                      <option value="all">All Startups</option>
-                      {startups.map((st) => (
-                        <option value={st.id} key={st.id}>
-                          {st.companyName}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
                   </div>
                 </div>
               </div>
