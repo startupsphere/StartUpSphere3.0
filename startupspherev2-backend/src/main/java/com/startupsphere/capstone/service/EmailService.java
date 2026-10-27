@@ -49,44 +49,30 @@ public class EmailService {
     @Value("${sendgrid.from.name:StartupSphere}")
     private String sendgridFromName;
 
-    private synchronized JavaMailSender getOrCreateMailSender() {
-        String username = getEffectiveUsername();
-        String password = getEffectivePassword();
+    private JavaMailSender createSender(int port, boolean useSsl) {
+        JavaMailSenderImpl impl = new JavaMailSenderImpl();
+        impl.setHost("smtp.gmail.com");
+        impl.setPort(port);
+        impl.setUsername(getEffectiveUsername());
+        impl.setPassword(getEffectivePassword());
 
-        if (mailSender instanceof JavaMailSenderImpl impl) {
-            if (impl.getUsername() == null || impl.getUsername().isBlank()) {
-                impl.setUsername(username);
-            }
-            if (impl.getPassword() == null || impl.getPassword().isBlank()) {
-                impl.setPassword(password);
-            }
-            configureMailProperties(impl);
-            return impl;
-        }
-
-        if (username != null && !username.isBlank() && password != null && !password.isBlank()) {
-            JavaMailSenderImpl impl = new JavaMailSenderImpl();
-            impl.setHost("smtp.gmail.com");
-            impl.setPort(587);
-            impl.setUsername(username);
-            impl.setPassword(password);
-            configureMailProperties(impl);
-            this.mailSender = impl;
-            return impl;
-        }
-        return mailSender;
-    }
-
-    private void configureMailProperties(JavaMailSenderImpl impl) {
         Properties props = impl.getJavaMailProperties();
-        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.transport.protocol", useSsl ? "smtps" : "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.starttls.required", "true");
+        if (useSsl) {
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.socketFactory.port", String.valueOf(port));
+            props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            props.put("mail.smtp.socketFactory.fallback", "false");
+        } else {
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.starttls.required", "true");
+        }
         props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-        props.put("mail.smtp.connectiontimeout", "10000");
-        props.put("mail.smtp.timeout", "10000");
-        props.put("mail.smtp.writetimeout", "10000");
+        props.put("mail.smtp.connectiontimeout", "7000");
+        props.put("mail.smtp.timeout", "7000");
+        props.put("mail.smtp.writetimeout", "7000");
+        return impl;
     }
 
     public String getEffectiveUsername() {
@@ -134,7 +120,7 @@ public class EmailService {
 
     /**
      * Send OTP verification email to verify the business contact email.
-     * Connects directly to Gmail SMTP and sends the email to the recipient's inbox.
+     * Connects directly to Gmail SMTP (port 465 SSL or 587 TLS) and sends the email to the recipient's inbox.
      */
     public boolean sendOtpVerificationEmail(String toEmail, String companyName, String otpCode) {
         logger.info("Initiating OTP verification email to: {} for startup: {}", toEmail, companyName);
@@ -148,10 +134,14 @@ public class EmailService {
                 + "If you did not request this, please ignore this email.\n\n"
                 + "Best regards,\nStartupSphere Team";
 
-        // 1. Send via Gmail SMTP
-        JavaMailSender sender = getOrCreateMailSender();
-        if (sender != null) {
+        // 1. Try Gmail SMTP: Port 465 (SSL) first (standard for cloud environments), then fallback to Port 587 (TLS)
+        int[] ports = {465, 587};
+        Exception lastGmailException = null;
+
+        for (int port : ports) {
+            boolean useSsl = (port == 465);
             try {
+                JavaMailSender sender = createSender(port, useSsl);
                 MimeMessage message = sender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -162,11 +152,11 @@ public class EmailService {
                 helper.setText(textBody, htmlBody);
 
                 sender.send(message);
-                logger.info("Successfully delivered OTP verification email via Gmail SMTP to {}", toEmail);
+                logger.info("Successfully delivered OTP verification email via Gmail SMTP (port {}) to {}", port, toEmail);
                 return true;
             } catch (Exception e) {
-                logger.error("Failed to send OTP email via Gmail SMTP to {}: {}", toEmail, e.getMessage(), e);
-                throw new RuntimeException("Failed to send email via Gmail: " + e.getMessage(), e);
+                logger.warn("Failed to send OTP email via Gmail SMTP on port {}: {}", port, e.getMessage());
+                lastGmailException = e;
             }
         }
 
@@ -198,6 +188,9 @@ public class EmailService {
             }
         }
 
+        if (lastGmailException != null) {
+            throw new RuntimeException("Failed to send email via Gmail: " + lastGmailException.getMessage(), lastGmailException);
+        }
         throw new RuntimeException("No working mail provider configured. Could not send verification code.");
     }
 
