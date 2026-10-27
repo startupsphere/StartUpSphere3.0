@@ -2051,623 +2051,686 @@ export default function Sidebar({
           </div>
 
           {/* Sidebar Footer */}
-          <div className="border-t border-slate-100 bg-slate-50/60 p-2.5 flex-shrink-0">
+          <div className="border-t border-slate-100 bg-slate-50/60 p-2.5 flex-shrink-0 relative">
             {isAuthenticated ? (
-              <div className="flex justify-center">
+              <div className="relative flex justify-center">
                 <button
-                  className="group relative flex flex-col items-center justify-center rounded-2xl p-2.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
-                  onClick={() => setShowLogoutConfirm(true)}
-                  aria-label="Logout"
+                  className="group relative flex items-center justify-center rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500/50 hover:scale-105 active:scale-95 transition-all duration-200"
+                  onClick={() => {
+                    setShowTooltip((prev) => !prev);
+                    setNotificationTooltip(false);
+                    setNotificationActiveIndex("All");
+                    fetchNotificationsCount();
+                  }}
+                  aria-label="Profile"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5.5 w-5.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-sm flex items-center justify-center shadow-md">
+                    {currentUser
+                      ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+                      : "U"}
+                  </div>
                   <span
-                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-rose-300 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
                     style={{ zIndex: 99999 }}
                   >
-                    Logout
+                    {currentUser?.firstname ? `${currentUser.firstname} ${currentUser.lastname || ""} (Profile)` : "Profile"}
                   </span>
                 </button>
               </div>
             ) : (
-              <div className="flex justify-center">
+              <div className="relative flex justify-center">
                 <button
                   className="group relative flex flex-col items-center justify-center rounded-2xl p-2.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
-                  onClick={() => setOpenLogin(true)}
-                  aria-label="Login"
+                  onClick={() => {
+                    setShowTooltip((prev) => !prev);
+                    setNotificationTooltip(false);
+                  }}
+                  aria-label="Login / Register"
                 >
                   <RiLoginBoxFill className="h-5.5 w-5.5" />
                   <span
                     className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-blue-300 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
                     style={{ zIndex: 99999 }}
                   >
-                    Login
+                    Login / Register
                   </span>
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      </aside>
 
-      {location.pathname === "/" && !showGeminiAi && (
-        <div className="hidden md:block absolute top-4 right-4 z-50">
-          <div className="relative">
-            <div
-              className="avatar avatar-placeholder cursor-pointer rounded-full hover:ring-2 hover:ring-blue-900 transition-all duration-200"
-              onClick={() => {
-                setShowTooltip((prev) => !prev);
-                setNotificationTooltip(false);
-                setNotificationActiveIndex("All");
-                fetchNotificationsCount();
-              }}
-            >
-              <div className="bg-gradient-to-br from-blue-400 to-blue-700 text-white w-12 rounded-full flex items-center justify-center shadow-md">
-                <span className="text-lg font-semibold">
-                  {isAuthenticated === null
-                    ? "?"
-                    : isAuthenticated && currentUser
-                      ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""
-                        }`.toUpperCase()
-                      : "G"}
-                </span>
-              </div>
-            </div>
-
-            {notificationTooltip && (
-              <div className="absolute top-14 right-0 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                {/* Header - Different for admin vs regular users */}
-                <div
-                  className={`px-4 py-3 border-b border-gray-100 ${currentUser?.role === "ROLE_ADMIN"
-                    ? "bg-gradient-to-r from-amber-50 to-white"
-                    : "bg-gradient-to-r from-blue-50 to-white"
-                    } flex justify-between items-center`}
-                >
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    {currentUser?.role === "ROLE_ADMIN"
-                      ? "Admin Dashboard"
-                      : "Notifications"}
-                  </h3>
-                  <button
-                    onClick={() =>
-                      currentUser?.role === "ROLE_ADMIN"
-                        ? navigate("/all-startup-dashboard", {
-                          state: { activeTab: "review" },
-                        })
-                        : navigate("/notifications")
-                    }
-                    className={`text-xs ${currentUser?.role === "ROLE_ADMIN"
-                      ? "text-amber-600 hover:text-amber-800"
-                      : "text-blue-600 hover:text-blue-800"
-                      } hover:underline`}
-                  >
-                    {currentUser?.role === "ROLE_ADMIN"
-                      ? "View all submissions"
-                      : "View all notifications"}
-                  </button>
-                </div>
-
-                {/* Content - Show different tabs based on role */}
-                {currentUser?.role === "ROLE_ADMIN" ? (
-                  /* Admin-only content */
-                  <div className="max-h-[400px] overflow-y-auto">
-                    {loadingNotification ? (
-                      <div className="flex justify-center p-4">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-600"></div>
-                      </div>
-                    ) : adminSubmissions && adminSubmissions.length > 0 ? (
-                      <div className="divide-y divide-gray-100">
-                        {adminSubmissions.map((startup) => (
-                          <div
-                            key={startup.id}
-                            className="p-4 flex items-start hover:bg-amber-50 transition-colors cursor-pointer"
-                            onClick={() =>
-                              navigate("/all-startup-dashboard", {
-                                state: {
-                                  activeTab: "review",
-                                  reviewStartupId: startup.id,
-                                  startupName: startup.companyName,
-                                },
-                              })
-                            }
-                          >
-                            {/* Startup avatar */}
-                            <div className="flex-shrink-0 mr-3">
-                              <div className="relative">
-                                {startup.photo ? (
-                                  <img
-                                    src={`${getBackendUrl()
-                                      }/startups/${startup.id}/photo`}
-                                    alt={startup.companyName}
-                                    className="h-12 w-12 rounded-lg object-cover border border-gray-200"
-                                    onError={(e) => {
-                                      e.target.onerror = null;
-                                      e.target.src = `https://ui-avatars.com/api/?name=${startup.companyName}&background=amber&color=fff`;
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="h-12 w-12 bg-amber-100 rounded-lg flex items-center justify-center text-amber-700 font-medium">
-                                    {startup.companyName
-                                      ?.charAt(0)
-                                      ?.toUpperCase() || "?"}
-                                  </div>
-                                )}
-                                <span className="absolute -top-1 -right-1 h-4 w-4 bg-amber-500 rounded-full border-2 border-white"></span>
-                              </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {startup.companyName}
-                                </p>
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
-                                  Review
-                                </span>
-                              </div>
-
-                              <p className="mt-1 text-xs text-gray-600 line-clamp-2">
-                                {startup.companyDescription ||
-                                  "New startup submission awaiting review"}
-                              </p>
-
-                              <div className="mt-2 flex items-center text-xs text-gray-500">
-                                <div className="flex items-center">
-                                  <svg
-                                    className="mr-1 h-3 w-3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                  </svg>
-                                  <span>
-                                    {startup.locationName || "Unknown location"}
-                                  </span>
-                                </div>
-                                <span className="mx-2">•</span>
-                                <span className="flex items-center">
-                                  <svg
-                                    className="mr-1 h-3 w-3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth="2"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 012 2z"
-                                    />
-                                  </svg>
-                                  {new Date(
-                                    startup.createdAt
-                                  ).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-10 text-center">
-                        <div className="mx-auto h-14 w-14 text-amber-400 mb-4 flex items-center justify-center rounded-full bg-amber-100">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-7 w-7"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-sm font-medium text-gray-900">
-                          No pending submissions
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          All startup submissions have been reviewed
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Admin footer */}
-                    <div className="border-t border-gray-100 p-3 bg-amber-50">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500">
-                          {adminSubmissionsCount > 0
-                            ? `${adminSubmissionsCount} submission${adminSubmissionsCount !== 1 ? "s" : ""
-                            } awaiting review`
-                            : "No pending submissions"}
-                        </span>
-                        <button
-                          onClick={() =>
-                            navigate("/all-startup-dashboard", {
-                              state: { activeTab: "review" },
-                            })
-                          }
-                          className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors"
-                        >
-                          Review All
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* Regular user content - Existing notification tabs and content */
-                  <>
-                    {/* Notification Tabs */}
-                    <div className="flex border-b border-gray-100">
-                      {notificationTabs.map((tab, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setNotificationActiveIndex(tab);
-                            setNotificationAdminTab(false);
-                            if (tab === "New") {
-                              fetchNewNotifications();
-                            }
-                          }}
-                          className={`flex-1 py-2 text-sm font-medium text-center ${notificationActiveIndex === tab &&
-                            !notificationAdminTab
-                            ? "text-blue-600 border-b-2 border-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                            }`}
-                        >
-                          {tab}
-                          {tab === "New" && notificationsCount > 0 && (
-                            <span className="ml-1.5 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-600">
-                              {notificationsCount}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Regular notification content - existing code */}
-                    <div className="max-h-[400px] overflow-y-auto">
-                      {/* Loading state */}
-                      {loadingNotification && (
-                        <div className="flex justify-center p-4">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                        </div>
-                      )}
-
-                      {/* All Notifications Tab */}
-                      {!loadingNotification &&
-                        notificationActiveIndex === "All" && (
-                          <>
-                            {Array.isArray(notifications) &&
-                              notifications.length > 0 ? (
-                              <div className="divide-y divide-gray-100">
-                                {/* Existing notification mapping code */}
-                                {notifications.map((noti, index) => (
-                                  // Existing notification items code...
-                                  <div
-                                    onClick={() => {
-                                      fetchNotificationsCount();
-                                      if (!noti.viewed) markAsViewed(noti.id);
-                                    }}
-                                    key={index}
-                                    className={`p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer ${!noti.viewed ? "bg-blue-50" : ""
-                                      }`}
-                                  >
-                                    {/* Avatar/Icon */}
-                                    <div className="flex-shrink-0 mr-3">
-                                      {noti.startup?.photo ? (
-                                        <div className="relative">
-                                          <img
-                                            src={`${getBackendUrl()
-                                              }/startups/${noti.startup.id
-                                              }/photo`}
-                                            alt={noti.startup.companyName}
-                                            className="h-10 w-10 rounded-full object-cover border border-gray-200"
-                                            onError={(e) => {
-                                              e.target.onerror = null;
-                                              e.target.src = `https://ui-avatars.com/api/?name=${noti.startup.companyName}&background=random`;
-                                            }}
-                                          />
-                                          {!noti.viewed && (
-                                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div className="relative">
-                                          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                            <span className="text-sm font-medium">
-                                              {noti.startup?.companyName
-                                                ?.charAt(0)
-                                                ?.toUpperCase() || "?"}
-                                            </span>
-                                          </div>
-                                          {!noti.viewed && (
-                                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm text-gray-900 font-medium mb-0.5">
-                                        {noti.startup?.companyName || "Unknown"}
-                                      </p>
-                                      <p className="text-xs text-gray-600 line-clamp-2">
-                                        {noti.remarks}
-                                      </p>
-                                      <p className="text-xs text-gray-400 mt-1">
-                                        {new Date(
-                                          noti.createdAt
-                                        ).toLocaleDateString("en-US", {
-                                          month: "short",
-                                          day: "numeric",
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="py-8 text-center">
-                                <div className="mx-auto h-12 w-12 text-gray-400 mb-3 flex items-center justify-center rounded-full bg-gray-100">
-                                  <FaBell className="h-6 w-6" />
-                                </div>
-                                <p className="text-sm text-gray-500">
-                                  No notifications
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  We'll notify you when something arrives
-                                </p>
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                      {/* New Notifications Tab - existing code */}
-                      {!loadingNotification &&
-                        notificationActiveIndex === "New" && (
-                          <>
-                            {/* Existing new notifications code */}
-                            {newNotifications.length > 0 ? (
-                              <div className="divide-y divide-gray-100">
-                                {newNotifications.map((noti, index) => (
-                                  <div
-                                    key={index}
-                                    className="p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer bg-blue-50"
-                                    onClick={() => {
-                                      markAsViewed(noti.id);
-                                      fetchNotificationsCount();
-                                    }}
-                                  >
-                                    {/* Avatar/Icon */}
-                                    <div className="flex-shrink-0 mr-3">
-                                      {noti.startup?.photo ? (
-                                        <div className="relative">
-                                          <img
-                                            src={`${getBackendUrl()
-                                              }/startups/${noti.startup.id
-                                              }/photo`}
-                                            alt={noti.startup.companyName}
-                                            className="h-10 w-10 rounded-full object-cover border border-gray-200"
-                                            onError={(e) => {
-                                              e.target.onerror = null;
-                                              e.target.src = `https://ui-avatars.com/api/?name=${noti.startup.companyName}&background=random`;
-                                            }}
-                                          />
-                                          <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
-                                        </div>
-                                      ) : (
-                                        <div className="relative">
-                                          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                            <span className="text-sm font-medium">
-                                              {noti.startup?.companyName
-                                                ?.charAt(0)
-                                                ?.toUpperCase() || "?"}
-                                            </span>
-                                          </div>
-                                          <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm text-gray-900 font-medium mb-0.5">
-                                        {noti.startup?.companyName || "Unknown"}
-                                      </p>
-                                      <p className="text-xs text-gray-600 line-clamp-2">
-                                        {noti.remarks}
-                                      </p>
-                                      <p className="text-xs text-gray-400 mt-1">
-                                        {new Date(
-                                          noti.createdAt
-                                        ).toLocaleDateString("en-US", {
-                                          month: "short",
-                                          day: "numeric",
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="py-8 text-center">
-                                <div className="mx-auto h-12 w-12 text-gray-400 mb-3 flex items-center justify-center rounded-full bg-gray-100">
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-6 w-6"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
-                                </div>
-                                <p className="text-sm text-gray-500">
-                                  You're all caught up!
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  No new notifications
-                                </p>
-                              </div>
-                            )}
-                          </>
-                        )}
-                    </div>
-
-                    {/* Regular user footer */}
-                    <div className="border-t border-gray-100 p-2 text-center">
-                      <button
-                        onClick={() => navigate("/notifications")}
-                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        See all notifications
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {showTooltip && (
+            {/* Profile Dropdown Menu for Authenticated Users */}
+            {isAuthenticated && showTooltip && (
               <>
                 <div
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setShowTooltip(false)}
                 />
-                <div className="absolute top-14 right-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                {isAuthenticated ? (
-                  <>
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {currentUser?.firstname} {currentUser?.lastname}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {currentUser?.email}
-                        </div>
-                        {currentUser?.role && (
-                          <div className="mt-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${currentUser.role === 'ROLE_ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                              currentUser.role === 'ROLE_STARTUP' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                currentUser.role === 'ROLE_HEI' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
-                                  currentUser.role === 'ROLE_SME' ? 'bg-green-100 text-green-800 border border-green-200' :
-                                    currentUser.role === 'ROLE_RESEARCH' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                      currentUser.role === 'ROLE_INNOVATION' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
-                                        currentUser.role === 'ROLE_SUPPORT' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
-                                          currentUser.role === 'ROLE_GOVERNMENT' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                            'bg-gray-100 text-gray-800 border border-gray-200'
-                              }`}>
-                              {
-                                currentUser.role === 'ROLE_ADMIN' ? 'Admin' :
-                                  currentUser.role === 'ROLE_STARTUP' ? 'Startup' :
-                                    currentUser.role === 'ROLE_HEI' ? 'University / HEI' :
-                                      currentUser.role === 'ROLE_SME' ? 'SME / Business' :
-                                        currentUser.role === 'ROLE_RESEARCH' ? 'Research Institution' :
-                                          currentUser.role === 'ROLE_INNOVATION' ? 'Innovation Output' :
-                                            currentUser.role === 'ROLE_SUPPORT' ? 'Support Organization' :
-                                              currentUser.role === 'ROLE_GOVERNMENT' ? 'Government / Funding' :
-                                                'Standard User'
-                              }
-                            </span>
-                          </div>
-                        )}
+                <div className="absolute bottom-2 left-full ml-3.5 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] overflow-hidden animate-fade-in">
+                  <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white">
+                    <div className="min-w-0 pr-2">
+                      <div className="text-sm font-bold text-slate-900 truncate">
+                        {currentUser?.firstname} {currentUser?.lastname}
                       </div>
-                      <div className="relative">
-                        <FaBell
-                          onClick={() => {
-                            setNotificationTooltip((prev) => !prev);
-                            setShowTooltip((prev) => !prev);
-                          }}
-                          className="text-black text-2xl cursor-pointer"
-                        />
+                      <div className="text-xs text-slate-500 truncate mt-0.5">
+                        {currentUser?.email}
+                      </div>
+                      {currentUser?.role && (
+                        <div className="mt-1.5">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
+                              currentUser.role === "ROLE_ADMIN"
+                                ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                : currentUser.role === "ROLE_STARTUP"
+                                ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                : currentUser.role === "ROLE_HEI"
+                                ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                                : currentUser.role === "ROLE_SME"
+                                ? "bg-green-100 text-green-800 border border-green-200"
+                                : currentUser.role === "ROLE_RESEARCH"
+                                ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                : currentUser.role === "ROLE_INNOVATION"
+                                ? "bg-pink-100 text-pink-800 border border-pink-200"
+                                : currentUser.role === "ROLE_SUPPORT"
+                                ? "bg-teal-100 text-teal-800 border border-teal-200"
+                                : currentUser.role === "ROLE_GOVERNMENT"
+                                ? "bg-orange-100 text-orange-800 border border-orange-200"
+                                : "bg-gray-100 text-gray-800 border border-gray-200"
+                            }`}
+                          >
+                            {currentUser.role === "ROLE_ADMIN"
+                              ? "Admin"
+                              : currentUser.role === "ROLE_STARTUP"
+                              ? "Startup"
+                              : currentUser.role === "ROLE_HEI"
+                              ? "University / HEI"
+                              : currentUser.role === "ROLE_SME"
+                              ? "SME / Business"
+                              : currentUser.role === "ROLE_RESEARCH"
+                              ? "Research Institution"
+                              : currentUser.role === "ROLE_INNOVATION"
+                              ? "Innovation Output"
+                              : currentUser.role === "ROLE_SUPPORT"
+                              ? "Support Organization"
+                              : currentUser.role === "ROLE_GOVERNMENT"
+                              ? "Government / Funding"
+                              : "Standard User"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setNotificationTooltip((prev) => !prev);
+                          setShowTooltip(false);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white transition-colors relative cursor-pointer"
+                        aria-label="Notifications"
+                        title="Notifications"
+                      >
+                        <FaBell className="text-lg" />
                         {notificationsCount > 0 && (
-                          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
+                          <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
                             {notificationsCount}
                           </div>
                         )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-1.5 space-y-0.5">
+                    {currentUser?.role === "ROLE_ADMIN" && (
+                      <button
+                        onClick={() => {
+                          setShowTooltip(false);
+                          navigate("/all-startup-dashboard");
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <LuLayoutDashboard className="h-4 w-4 text-amber-600" />
+                        <span>Admin Dashboard</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowTooltip(false);
+                        navigate("/notifications");
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <FaBell className="h-4 w-4 text-blue-600" />
+                      <span>Notifications</span>
+                      {notificationsCount > 0 && (
+                        <span className="ml-auto bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                          {notificationsCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100 p-1.5">
+                    <button
+                      onClick={() => {
+                        setShowTooltip(false);
+                        setShowLogoutConfirm(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Login / Register Dropdown Menu for Unauthenticated Users */}
+            {!isAuthenticated && showTooltip && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setShowTooltip(false)}
+                />
+                <div className="absolute bottom-2 left-full ml-3.5 w-56 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] p-3 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1">
+                    Welcome to StartUpSphere
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowTooltip(false);
+                      setOpenLogin(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-xs cursor-pointer"
+                  >
+                    <RiLoginBoxFill className="h-4 w-4" />
+                    <span>Login</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTooltip(false);
+                      setOpenRegister(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 cursor-pointer"
+                  >
+                    <User className="h-4 w-4 text-slate-500" />
+                    <span>Register</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Notification Dropdown Panel */}
+            {notificationTooltip && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setNotificationTooltip(false)}
+                />
+                <div className="absolute bottom-2 left-full ml-3.5 w-96 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] overflow-hidden flex flex-col max-h-[480px]">
+                  {/* Header - Different for admin vs regular users */}
+                  <div
+                    className={`px-4 py-3 border-b border-gray-100 ${
+                      currentUser?.role === "ROLE_ADMIN"
+                        ? "bg-gradient-to-r from-amber-50 to-white"
+                        : "bg-gradient-to-r from-blue-50 to-white"
+                    } flex justify-between items-center`}
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {currentUser?.role === "ROLE_ADMIN"
+                        ? "Admin Dashboard"
+                        : "Notifications"}
+                    </h3>
+                    <button
+                      onClick={() =>
+                        currentUser?.role === "ROLE_ADMIN"
+                          ? navigate("/all-startup-dashboard", {
+                              state: { activeTab: "review" },
+                            })
+                          : navigate("/notifications")
+                      }
+                      className={`text-xs ${
+                        currentUser?.role === "ROLE_ADMIN"
+                          ? "text-amber-600 hover:text-amber-800"
+                          : "text-blue-600 hover:text-blue-800"
+                      } hover:underline`}
+                    >
+                      {currentUser?.role === "ROLE_ADMIN"
+                        ? "View all submissions"
+                        : "View all notifications"}
+                    </button>
+                  </div>
+
+                  {/* Content - Show different tabs based on role */}
+                  {currentUser?.role === "ROLE_ADMIN" ? (
+                    /* Admin-only content */
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {loadingNotification ? (
+                        <div className="flex justify-center p-4">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-600"></div>
+                        </div>
+                      ) : adminSubmissions && adminSubmissions.length > 0 ? (
+                        <div className="divide-y divide-gray-100">
+                          {adminSubmissions.map((startup) => (
+                            <div
+                              key={startup.id}
+                              className="p-4 flex items-start hover:bg-amber-50 transition-colors cursor-pointer"
+                              onClick={() =>
+                                navigate("/all-startup-dashboard", {
+                                  state: {
+                                    activeTab: "review",
+                                    reviewStartupId: startup.id,
+                                    startupName: startup.companyName,
+                                  },
+                                })
+                              }
+                            >
+                              {/* Startup avatar */}
+                              <div className="flex-shrink-0 mr-3">
+                                <div className="relative">
+                                  {startup.photo ? (
+                                    <img
+                                      src={`${getBackendUrl()}/startups/${
+                                        startup.id
+                                      }/photo`}
+                                      alt={startup.companyName}
+                                      className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = `https://ui-avatars.com/api/?name=${startup.companyName}&background=amber&color=fff`;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="h-12 w-12 bg-amber-100 rounded-lg flex items-center justify-center text-amber-700 font-medium">
+                                      {startup.companyName
+                                        ?.charAt(0)
+                                        ?.toUpperCase() || "?"}
+                                    </div>
+                                  )}
+                                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-amber-500 rounded-full border-2 border-white"></span>
+                                </div>
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {startup.companyName}
+                                  </p>
+                                  <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
+                                    Review
+                                  </span>
+                                </div>
+
+                                <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+                                  {startup.companyDescription ||
+                                    "New startup submission awaiting review"}
+                                </p>
+
+                                <div className="mt-2 flex items-center text-xs text-gray-500">
+                                  <div className="flex items-center">
+                                    <svg
+                                      className="mr-1 h-3 w-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                      />
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                      />
+                                    </svg>
+                                    <span>
+                                      {startup.locationName || "Unknown location"}
+                                    </span>
+                                  </div>
+                                  <span className="mx-2">•</span>
+                                  <span className="flex items-center">
+                                    <svg
+                                      className="mr-1 h-3 w-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 012 2z"
+                                      />
+                                    </svg>
+                                    {new Date(
+                                      startup.createdAt
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-10 text-center">
+                          <div className="mx-auto h-14 w-14 text-amber-400 mb-4 flex items-center justify-center rounded-full bg-amber-100">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-7 w-7"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </div>
+                          <h3 className="text-sm font-medium text-gray-900">
+                            No pending submissions
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            All startup submissions have been reviewed
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Admin footer */}
+                      <div className="border-t border-gray-100 p-3 bg-amber-50">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-500">
+                            {adminSubmissionsCount > 0
+                              ? `${adminSubmissionsCount} submission${
+                                  adminSubmissionsCount !== 1 ? "s" : ""
+                                } awaiting review`
+                              : "No pending submissions"}
+                          </span>
+                          <button
+                            onClick={() =>
+                              navigate("/all-startup-dashboard", {
+                                state: { activeTab: "review" },
+                              })
+                            }
+                            className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors"
+                          >
+                            Review All
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        setShowLogoutConfirm(true);
-                        setShowTooltip(false);
-                      }}
-                      className="cursor-pointer block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setShowTooltip(false);
-                        setOpenLogin(true);
-                      }}
-                      className="cursor-pointer block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowTooltip(false);
-                        setOpenRegister(true);
-                      }}
-                      className="cursor-pointer block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    >
-                      Register
-                    </button>
-                  </>
-                )}
-              </div>
+                  ) : (
+                    /* Regular user content - Existing notification tabs and content */
+                    <>
+                      {/* Notification Tabs */}
+                      <div className="flex border-b border-gray-100">
+                        {notificationTabs.map((tab, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setNotificationActiveIndex(tab);
+                              setNotificationAdminTab(false);
+                              if (tab === "New") {
+                                fetchNewNotifications();
+                              }
+                            }}
+                            className={`flex-1 py-2 text-sm font-medium text-center ${
+                              notificationActiveIndex === tab &&
+                              !notificationAdminTab
+                                ? "text-blue-600 border-b-2 border-blue-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            }`}
+                          >
+                            {tab}
+                            {tab === "New" && notificationsCount > 0 && (
+                              <span className="ml-1.5 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-600">
+                                {notificationsCount}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Regular notification content - existing code */}
+                      <div className="max-h-[400px] overflow-y-auto">
+                        {/* Loading state */}
+                        {loadingNotification && (
+                          <div className="flex justify-center p-4">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
+
+                        {/* All Notifications Tab */}
+                        {!loadingNotification &&
+                          notificationActiveIndex === "All" && (
+                            <>
+                              {Array.isArray(notifications) &&
+                              notifications.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                  {/* Existing notification mapping code */}
+                                  {notifications.map((noti, index) => (
+                                    <div
+                                      onClick={() => {
+                                        fetchNotificationsCount();
+                                        if (!noti.viewed) markAsViewed(noti.id);
+                                      }}
+                                      key={index}
+                                      className={`p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer ${
+                                        !noti.viewed ? "bg-blue-50" : ""
+                                      }`}
+                                    >
+                                      {/* Avatar/Icon */}
+                                      <div className="flex-shrink-0 mr-3">
+                                        {noti.startup?.photo ? (
+                                          <div className="relative">
+                                            <img
+                                              src={`${getBackendUrl()}/startups/${
+                                                noti.startup.id
+                                              }/photo`}
+                                              alt={noti.startup.companyName}
+                                              className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                                              onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${noti.startup.companyName}&background=random`;
+                                              }}
+                                            />
+                                            {!noti.viewed && (
+                                              <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="relative">
+                                            <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                              <span className="text-sm font-medium">
+                                                {noti.startup?.companyName
+                                                  ?.charAt(0)
+                                                  ?.toUpperCase() || "?"}
+                                              </span>
+                                            </div>
+                                            {!noti.viewed && (
+                                              <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-900 font-medium mb-0.5">
+                                          {noti.startup?.companyName || "Unknown"}
+                                        </p>
+                                        <p className="text-xs text-gray-600 line-clamp-2">
+                                          {noti.remarks}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {new Date(
+                                            noti.createdAt
+                                          ).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="py-8 text-center">
+                                  <div className="mx-auto h-12 w-12 text-gray-400 mb-3 flex items-center justify-center rounded-full bg-gray-100">
+                                    <FaBell className="h-6 w-6" />
+                                  </div>
+                                  <p className="text-sm text-gray-500">
+                                    No notifications
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    We'll notify you when something arrives
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                        {/* New Notifications Tab - existing code */}
+                        {!loadingNotification &&
+                          notificationActiveIndex === "New" && (
+                            <>
+                              {/* Existing new notifications code */}
+                              {newNotifications.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                  {newNotifications.map((noti, index) => (
+                                    <div
+                                      key={index}
+                                      className="p-3 flex items-start hover:bg-gray-50 transition-colors cursor-pointer bg-blue-50"
+                                      onClick={() => {
+                                        markAsViewed(noti.id);
+                                        fetchNotificationsCount();
+                                      }}
+                                    >
+                                      {/* Avatar/Icon */}
+                                      <div className="flex-shrink-0 mr-3">
+                                        {noti.startup?.photo ? (
+                                          <div className="relative">
+                                            <img
+                                              src={`${getBackendUrl()}/startups/${
+                                                noti.startup.id
+                                              }/photo`}
+                                              alt={noti.startup.companyName}
+                                              className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                                              onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${noti.startup.companyName}&background=random`;
+                                              }}
+                                            />
+                                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
+                                          </div>
+                                        ) : (
+                                          <div className="relative">
+                                            <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                              <span className="text-sm font-medium">
+                                                {noti.startup?.companyName
+                                                  ?.charAt(0)
+                                                  ?.toUpperCase() || "?"}
+                                              </span>
+                                            </div>
+                                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-600 rounded-full border-2 border-white"></span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-900 font-medium mb-0.5">
+                                          {noti.startup?.companyName || "Unknown"}
+                                        </p>
+                                        <p className="text-xs text-gray-600 line-clamp-2">
+                                          {noti.remarks}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {new Date(
+                                            noti.createdAt
+                                          ).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="py-8 text-center">
+                                  <div className="mx-auto h-12 w-12 text-gray-400 mb-3 flex items-center justify-center rounded-full bg-gray-100">
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-6 w-6"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm text-gray-500">
+                                    You're all caught up!
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    No new notifications
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          )}
+                      </div>
+
+                      {/* Regular user footer */}
+                      <div className="border-t border-gray-100 p-2 text-center">
+                        <button
+                          onClick={() => navigate("/notifications")}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          See all notifications
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </>
             )}
           </div>
         </div>
-      )}
+      </aside>
 
       {showSearchContainer && (
         <div
