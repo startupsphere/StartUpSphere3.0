@@ -508,18 +508,21 @@ export default function Sidebar({
           const data = await response.json();
           console.log("Current user:", data);
           setCurrentUser(data);
+          setUser(data);
           setUserDetails(data); // Update parent state
           localStorage.setItem("user", JSON.stringify(data)); // Persist user details
           setIsAuthenticated(true);
         } else {
           console.error("Failed to fetch current user");
           setCurrentUser(null);
+          setUser(null);
           setIsAuthenticated(false);
           localStorage.removeItem("user");
         }
       } catch (error) {
         console.error("Error fetching current user:", error);
         setCurrentUser(null);
+        setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem("user");
       }
@@ -532,7 +535,9 @@ export default function Sidebar({
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser)); // Restore user details
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed); // Restore user details
+        setCurrentUser(parsed);
         setIsAuthenticated(true); // Set authentication state
       } catch (error) {
         console.error("Error parsing user data from localStorage:", error);
@@ -1086,14 +1091,23 @@ export default function Sidebar({
   };
 
   const toggleLike = async (userId, startupId, investorId) => {
-    const payload = { userId, startupId, investorId };
+    const activeUserId = userId || user?.id || currentUser?.id;
+    if (!activeUserId) {
+      toast.error("Please log in to like.");
+      return;
+    }
+
+    const payload = { userId: activeUserId, startupId, investorId };
+    const token = localStorage.getItem("token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     try {
       const response = await fetch(
         `${getBackendUrl()}/api/likes`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           credentials: "include",
           body: JSON.stringify(payload),
         }
@@ -1142,13 +1156,21 @@ export default function Sidebar({
   };
 
   const checkIfBookmarked = async () => {
-    if (!user || (!startup && !stakeholder)) return;
+    const activeUser = user || currentUser;
+    if (!activeUser || (!startup && !stakeholder)) return;
+
+    const token = localStorage.getItem("token");
+    const headers = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
 
     try {
       const response = await fetch(
         `${getBackendUrl()}/api/bookmarks`,
         {
           method: "GET",
+          headers: headers,
           credentials: "include",
         }
       );
@@ -1156,11 +1178,18 @@ export default function Sidebar({
       if (response.ok) {
         const responseData = await response.json();
         // Extract bookmarks from paginated response
-        const bookmarks = responseData.content || responseData || [];
+        const bookmarks = Array.isArray(responseData)
+          ? responseData
+          : (responseData.content || []);
+
+        const targetStakeholderId = stakeholder ? (stakeholder.investorId || stakeholder.id) : null;
+
         const isBookmarked = bookmarks.some(
           (bookmark) =>
             (startup && bookmark.startup?.id === startup.id) ||
-            (stakeholder && bookmark.investor?.id === stakeholder.id)
+            (targetStakeholderId &&
+              ((bookmark.investor?.investorId && bookmark.investor.investorId === targetStakeholderId) ||
+               (bookmark.investor?.id && bookmark.investor.id === targetStakeholderId)))
         );
         setIsCurrentItemBookmarked(isBookmarked);
       }
@@ -1171,18 +1200,30 @@ export default function Sidebar({
 
   useEffect(() => {
     checkIfBookmarked();
-  }, [startup, stakeholder]);
+  }, [startup, stakeholder, user, currentUser]);
 
   const toggleBookmark = async () => {
-    if (!user) {
+    const activeUser = user || currentUser;
+    if (!activeUser) {
       toast.error("Please log in to bookmark.");
       return;
     }
 
+    const targetStartupId = startup ? startup.id : null;
+    const targetInvestorId = stakeholder ? (stakeholder.investorId || stakeholder.id) : null;
+
     const payload = {
-      startupId: startup ? startup.id : null,
-      investorId: stakeholder ? stakeholder.id : null,
+      startupId: targetStartupId,
+      investorId: targetInvestorId,
     };
+
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
 
     try {
       if (isCurrentItemBookmarked) {
@@ -1191,28 +1232,32 @@ export default function Sidebar({
           `${getBackendUrl()}/api/bookmarks`,
           {
             method: "GET",
+            headers: headers,
             credentials: "include",
           }
         );
 
         if (checkResponse.ok) {
-          const bookmarks = await checkResponse.json();
+          const responseData = await checkResponse.json();
+          const bookmarks = Array.isArray(responseData)
+            ? responseData
+            : (responseData.content || []);
+
           const existingBookmark = bookmarks.find(
             (bookmark) =>
-              (startup && bookmark.startup?.id === startup.id) ||
-              (stakeholder && bookmark.investor?.id === stakeholder.id)
+              (targetStartupId && bookmark.startup?.id === targetStartupId) ||
+              (targetInvestorId &&
+                ((bookmark.investor?.investorId && bookmark.investor.investorId === targetInvestorId) ||
+                 (bookmark.investor?.id && bookmark.investor.id === targetInvestorId)))
           );
 
           if (existingBookmark) {
             const deleteResponse = await fetch(
-              `${getBackendUrl()}/api/bookmarks/${existingBookmark.id
-              }`,
+              `${getBackendUrl()}/api/bookmarks/${existingBookmark.id}`,
               {
                 method: "DELETE",
+                headers: headers,
                 credentials: "include",
-                headers: {
-                  "Content-Type": "application/json",
-                },
               }
             );
 
@@ -1223,7 +1268,7 @@ export default function Sidebar({
                 );
               } else if (stakeholder) {
                 setBookmarkedStakeholders((prev) =>
-                  prev.filter((id) => id !== stakeholder.id)
+                  prev.filter((id) => id !== targetInvestorId)
                 );
               }
               setIsCurrentItemBookmarked(false);
@@ -1239,9 +1284,7 @@ export default function Sidebar({
           `${getBackendUrl()}/api/bookmarks`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: headers,
             credentials: "include",
             body: JSON.stringify(payload),
           }
@@ -1252,7 +1295,7 @@ export default function Sidebar({
           if (startup) {
             setBookmarkedStartups((prev) => [...prev, startup.id]);
           } else if (stakeholder) {
-            setBookmarkedStakeholders((prev) => [...prev, stakeholder.id]);
+            setBookmarkedStakeholders((prev) => [...prev, targetInvestorId]);
           }
           setIsCurrentItemBookmarked(true);
           toast.success("Bookmark added successfully!");
@@ -3394,7 +3437,7 @@ export default function Sidebar({
       {/* Bookmarks Container */}
       {containerMode === "bookmarks" && showBookmarks && (
         <Bookmarks
-          userId={user}
+          userId={user || currentUser}
           mapInstanceRef={mapInstanceRef}
           setViewingStartup={setViewingStartup}
           setViewingStakeholder={setViewingStakeholder}
@@ -3412,7 +3455,8 @@ export default function Sidebar({
           {/* Header with Back Button and Actions */}
           <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex justify-between items-center px-4 py-3">
             <button
-              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+              type="button"
+              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
               onClick={() => {
                 const container = document.querySelector(".animate-slide-in");
                 if (container) {
@@ -3433,10 +3477,14 @@ export default function Sidebar({
 
             <div className="flex items-center gap-1">
               <button
+                type="button"
                 onClick={toggleBookmark}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
+                className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
                   }`}
                 title={
+                  isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
+                }
+                aria-label={
                   isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
                 }
               >
@@ -3447,18 +3495,24 @@ export default function Sidebar({
                 )}
               </button>
               <button
-                onClick={() => toggleLike(user?.id, null, stakeholder.id)}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${likedStakeholders?.includes(stakeholder.id)
+                type="button"
+                onClick={() => toggleLike(user?.id || currentUser?.id, null, stakeholder.investorId || stakeholder.id)}
+                className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${likedStakeholders?.includes(stakeholder.investorId || stakeholder.id)
                   ? "text-red-500"
                   : "text-gray-500"
                   }`}
                 title={
-                  likedStakeholders?.includes(stakeholder.id)
+                  likedStakeholders?.includes(stakeholder.investorId || stakeholder.id)
+                    ? "Unlike"
+                    : "Like"
+                }
+                aria-label={
+                  likedStakeholders?.includes(stakeholder.investorId || stakeholder.id)
                     ? "Unlike"
                     : "Like"
                 }
               >
-                {likedStakeholders?.includes(stakeholder.id) ? (
+                {likedStakeholders?.includes(stakeholder.investorId || stakeholder.id) ? (
                   <FaHeart className="h-5 w-5" />
                 ) : (
                   <FaRegHeart className="h-5 w-5" />
@@ -3972,10 +4026,14 @@ export default function Sidebar({
 
             <div className="flex items-center gap-1">
               <button
+                type="button"
                 onClick={toggleBookmark}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
+                className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${isCurrentItemBookmarked ? "text-blue-600" : "text-gray-500"
                   }`}
                 title={
+                  isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
+                }
+                aria-label={
                   isCurrentItemBookmarked ? "Remove Bookmark" : "Add Bookmark"
                 }
               >
@@ -3986,12 +4044,14 @@ export default function Sidebar({
                 )}
               </button>
               <button
-                onClick={() => toggleLike(user?.id, startup.id, null)}
-                className={`p-2 rounded-md hover:bg-gray-100 transition-colors ${likedStartups?.includes(startup.id)
+                type="button"
+                onClick={() => toggleLike(user?.id || currentUser?.id, startup.id, null)}
+                className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${likedStartups?.includes(startup.id)
                   ? "text-red-500"
                   : "text-gray-500"
                   }`}
                 title={likedStartups?.includes(startup.id) ? "Unlike" : "Like"}
+                aria-label={likedStartups?.includes(startup.id) ? "Unlike" : "Like"}
               >
                 {likedStartups?.includes(startup.id) ? (
                   <FaHeart className="h-5 w-5" />

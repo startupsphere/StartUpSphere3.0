@@ -5,7 +5,7 @@ import { MapPin, Search, X, Loader2 } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
 // Set Mapbox access token
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_TOKEN_HERE";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "YOUR_MAPBOX_TOKEN_HERE";
 
 export default function StakeholderLocationPicker({ onLocationSelect, initialLocation }) {
   const mapContainerRef = useRef(null);

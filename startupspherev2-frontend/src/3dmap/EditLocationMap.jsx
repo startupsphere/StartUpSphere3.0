@@ -3,7 +3,9 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.accessToken =
-  import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_TOKEN_HERE";
+  import.meta.env.VITE_MAPBOX_TOKEN ||
+  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+  "YOUR_MAPBOX_TOKEN_HERE";
 
 export default function EditLocationMap({ 
   onMapClick, 

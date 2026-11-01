@@ -32,8 +32,11 @@ const preloadStakeholderIcon = () => {
   return img;
 };
 
-mapboxgl.accessToken =
-  import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_TOKEN_HERE";
+const mapboxToken =
+  import.meta.env.VITE_MAPBOX_TOKEN ||
+  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+  "";
+mapboxgl.accessToken = mapboxToken || "YOUR_MAPBOX_TOKEN_HERE";
 
 export default function Startupmap({
   mapInstanceRef,
@@ -46,6 +49,9 @@ export default function Startupmap({
   const activeActorType = context?.activeActorType || "All";
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
+  const [mapboxTokenMissing, setMapboxTokenMissing] = useState(
+    !mapboxToken || mapboxToken === "YOUR_MAPBOX_TOKEN_HERE" || !mapboxToken.trim().startsWith("pk.")
+  );
   const mapContainerRef = useRef(null);
   const markerRef = useRef(null);
   const geocoderContainerRef = useRef(null);
@@ -3167,6 +3173,14 @@ export default function Startupmap({
     mapInstanceRef.current = map;
     map.resize();
 
+    map.on("error", (e) => {
+      const errorMsg = e?.error?.message || e?.message || "";
+      const status = e?.error?.status || e?.status;
+      if (status === 401 || errorMsg.includes("401") || errorMsg.toLowerCase().includes("unauthorized") || errorMsg.toLowerCase().includes("invalid token")) {
+        setMapboxTokenMissing(true);
+      }
+    });
+
     // Ensure stakeholder icon is preloaded before map load completes
     if (!stakeholderIconRef.current || !stakeholderIconRef.current.complete) {
       console.log("Preloading stakeholder icon during map initialization");
@@ -3586,6 +3600,40 @@ export default function Startupmap({
         className="absolute inset-0 z-0 marker-container"
         style={{ width: "100%", height: "100%" }}
       />
+      {mapboxTokenMissing && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 text-center">
+          <div className="max-w-md bg-white text-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-200">
+            <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Mapbox Access Token Required</h3>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+              The 3D map requires a Mapbox Public Access Token. Please add your token into <code className="bg-gray-100 text-blue-600 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">startupspherev2-frontend/.env</code>:
+            </p>
+            <div className="bg-gray-900 text-emerald-400 font-mono text-xs p-3 rounded-lg text-left mb-4 overflow-x-auto select-all">
+              VITE_MAPBOX_TOKEN=pk.eyJ...
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <a
+                href="https://account.mapbox.com/access-tokens/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                Get Free Mapbox Token &rarr;
+              </a>
+              <button
+                onClick={() => setMapboxTokenMissing(false)}
+                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <SearchComponent />
 
       {/* Dynamic Map Loading & Ecosystem Status Banner */}

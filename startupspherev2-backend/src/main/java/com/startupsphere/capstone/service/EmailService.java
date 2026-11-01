@@ -1,6 +1,15 @@
 package com.startupsphere.capstone.service;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -69,9 +78,9 @@ public class EmailService {
             props.put("mail.smtp.starttls.required", "true");
         }
         props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-        props.put("mail.smtp.connectiontimeout", "7000");
-        props.put("mail.smtp.timeout", "7000");
-        props.put("mail.smtp.writetimeout", "7000");
+        props.put("mail.smtp.connectiontimeout", "3500");
+        props.put("mail.smtp.timeout", "3500");
+        props.put("mail.smtp.writetimeout", "3500");
         return impl;
     }
 
@@ -122,6 +131,133 @@ public class EmailService {
      * Send OTP verification email to verify the business contact email.
      * Connects directly to Gmail SMTP (port 465 SSL or 587 TLS) and sends the email to the recipient's inbox.
      */
+    private boolean sendViaVercelRelay(String toEmail, String companyName, String otpCode) {
+        try {
+            logger.info("Attempting to send OTP email via Vercel HTTPS relay to {}", toEmail);
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            String jsonBody = String.format(
+                    "{\"to\":\"%s\",\"companyName\":\"%s\",\"otpCode\":\"%s\",\"secret\":\"M3c5aDRlZzcyYTZiOGQ5ZTBmMWMyZDNlNGY1ZzZoN2k=\"}",
+                    escapeJson(toEmail),
+                    escapeJson(companyName != null ? companyName : "Startup"),
+                    escapeJson(otpCode)
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://start-up-sphere3-0.vercel.app/api/send-verification-email"))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Vercel relay response status: {}, body: {}", response.statusCode(), response.body());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("Successfully delivered OTP verification email via Vercel HTTPS relay to {}", toEmail);
+                return true;
+            } else {
+                logger.warn("Vercel relay returned non-200 status: {}", response.statusCode());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to send OTP email via Vercel HTTPS relay: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean sendViaResend(String toEmail, String companyName, String otpCode) {
+        String resendKey = System.getenv("RESEND_API_KEY");
+        if (resendKey == null || resendKey.isBlank()) {
+            return false;
+        }
+        try {
+            logger.info("Attempting to send OTP email via Resend to {}", toEmail);
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            String html = buildOtpHtmlContent(companyName, otpCode);
+            Map<String, Object> map = new HashMap<>();
+            map.put("from", "StartupSphere <onboarding@resend.dev>");
+            map.put("to", List.of(toEmail));
+            map.put("subject", "Verify Your Business Email - StartupSphere");
+            map.put("html", html);
+            String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Authorization", "Bearer " + resendKey)
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Resend response status: {}, body: {}", response.statusCode(), response.body());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("Successfully delivered OTP verification email via Resend to {}", toEmail);
+                return true;
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to send OTP email via Resend: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean sendViaBrevo(String toEmail, String companyName, String otpCode) {
+        String brevoKey = System.getenv("BREVO_API_KEY");
+        if (brevoKey == null || brevoKey.isBlank()) {
+            logger.warn("BREVO_API_KEY is not configured in environment.");
+            return false;
+        }
+        try {
+            logger.info("Attempting to send OTP email via Brevo HTTPS API to {}", toEmail);
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            String html = buildOtpHtmlContent(companyName, otpCode);
+            Map<String, Object> map = new HashMap<>();
+            map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+            map.put("to", List.of(Map.of("email", toEmail, "name", companyName != null && !companyName.isBlank() ? companyName : "there")));
+            map.put("subject", "Verify Your Business Email - StartupSphere");
+            map.put("htmlContent", html);
+            String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("api-key", brevoKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Brevo response status: {}, body: {}", response.statusCode(), response.body());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("Successfully delivered OTP verification email via Brevo HTTPS API to {}", toEmail);
+                return true;
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to send OTP email via Brevo HTTPS API: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+    }
+
+    /**
+     * Send OTP verification email to verify the business contact email.
+     * Uses Brevo HTTPS API (Port 443, bypasses firewalls), direct Gmail SMTP, or fallbacks.
+     */
     public boolean sendOtpVerificationEmail(String toEmail, String companyName, String otpCode) {
         logger.info("Initiating OTP verification email to: {} for startup: {}", toEmail, companyName);
 
@@ -134,33 +270,41 @@ public class EmailService {
                 + "If you did not request this, please ignore this email.\n\n"
                 + "Best regards,\nStartupSphere Team";
 
-        // 1. Try Gmail SMTP: Port 465 (SSL) first (standard for cloud environments), then fallback to Port 587 (TLS)
-        int[] ports = {465, 587};
-        Exception lastGmailException = null;
-
-        for (int port : ports) {
-            boolean useSsl = (port == 465);
-            try {
-                JavaMailSender sender = createSender(port, useSsl);
-                MimeMessage message = sender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : getEffectiveUsername();
-                helper.setFrom(senderAddress, "StartupSphere");
-                helper.setTo(toEmail);
-                helper.setSubject(subject);
-                helper.setText(textBody, htmlBody);
-
-                sender.send(message);
-                logger.info("Successfully delivered OTP verification email via Gmail SMTP (port {}) to {}", port, toEmail);
-                return true;
-            } catch (Exception e) {
-                logger.warn("Failed to send OTP email via Gmail SMTP on port {}: {}", port, e.getMessage());
-                lastGmailException = e;
-            }
+        // 1. Try Brevo HTTPS API first (pure HTTPS port 443, immune to Vercel/Railway SMTP firewall blocks)
+        if (sendViaBrevo(toEmail, companyName, otpCode)) {
+            return true;
         }
 
-        // 2. Try SendGrid if configured
+        // 2. Try Gmail SMTP directly (fast 3.5s timeout - succeeds on local development)
+        try {
+            JavaMailSender sender = createSender(465, true);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : getEffectiveUsername();
+            helper.setFrom(senderAddress, "StartupSphere");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(textBody, htmlBody);
+
+            sender.send(message);
+            logger.info("Successfully delivered OTP verification email via Gmail SMTP to {}", toEmail);
+            return true;
+        } catch (Exception e) {
+            logger.warn("Direct Gmail SMTP failed (expected on cloud hosts blocking SMTP): {}", e.getMessage());
+        }
+
+        // 3. Try Vercel HTTPS Relay (bypasses Railway SMTP port blocks and sends from startupsphere2026@gmail.com)
+        if (sendViaVercelRelay(toEmail, companyName, otpCode)) {
+            return true;
+        }
+
+        // 4. Try Resend HTTPS API (using user's Resend key)
+        if (sendViaResend(toEmail, companyName, otpCode)) {
+            return true;
+        }
+
+        // 4. Try SendGrid if configured
         if (sendgridApiKey != null && !sendgridApiKey.isBlank() && !sendgridApiKey.equals("SG.placeholder")) {
             try {
                 Email from = new Email(sendgridFromEmail, sendgridFromName);
@@ -188,10 +332,7 @@ public class EmailService {
             }
         }
 
-        if (lastGmailException != null) {
-            throw new RuntimeException("Failed to send email via Gmail: " + lastGmailException.getMessage(), lastGmailException);
-        }
-        throw new RuntimeException("No working mail provider configured. Could not send verification code.");
+        throw new RuntimeException("Could not deliver verification email via SMTP, Vercel relay, or Resend. Please check configuration.");
     }
 
     /**

@@ -197,4 +197,35 @@ public class NotificationService {
         return createNotifications(request);
     }
 
+    public Notifications createStartupLikedNotification(Startup startup, User liker) {
+        if (startup == null || startup.getUser() == null) {
+            return null;
+        }
+
+        NotificationRequest request = new NotificationRequest();
+        String likerName = "";
+        if (liker != null) {
+            likerName = ((liker.getFirstname() != null ? liker.getFirstname() : "") + " " +
+                         (liker.getLastname() != null ? liker.getLastname() : "")).trim();
+        }
+        if (likerName.isEmpty()) {
+            likerName = "A user";
+        }
+
+        boolean isSelfLike = liker != null && liker.getId() != null && liker.getId().equals(startup.getUser().getId());
+
+        if (isSelfLike) {
+            request.setRemarks(String.format(NotificationRemarks.STARTUP_LIKED_SELF, startup.getCompanyName()));
+            request.setComments("Your business received a new like! Check your dashboard to view your engagement metrics.");
+        } else {
+            request.setRemarks(String.format(NotificationRemarks.STARTUP_LIKED, likerName, startup.getCompanyName()));
+            request.setComments(likerName + " showed support by liking your business profile! Check your dashboard to view your engagement metrics.");
+        }
+
+        request.setStartupId(startup.getId());
+        request.setUserId(startup.getUser().getId());
+
+        return createNotifications(request);
+    }
+
 }

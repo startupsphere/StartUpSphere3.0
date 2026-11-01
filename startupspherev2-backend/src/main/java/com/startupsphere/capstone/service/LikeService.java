@@ -16,12 +16,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class LikeService {
 
+    private static final Logger logger = LoggerFactory.getLogger(LikeService.class);
+
     @Autowired
     private LikeRepository likeRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @CacheEvict(value = "likes", allEntries = true)
     public String toggleLike(Like like) {
@@ -45,6 +52,16 @@ public class LikeService {
         }
 
         likeRepository.save(like);
+
+        // Notify the business owner that their business was liked
+        if (like.getStartup() != null) {
+            try {
+                notificationService.createStartupLikedNotification(like.getStartup(), like.getUser());
+            } catch (Exception e) {
+                logger.error("Error creating notification for liked startup: {}", e.getMessage());
+            }
+        }
+
         return "Like added";
     }
 

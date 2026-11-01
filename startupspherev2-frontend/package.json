@@ -25,6 +25,7 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.507.0",
     "mapbox-gl": "^3.11.1",
+    "nodemailer": "^10.2.1",
     "pg": "^8.23.0",
     "pg-copy-streams": "^7.0.0",
     "pikaday": "^1.8.2",
@@ -36,6 +37,7 @@
     "react-router-dom": "^7.5.2",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.3",
+    "resend": "^6.35.0",
     "startupspherev2": "file:",
     "tailwindcss": "^4.1.4"
   },

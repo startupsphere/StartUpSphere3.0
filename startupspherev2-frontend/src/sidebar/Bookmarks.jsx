@@ -22,12 +22,18 @@ const Bookmarks = ({
       const bookmarkId = item.id;
       console.log("Using bookmarkId:", bookmarkId);
       
+      const token = localStorage.getItem("token");
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${getBackendUrl()}/api/bookmarks/${bookmarkId}`, {
         method: 'DELETE',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: headers
       });
 
       if (response.ok) {
@@ -54,12 +60,18 @@ const Bookmarks = ({
     console.log("Fetching bookmarks for user:", userId);
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${getBackendUrl()}/api/bookmarks`, {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: headers
       });
 
       if (!response.ok) {
@@ -70,21 +82,27 @@ const Bookmarks = ({
       console.log("Bookmarks fetched:", responseData);
       
       // Extract bookmarks from paginated response
-      const data = responseData.content || responseData || [];
+      const data = Array.isArray(responseData)
+        ? responseData
+        : (responseData.content || []);
 
       const bookmarkedStartups = data
-        .filter(item => item.startup !== null)
+        .filter(item => item.startup !== null && item.startup !== undefined)
         .map(item => ({
           ...item.startup,
-          id: item.id // Use the bookmark's ID
+          id: item.id // Use the bookmark's ID for deletion
         }));
 
       const bookmarkedStakeholders = data
-        .filter(item => item.stakeholder !== null)
-        .map(item => ({
-          ...item.stakeholder,
-          id: item.id // Use the bookmark's ID
-        }));
+        .filter(item => (item.investor || item.stakeholder) !== null && (item.investor || item.stakeholder) !== undefined)
+        .map(item => {
+          const investorData = item.investor || item.stakeholder;
+          return {
+            ...investorData,
+            id: item.id, // Use the bookmark's ID for deletion
+            realInvestorId: investorData.investorId || investorData.id
+          };
+        });
 
       setStartups(bookmarkedStartups);
       setStakeholders(bookmarkedStakeholders);
