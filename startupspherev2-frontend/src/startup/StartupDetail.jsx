@@ -33,6 +33,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
+import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
 
 export default function StartupDetail() {
   const { id } = useParams();
@@ -153,6 +154,25 @@ export default function StartupDetail() {
 
         const data = await response.json();
         setStartup(data);
+
+        // Auto-fetch social metrics if a link is provided and metrics are not yet cached
+        if (data && (data.facebook || data.instagram) && (!data.facebookFollowers && !data.facebookLikes)) {
+          fetchStartupSocialMetrics(data).then((res) => {
+            if (res.facebook && res.facebook.success) {
+              setStartup((prev) => ({
+                ...prev,
+                facebookFollowers: res.facebook.followers || prev?.facebookFollowers || 0,
+                facebookLikes: res.facebook.likes || prev?.facebookLikes || 0,
+              }));
+            }
+            if (res.instagram && res.instagram.success && res.instagram.followers) {
+              setStartup((prev) => ({
+                ...prev,
+                instagramFollowers: res.instagram.followers || prev?.instagramFollowers || 0,
+              }));
+            }
+          }).catch((err) => console.debug("Social metrics auto-fetch deferred:", err));
+        }
       } catch (error) {
         console.error("Error fetching startup details:", error);
         setError("Failed to load startup details. Please try again later.");
@@ -1628,35 +1648,62 @@ export default function StartupDetail() {
                   startup.twitter ||
                   startup.instagram ||
                   startup.linkedIn) && (
-                  <div className="mt-4 flex space-x-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-2.5">
                     {startup.facebook && (
-                      <a
-                        href={startup.facebook}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-blue-700"
-                      >
-                        <Facebook size={18} />
-                      </a>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100/80 transition-colors">
+                        <a
+                          href={startup.facebook}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-semibold text-[#1877F2] hover:underline"
+                          title="Open Facebook Page"
+                        >
+                          <Facebook size={15} />
+                          <span>Facebook</span>
+                        </a>
+                        {(startup.facebookFollowers > 0 || startup.facebookLikes > 0) && (
+                          <div className="flex items-center gap-1.5 border-l border-blue-200 pl-2 text-xs font-medium text-blue-900">
+                            {startup.facebookFollowers > 0 && (
+                              <span>{startup.facebookFollowers.toLocaleString()} followers</span>
+                            )}
+                            {startup.facebookFollowers > 0 && startup.facebookLikes > 0 && (
+                              <span className="text-blue-300">·</span>
+                            )}
+                            {startup.facebookLikes > 0 && (
+                              <span>{startup.facebookLikes.toLocaleString()} likes</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {startup.instagram && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100/80 transition-colors">
+                        <a
+                          href={startup.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-semibold text-pink-600 hover:underline"
+                          title="Open Instagram Profile"
+                        >
+                          <Instagram size={15} />
+                          <span>Instagram</span>
+                        </a>
+                        {startup.instagramFollowers > 0 && (
+                          <div className="border-l border-pink-200 pl-2 text-xs font-medium text-pink-900">
+                            <span>{startup.instagramFollowers.toLocaleString()} followers</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                     {startup.twitter && (
                       <a
                         href={startup.twitter}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-blue-400"
+                        className="p-2 text-gray-400 hover:text-blue-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        title="Twitter"
                       >
-                        <Twitter size={18} />
-                      </a>
-                    )}
-                    {startup.instagram && (
-                      <a
-                        href={startup.instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-pink-600"
-                      >
-                        <Instagram size={18} />
+                        <Twitter size={16} />
                       </a>
                     )}
                     {startup.linkedIn && (
@@ -1664,9 +1711,10 @@ export default function StartupDetail() {
                         href={startup.linkedIn}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-blue-800"
+                        className="p-2 text-gray-400 hover:text-blue-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        title="LinkedIn"
                       >
-                        <Linkedin size={18} />
+                        <Linkedin size={16} />
                       </a>
                     )}
                   </div>

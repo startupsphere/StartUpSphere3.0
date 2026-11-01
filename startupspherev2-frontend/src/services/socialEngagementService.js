@@ -15,15 +15,27 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Extracts a Facebook handle or numeric ID from any user-provided Facebook URL or text.
+ * Strictly verifies the link belongs to Facebook and is not another website.
  */
 export function extractFbHandle(input) {
   if (!input) return null;
   let clean = String(input).trim();
   if (!clean) return null;
 
+  // If it's a URL, verify it is indeed Facebook
+  if (/^https?:\/\//i.test(clean)) {
+    if (!/^https?:\/\/(www\.|m\.|web\.)?(facebook\.com|fb\.com|fb\.me)\//i.test(clean)) {
+      return null;
+    }
+  } else if (/^(www\.|m\.|web\.)?(facebook\.com|fb\.com|fb\.me)\//i.test(clean)) {
+    // fine
+  } else if (clean.includes(".com") || clean.includes(".org") || clean.includes(".net") || clean.includes("/") || clean.includes("http")) {
+    return null;
+  }
+
   // Remove leading URL protocol and prefixes
   clean = clean.replace(/^https?:\/\//i, "").replace(/^(www\.|m\.|web\.)/i, "");
-  clean = clean.replace(/^facebook\.com\/?/i, "");
+  clean = clean.replace(/^(facebook\.com|fb\.com|fb\.me)\/?/i, "");
 
   // Handle profile.php?id=XXXXX
   if (clean.includes("profile.php")) {
@@ -49,6 +61,48 @@ export function extractFbHandle(input) {
   }
 
   return parts[0];
+}
+
+/**
+ * Validates whether a given Facebook URL corresponds to an existing, accessible public page.
+ * Returns { exists: boolean, message: string, name?: string, followers?: number, likes?: number, data?: object }
+ */
+export async function validateFacebookPage(facebookUrl) {
+  if (!facebookUrl || !facebookUrl.trim()) {
+    return { exists: false, message: "Facebook URL is empty" };
+  }
+
+  const handle = extractFbHandle(facebookUrl);
+  if (!handle) {
+    return {
+      exists: false,
+      message: "Please enter a valid Facebook URL (e.g., https://www.facebook.com/your-page)",
+    };
+  }
+
+  try {
+    const data = await fetchFacebookEngagement(facebookUrl);
+    if (!data || !data.success) {
+      return {
+        exists: false,
+        message: data?.message || "Facebook page could not be found or is not public.",
+      };
+    }
+
+    return {
+      exists: true,
+      name: data.name || handle,
+      followers: data.followers || 0,
+      likes: data.likes || 0,
+      message: `Verified: ${data.name || handle} (${(data.followers || 0).toLocaleString()} followers)`,
+      data,
+    };
+  } catch (err) {
+    return {
+      exists: false,
+      message: "Unable to reach Facebook to verify this page.",
+    };
+  }
 }
 
 /**
@@ -116,21 +170,25 @@ export async function fetchFacebookEngagement(facebookUrl) {
     return cached;
   }
 
-  // 1. Try Backend API first (avoids CORS completely)
-  try {
-    const backendRes = await fetch(
-      `${getBackendUrl()}/api/social/facebook?url=${encodeURIComponent(facebookUrl)}`,
-      { method: "GET" }
-    );
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data && data.success) {
-        setCached(cacheKey, data);
-        return data;
+  // 1. Try Configured Backend API first (avoids CORS completely)
+  const backendCandidates = [
+    `${getBackendUrl()}/api/social/facebook?url=${encodeURIComponent(facebookUrl)}`,
+    `https://startupsphere30-production.up.railway.app/api/social/facebook?url=${encodeURIComponent(facebookUrl)}`,
+  ];
+
+  for (const backendEndpoint of backendCandidates) {
+    try {
+      const backendRes = await fetch(backendEndpoint, { method: "GET" });
+      if (backendRes.ok) {
+        const data = await backendRes.json();
+        if (data && data.success && (data.followers > 0 || data.likes > 0)) {
+          setCached(cacheKey, data);
+          return data;
+        }
       }
+    } catch (e) {
+      console.debug(`[SocialService] Endpoint ${backendEndpoint} not reachable, trying next...`, e.message);
     }
-  } catch (e) {
-    console.debug("[SocialService] Backend Facebook endpoint not reachable, trying Vite proxy...", e);
   }
 
   // 2. Try Vite /social-proxy or Direct API
@@ -207,21 +265,25 @@ export async function fetchInstagramEngagement(instagramUrl) {
     return cached;
   }
 
-  // 1. Try Backend API first (avoids CORS completely)
-  try {
-    const backendRes = await fetch(
-      `${getBackendUrl()}/api/social/instagram?url=${encodeURIComponent(instagramUrl)}`,
-      { method: "GET" }
-    );
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data && data.success) {
-        setCached(cacheKey, data);
-        return data;
+  // 1. Try Configured Backend API first (avoids CORS completely)
+  const backendCandidates = [
+    `${getBackendUrl()}/api/social/instagram?url=${encodeURIComponent(instagramUrl)}`,
+    `https://startupsphere30-production.up.railway.app/api/social/instagram?url=${encodeURIComponent(instagramUrl)}`,
+  ];
+
+  for (const backendEndpoint of backendCandidates) {
+    try {
+      const backendRes = await fetch(backendEndpoint, { method: "GET" });
+      if (backendRes.ok) {
+        const data = await backendRes.json();
+        if (data && data.success && (data.followers > 0 || data.posts > 0)) {
+          setCached(cacheKey, data);
+          return data;
+        }
       }
+    } catch (e) {
+      console.debug(`[SocialService] Endpoint ${backendEndpoint} not reachable, trying next...`, e.message);
     }
-  } catch (e) {
-    console.debug("[SocialService] Backend Instagram endpoint not reachable, trying Vite proxy...", e);
   }
 
   // 2. Try Vite /social-proxy or Direct API

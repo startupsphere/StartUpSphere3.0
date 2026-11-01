@@ -20,6 +20,7 @@ import {
   Upload,
 } from "lucide-react";
 import Startupmap from "../3dmap/Startupmap"; // Import the map component
+import { fetchStartupSocialMetrics, validateFacebookPage } from "../services/socialEngagementService";
 
 export default function UpdateStartup() {
   const { id } = useParams();
@@ -192,6 +193,37 @@ export default function UpdateStartup() {
     }
 
     try {
+      let payload = { ...formData };
+
+      // Validate Facebook Page existence if provided
+      if (formData.facebook && formData.facebook.trim()) {
+        const fbCheck = await validateFacebookPage(formData.facebook);
+        if (!fbCheck.exists) {
+          setErrors((prev) => ({
+            ...prev,
+            facebook: fbCheck.message || "Facebook page does not exist or is not public.",
+          }));
+          setSubmitting(false);
+          return;
+        }
+        payload.facebookFollowers = fbCheck.followers || 0;
+        payload.facebookLikes = fbCheck.likes || 0;
+      }
+
+      // Pre-fetch Instagram metrics if provided
+      if (formData.instagram && formData.instagram.trim()) {
+        try {
+          const metrics = await fetchStartupSocialMetrics({
+            instagram: formData.instagram,
+          });
+          if (metrics.instagram && metrics.instagram.success && metrics.instagram.followers != null) {
+            payload.instagramFollowers = metrics.instagram.followers;
+          }
+        } catch (mErr) {
+          console.debug("Could not pre-fetch metrics on submit:", mErr);
+        }
+      }
+
       const response = await fetch(
         `${getBackendUrl()}/startups/${id}`,
         {
@@ -199,13 +231,21 @@ export default function UpdateStartup() {
           headers: getAuthHeaders({
             "Content-Type": "application/json",
           }),
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
           credentials: "include",
         }
       );
       if (!response.ok) {
         throw new Error(`Error updating startup: ${response.status}`);
       }
+
+      // Trigger background sync endpoint as fallback
+      try {
+        fetch(`${getBackendUrl()}/api/social/sync/${id}`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        }).catch(() => {});
+      } catch (ignored) {}
 
       setSuccess("Startup updated successfully!");
 

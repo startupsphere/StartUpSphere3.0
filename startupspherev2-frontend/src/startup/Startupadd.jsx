@@ -1853,6 +1853,17 @@ const handleSubmit = async () => {
       console.log("Startup added successfully: ", data);
       startupId = data.id || data._id;
       setStartupId(startupId);
+
+      // Trigger automatic social metrics sync if Facebook or Instagram is provided
+      if (startupData.facebook || startupData.instagram) {
+        fetch(`${getBackendUrl()}/api/social/sync/${startupId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }).catch((err) => console.debug("Auto-sync social deferred:", err));
+      }
       
       // Mark Location Info as completed after successful submission
       if (!completedTabs.includes("Location Info")) {

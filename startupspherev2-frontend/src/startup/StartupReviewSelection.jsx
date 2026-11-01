@@ -1810,17 +1810,26 @@ export default function EnhancedStartupReviewSection({
                           <p className="text-sm font-medium text-gray-500">
                             Facebook
                           </p>
-                          <a
-                            href={selectedStartup.facebook}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline break-words"
-                          >
-                            {selectedStartup.facebook.replace(
-                              "https://www.facebook.com/",
-                              ""
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={selectedStartup.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline break-words"
+                            >
+                              {selectedStartup.facebook.replace(
+                                "https://www.facebook.com/",
+                                ""
+                              )}
+                            </a>
+                            {(selectedStartup.facebookFollowers > 0 || selectedStartup.facebookLikes > 0) && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                {selectedStartup.facebookFollowers > 0 && `${selectedStartup.facebookFollowers.toLocaleString()} followers`}
+                                {selectedStartup.facebookFollowers > 0 && selectedStartup.facebookLikes > 0 && " · "}
+                                {selectedStartup.facebookLikes > 0 && `${selectedStartup.facebookLikes.toLocaleString()} likes`}
+                              </span>
                             )}
-                          </a>
+                          </div>
                         </div>
                       )}
 

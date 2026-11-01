@@ -22,9 +22,15 @@ import {
   Upload,
   AlertCircle,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import EditLocationMap from "../3dmap/EditLocationMap";
+import {
+  fetchStartupSocialMetrics,
+  fetchFacebookEngagement,
+  validateFacebookPage,
+} from "../services/socialEngagementService";
 
 export default function UpdateStartup() {
   const { id } = useParams();
@@ -34,6 +40,8 @@ export default function UpdateStartup() {
   const fileInputRef = useRef(null);
   const logoInputRef = useRef(null);
   const certificateInputRef = useRef(null);
+  const [isCheckingFb, setIsCheckingFb] = useState(false);
+  const [fbValidation, setFbValidation] = useState({ status: "idle", message: "" });
 
   const initialStartupData = location.state?.startup || {};
 
@@ -480,6 +488,40 @@ export default function UpdateStartup() {
     }
 
     try {
+      let payload = { ...formData };
+
+      // Validate Facebook Page existence if provided
+      if (formData.facebook && formData.facebook.trim()) {
+        setIsCheckingFb(true);
+        setFbValidation({ status: "validating", message: "Verifying Facebook page existence..." });
+        const fbCheck = await validateFacebookPage(formData.facebook);
+        setIsCheckingFb(false);
+
+        if (!fbCheck.exists) {
+          setErrors({ facebook: fbCheck.message || "Facebook page does not exist or is not public." });
+          setFbValidation({ status: "invalid", message: fbCheck.message || "Page not found." });
+          setSubmitting(false);
+          return;
+        }
+
+        // Successfully verified existing page
+        setFbValidation({ status: "valid", message: fbCheck.message });
+        payload.facebookFollowers = fbCheck.followers || 0;
+        payload.facebookLikes = fbCheck.likes || 0;
+      }
+
+      // Automatically fetch Instagram metrics if provided
+      if (formData.instagram && formData.instagram.trim()) {
+        try {
+          const metrics = await fetchStartupSocialMetrics({ instagram: formData.instagram });
+          if (metrics.instagram && metrics.instagram.success && metrics.instagram.followers != null) {
+            payload.instagramFollowers = metrics.instagram.followers;
+          }
+        } catch (mErr) {
+          console.debug("Could not pre-fetch Instagram metrics on submit:", mErr);
+        }
+      }
+
       const response = await fetch(
         `${getBackendUrl()}/startups/${id}`,
         {
@@ -487,7 +529,7 @@ export default function UpdateStartup() {
           headers: getAuthHeaders({
             "Content-Type": "application/json",
           }),
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
           credentials: "include",
         }
       );
@@ -495,6 +537,14 @@ export default function UpdateStartup() {
       if (!response.ok) {
         throw new Error(`Error updating startup: ${response.status}`);
       }
+
+      // Background trigger to backend sync endpoint as fallback
+      try {
+        fetch(`${getBackendUrl()}/api/social/sync/${id}`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        }).catch(() => {});
+      } catch (ignored) {}
 
       setSuccess("Startup updated successfully!");
 
@@ -507,6 +557,50 @@ export default function UpdateStartup() {
       setError("Failed to update startup. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleTestFb = async () => {
+    if (!formData.facebook || !formData.facebook.trim()) {
+      setFbValidation({ status: "invalid", message: "Please enter a Facebook URL first." });
+      return;
+    }
+    setIsCheckingFb(true);
+    setFbValidation({ status: "validating", message: "Verifying if Facebook page exists..." });
+    try {
+      const res = await validateFacebookPage(formData.facebook);
+      if (res && res.exists) {
+        setFbValidation({
+          status: "valid",
+          message: `Verified: ${res.name} (${(res.followers || 0).toLocaleString()} followers)`,
+        });
+        setFormData((prev) => ({
+          ...prev,
+          facebookFollowers: res.followers || 0,
+          facebookLikes: res.likes || 0,
+        }));
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.facebook;
+          return next;
+        });
+      } else {
+        setFbValidation({
+          status: "invalid",
+          message: res?.message || "Facebook page could not be found or is not public.",
+        });
+        setErrors((prev) => ({
+          ...prev,
+          facebook: res?.message || "Invalid or non-existent Facebook page.",
+        }));
+      }
+    } catch (e) {
+      setFbValidation({
+        status: "invalid",
+        message: "Failed to verify Facebook page. Please check your connection or link.",
+      });
+    } finally {
+      setIsCheckingFb(false);
     }
   };
 
@@ -1306,10 +1400,77 @@ export default function UpdateStartup() {
                       name="facebook"
                       value={formData.facebook || ""}
                       onChange={handleInputChange}
-                      placeholder="Facebook URL"
+                      placeholder="Facebook URL (e.g. https://www.facebook.com/PATHBanawa)"
                       className="text-gray-800 w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                     />
                   </div>
+                  {formData.facebook && (
+                    <div className="mt-1 space-y-1.5">
+                      {fbValidation.status === "validating" && (
+                        <div className="flex items-center gap-1.5 text-xs text-blue-600 font-medium px-1 animate-pulse">
+                          <RefreshCw size={12} className="animate-spin" />
+                          <span>Checking if Facebook page exists...</span>
+                        </div>
+                      )}
+
+                      {fbValidation.status === "valid" && (
+                        <div className="flex flex-wrap items-center justify-between text-xs px-1 gap-2">
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                            <CheckCircle2 size={13} className="text-emerald-600" />
+                            {fbValidation.message}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleTestFb}
+                            disabled={isCheckingFb}
+                            className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline cursor-pointer"
+                          >
+                            Re-verify
+                          </button>
+                        </div>
+                      )}
+
+                      {fbValidation.status === "invalid" && (
+                        <div className="flex flex-wrap items-center justify-between text-xs px-1 gap-2">
+                          <span className="inline-flex items-center gap-1 text-red-700 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-200">
+                            <AlertCircle size={13} className="text-red-500" />
+                            {fbValidation.message}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleTestFb}
+                            disabled={isCheckingFb}
+                            className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline cursor-pointer"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {fbValidation.status === "idle" && (
+                        <div className="flex flex-wrap items-center justify-between text-xs px-1 gap-2">
+                          <div className="text-gray-500 flex items-center gap-1.5">
+                            {formData.facebookFollowers > 0 || formData.facebookLikes > 0 ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <CheckCircle2 size={12} className="text-emerald-600" />
+                                {(formData.facebookFollowers || 0).toLocaleString()} followers · {(formData.facebookLikes || 0).toLocaleString()} likes
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 italic">Page will be verified automatically upon save</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleTestFb}
+                            disabled={isCheckingFb}
+                            className="text-blue-600 hover:text-blue-800 font-medium hover:underline inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {isCheckingFb ? "Checking..." : "Verify Page Exists"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Twitter */}
                   <div className="relative">
