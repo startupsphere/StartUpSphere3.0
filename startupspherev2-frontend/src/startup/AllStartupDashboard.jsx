@@ -2913,9 +2913,9 @@ export default function AllStartupDashboard() {
                       onChange={(e) => setReviewFilterStatus(e.target.value)}
                     >
                       <option value="all">All Statuses</option>
-                      <option value="pending">Pending Review</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Needs Revision</option>
+                      <option value="In Review">Pending Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Needs Revision</option>
                     </select>
                   </div>
                   

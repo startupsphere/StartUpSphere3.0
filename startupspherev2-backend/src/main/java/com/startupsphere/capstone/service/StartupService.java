@@ -62,8 +62,7 @@ public class StartupService {
     public Startup createStartup(Startup startup) {
         logger.info("Saving startup: {}", startup.getCompanyName());
 
-        // TEMPORARY: Auto-accept startups for testing
-        startup.setStatus("Approved");
+        startup.setStatus("In Review");
         startup.setIsDraft(false);
         return startupRepository.save(startup);
     }
@@ -79,6 +78,7 @@ public class StartupService {
     }
 
     @Transactional
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
     public Startup submitDraft(Long draftId, Integer userId) {
         logger.info("Submitting draft with ID: {}", draftId);
         
@@ -96,8 +96,7 @@ public class StartupService {
         }
         
         draft.setIsDraft(false);
-        // TEMPORARY: Auto-accept startups for testing
-        draft.setStatus("Approved");
+        draft.setStatus("In Review");
         return startupRepository.save(draft);
     }
 
@@ -545,6 +544,7 @@ public class StartupService {
     }
 
     @Transactional
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
     public Startup approveStartup(Long id) {
         Startup startup = startupRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Startup not found with id: " + id));
@@ -554,6 +554,7 @@ public class StartupService {
     }
 
     @Transactional
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
     public Startup rejectStartup(Long id) {
         Startup startup = startupRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Startup not found with id: " + id));
@@ -610,9 +611,17 @@ public class StartupService {
             params.put("industry", industry);
         }
         if (status != null && !status.trim().isEmpty()) {
-            jpql.append(" AND s.status = :status");
-            countJpql.append(" AND s.status = :status");
-            params.put("status", status);
+            String normalizedStatus = status.trim();
+            if (normalizedStatus.equalsIgnoreCase("pending")) {
+                normalizedStatus = "In Review";
+            } else if (normalizedStatus.equalsIgnoreCase("approved")) {
+                normalizedStatus = "Approved";
+            } else if (normalizedStatus.equalsIgnoreCase("rejected")) {
+                normalizedStatus = "Rejected";
+            }
+            jpql.append(" AND LOWER(s.status) = LOWER(:status)");
+            countJpql.append(" AND LOWER(s.status) = LOWER(:status)");
+            params.put("status", normalizedStatus);
         }
         if (region != null && !region.trim().isEmpty()) {
             jpql.append(" AND s.region = :region");
@@ -682,8 +691,16 @@ public class StartupService {
             params.put("industry", industry);
         }
         if (status != null && !status.trim().isEmpty()) {
-            jpql.append(" AND s.status = :status");
-            params.put("status", status);
+            String normalizedStatus = status.trim();
+            if (normalizedStatus.equalsIgnoreCase("pending")) {
+                normalizedStatus = "In Review";
+            } else if (normalizedStatus.equalsIgnoreCase("approved")) {
+                normalizedStatus = "Approved";
+            } else if (normalizedStatus.equalsIgnoreCase("rejected")) {
+                normalizedStatus = "Rejected";
+            }
+            jpql.append(" AND LOWER(s.status) = LOWER(:status)");
+            params.put("status", normalizedStatus);
         }
         if (region != null && !region.trim().isEmpty()) {
             jpql.append(" AND s.region = :region");

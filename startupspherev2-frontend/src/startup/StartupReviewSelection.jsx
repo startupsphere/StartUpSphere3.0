@@ -225,7 +225,13 @@ export default function EnhancedStartupReviewSection({
         ? `${getBackendUrl()}/startups/submitted?${queryParams.toString()}`
         : `${getBackendUrl()}/startups/review?${queryParams.toString()}`;
 
-      const response = await fetch(apiUrl, { credentials: "include" });
+      const token = localStorage.getItem("token");
+      const response = await fetch(apiUrl, {
+        credentials: "include",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch startups: ${response.status}`);
@@ -423,11 +429,13 @@ export default function EnhancedStartupReviewSection({
 
       console.log(`Sending ${action} request with payload:`, payload);
 
+      const token = localStorage.getItem("token");
       const requestOptions = {
         method: "PUT",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify(payload), // Always send the payload as JSON
       };

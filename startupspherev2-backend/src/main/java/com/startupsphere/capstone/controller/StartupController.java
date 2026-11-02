@@ -67,8 +67,8 @@ public class StartupController {
             logger.info("Startup created successfully with ID: {}", createdStartup.getId());
             notificationService.createStartupApprovalNotification(
                     createdStartup,
-                    "approved",
-                    "Startup automatically approved."
+                    "in review",
+                    "New startup application submitted for review."
             );
             return ResponseEntity.ok(createdStartup);
         } catch (Exception e) {
@@ -496,8 +496,8 @@ public class StartupController {
             
             notificationService.createStartupApprovalNotification(
                     submittedStartup,
-                    "approved",
-                    "Startup application automatically approved."
+                    "in review",
+                    "Startup application submitted for review."
             );
             
             return ResponseEntity.ok(submittedStartup);
@@ -917,7 +917,8 @@ public class StartupController {
                     // Status and Code
                     startup.setStartupCode(getValueByHeader(fields, headerMap, "startupcode"));
                     String parsedStatus = getValueByHeader(fields, headerMap, "status");
-                    startup.setStatus((parsedStatus == null || parsedStatus.trim().isEmpty()) ? "Approved" : parsedStatus);
+                    startup.setStatus((parsedStatus == null || parsedStatus.trim().isEmpty()) ? "In Review" : parsedStatus);
+                    startup.setIsDraft(false);
                     
                     // Financial Information
                     // revenue is primitive double, others are nullable Double
