@@ -240,6 +240,8 @@ const ACTOR_LABELS = {
   }
 };
 
+const FORM_STORAGE_KEY = "startupsphere_registration_form_data";
+
 export default function Startupadd() {
   const { toast, toasts, removeToast } = useToast();
   const [selectedTab, setSelectedTab] = useState("Company Information");
@@ -256,6 +258,9 @@ export default function Startupadd() {
   const [selectedProvince, setSelectedProvince] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState(null);
+  const isResettingRef = useRef(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     role: actor,
     companyName: "",
@@ -273,8 +278,10 @@ export default function Startupadd() {
     contactEmail: "",
     website: "",
     streetAddress: "",
-    city: "",
+    region: "",
     province: "",
+    city: "",
+    barangay: "",
     postalCode: "",
     facebook: "",
     twitter: "",
@@ -376,8 +383,67 @@ export default function Startupadd() {
   const [closingTime, setClosingTime] = useState("17:00");
   const [selectedDays, setSelectedDays] = useState(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
 
+  // Smart address hierarchy restoration
+  const restoreAddressData = async (targetRegion, targetProvince, targetCity, targetBarangay) => {
+    if (!targetRegion) return;
+    try {
+      let currentRegions = regions;
+      if (!currentRegions || currentRegions.length === 0) {
+        const res = await fetch("https://psgc.gitlab.io/api/regions/");
+        currentRegions = await res.json();
+        setRegions(currentRegions);
+      }
+
+      const regionObj = currentRegions.find((r) => r.name === targetRegion || r.code === targetRegion?.code);
+      if (!regionObj) return;
+
+      setSelectedRegion(regionObj);
+
+      const provRes = await fetch(`https://psgc.gitlab.io/api/regions/${regionObj.code}/provinces/`);
+      const provincesList = await provRes.json();
+      setProvinces(provincesList);
+
+      if (targetProvince) {
+        const provinceObj = provincesList.find((p) => p.name === targetProvince || p.code === targetProvince?.code);
+        if (provinceObj) {
+          setSelectedProvince(provinceObj);
+
+          const cityRes = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceObj.code}/cities-municipalities/`);
+          const citiesList = await cityRes.json();
+          setCities(citiesList);
+
+          if (targetCity) {
+            const cityObj = citiesList.find((c) => c.name === targetCity || c.code === targetCity?.code);
+            if (cityObj) {
+              setSelectedCity(cityObj);
+
+              const brgyRes = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityObj.code}/barangays/`);
+              const barangaysList = await brgyRes.json();
+              setBarangays(barangaysList);
+
+              if (targetBarangay) {
+                const barangayObj = barangaysList.find((b) => b.name === targetBarangay || b.code === targetBarangay?.code);
+                if (barangayObj) setSelectedBarangay(barangayObj);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error restoring address data:", err);
+    }
+  };
+
   const resetForm = () => {
+    isResettingRef.current = true;
+    try {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    } catch (e) {
+      console.warn("Could not remove persisted form data:", e);
+    }
+
     setFormData({
+      role: actor,
       companyName: "",
       companyDescription: "",
       foundedDate: null,
@@ -393,8 +459,10 @@ export default function Startupadd() {
       contactEmail: "",
       website: "",
       streetAddress: "",
-      city: "",
+      region: "",
       province: "",
+      city: "",
+      barangay: "",
       postalCode: "",
       facebook: "",
       twitter: "",
@@ -404,14 +472,76 @@ export default function Startupadd() {
       locationLng: null,
       locationName: "",
       fundingStage: "",
-      operatingHours: "",
+      operatingHours: "Monday, Tuesday, Wednesday, Thursday, Friday: 09:00 - 17:00",
       businessActivity: "",
+      isGovernmentRegistered: "",
+      registrationAgency: "",
+      registrationNumber: "",
+      registrationDate: null,
+      otherRegistrationAgency: "",
+      businessLicenseNumber: "",
+      tin: "",
+      registrationCertificate: null,
       isDraft: false,
     });
+    setSelectedRegion(null);
+    setSelectedProvince(null);
+    setSelectedCity(null);
+    setSelectedBarangay(null);
+    setOpeningTime("09:00");
+    setClosingTime("17:00");
+    setSelectedDays(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
     setStartupId(null);
     setDraftId(null);
     setUploadedFile(null);
     setUploadedImage(null);
+    setDraftLogoUrl(null);
+    setShowLogoPreview(false);
+    setDraftCertificateUrl(null);
+    setShowCertificatePreview(false);
+    setCompletedTabs([]);
+    setFurthestTabReached(0);
+    setSelectedTab("Company Information");
+    setError("");
+    setFieldErrors({
+      companyName: "",
+      companyDescription: "",
+      foundedDate: "",
+      trlLevel: "",
+      verifiedCredentials: "",
+      hasSupports: "",
+      supportProvider: "",
+      supportProgram: "",
+      numberOfEmployees: "",
+      typeOfCompany: "",
+      industry: "",
+      isGovernmentRegistered: "",
+      registrationAgency: "",
+      otherRegistrationAgency: "",
+      registrationNumber: "",
+      registrationDate: "",
+      businessLicenseNumber: "",
+      tin: "",
+      registrationCertificate: "",
+      phoneNumber: "",
+      contactEmail: "",
+      website: "",
+      streetAddress: "",
+      city: "",
+      province: "",
+      postalCode: "",
+      facebook: "",
+      linkedIn: "",
+      fundingStage: "",
+      operatingHours: "",
+      businessActivity: "",
+      locationLat: "",
+      locationLng: "",
+    });
+    toast.info("Registration form has been reset.");
+    setTimeout(() => {
+      isResettingRef.current = false;
+    }, 100);
   };
 
   const handleImageUpload = (e) => {
@@ -582,6 +712,7 @@ export default function Startupadd() {
       setLoadingStatus("Finalizing startup data...");
 
       if (response.ok) {
+        try { localStorage.removeItem(FORM_STORAGE_KEY); } catch (e) {}
         toast.success("Startup added successfully and is waiting for review!");
         setTimeout(() => {
           navigate("/startup-dashboard");
@@ -827,60 +958,8 @@ const fetchDraftData = async (id) => {
     
     toast.success("Draft loaded successfully!");
 
-    // === NEW: Smart address restoration that waits for regions to load ===
-    const restoreAddress = async () => {
-      if (!data.region) return;
-
-      // 1. Fetch regions if not already loaded
-      let currentRegions = regions;
-      if (currentRegions.length === 0) {
-        const res = await fetch("https://psgc.gitlab.io/api/regions/");
-        currentRegions = await res.json();
-        setRegions(currentRegions);
-      }
-
-      const regionObj = currentRegions.find(r => r.name === data.region);
-      if (!regionObj) return;
-
-      setSelectedRegion(regionObj);
-
-      // 2. Fetch provinces
-      const provRes = await fetch(`https://psgc.gitlab.io/api/regions/${regionObj.code}/provinces/`);
-      const provincesList = await provRes.json();
-      setProvinces(provincesList);
-
-      if (data.province) {
-        const provinceObj = provincesList.find(p => p.name === data.province);
-        if (provinceObj) {
-          setSelectedProvince(provinceObj);
-
-          // 3. Fetch cities
-          const cityRes = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceObj.code}/cities-municipalities/`);
-          const citiesList = await cityRes.json();
-          setCities(citiesList);
-
-          if (data.city) {
-            const cityObj = citiesList.find(c => c.name === data.city);
-            if (cityObj) {
-              setSelectedCity(cityObj);
-
-              // 4. Fetch barangays
-              const brgyRes = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityObj.code}/barangays/`);
-              const barangaysList = await brgyRes.json();
-              setBarangays(barangaysList);
-
-              if (data.barangay) {
-                const barangayObj = barangaysList.find(b => b.name === data.barangay);
-                if (barangayObj) setSelectedBarangay(barangayObj);
-              }
-            }
-          }
-        }
-      }
-    };
-
-    // Run restoration (async, no race condition)
-    restoreAddress();
+    // Smart address restoration that waits for regions to load
+    await restoreAddressData(data.region, data.province, data.city, data.barangay);
 
   } catch (error) {
     console.error("Error loading draft:", error);
@@ -911,9 +990,8 @@ const fetchDraftData = async (id) => {
     map.flyTo({ center: [lng, lat], zoom: 14 });
   }, [formData.locationLat, formData.locationLng, mapInstanceRef.current]);
 
+  // FR-1.5: Restore previously entered registration data upon form reinitialization
   useEffect(() => {
-    console.log("Cookies:", document.cookie);
-    
     // Check for draftId in URL params - only load draft when explicitly continuing
     const urlParams = new URLSearchParams(window.location.search);
     const draftIdFromUrl = urlParams.get('draftId');
@@ -921,9 +999,94 @@ const fetchDraftData = async (id) => {
     if (draftIdFromUrl) {
       // Fetch draft data from backend when user clicks "Continue"
       fetchDraftData(draftIdFromUrl);
+      return;
     }
-    // Form starts fresh if no draftId in URL
+
+    // Restore from localStorage if saved
+    try {
+      const savedStr = localStorage.getItem(FORM_STORAGE_KEY);
+      if (savedStr) {
+        const parsed = JSON.parse(savedStr);
+        if (parsed && parsed.formData) {
+          setFormData((prev) => ({
+            ...prev,
+            ...parsed.formData,
+            registrationCertificate: prev.registrationCertificate || null,
+          }));
+
+          if (parsed.selectedTab) {
+            setSelectedTab(parsed.selectedTab);
+          }
+          if (Array.isArray(parsed.completedTabs)) {
+            setCompletedTabs(parsed.completedTabs);
+          }
+          if (typeof parsed.furthestTabReached === "number") {
+            setFurthestTabReached(parsed.furthestTabReached);
+          }
+          if (parsed.openingTime) setOpeningTime(parsed.openingTime);
+          if (parsed.closingTime) setClosingTime(parsed.closingTime);
+          if (Array.isArray(parsed.selectedDays)) setSelectedDays(parsed.selectedDays);
+
+          if (parsed.formData.region) {
+            restoreAddressData(
+              parsed.formData.region,
+              parsed.formData.province,
+              parsed.formData.city,
+              parsed.formData.barangay
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to restore persisted form data:", err);
+    }
   }, []);
+
+  // FR-1.5: Persist all entered registration information automatically across form navigation and reinitialization
+  useEffect(() => {
+    if (isResettingRef.current || isLoadingDraft || isSubmittingStartup || isSavingDraft) {
+      return;
+    }
+
+    // Verify if there is any user-entered content
+    const hasData = Object.keys(formData).some((key) => {
+      if (key === "role" || key === "isDraft" || key === "operatingHours") return false;
+      return Boolean(formData[key]);
+    });
+
+    if (!hasData) {
+      return;
+    }
+
+    try {
+      const { registrationCertificate, ...dataToSave } = formData;
+      const stateToPersist = {
+        formData: dataToSave,
+        selectedTab,
+        completedTabs,
+        furthestTabReached,
+        openingTime,
+        closingTime,
+        selectedDays,
+        certificateName: registrationCertificate?.name || null,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(stateToPersist));
+    } catch (err) {
+      console.warn("Failed to persist form data:", err);
+    }
+  }, [
+    formData,
+    selectedTab,
+    completedTabs,
+    furthestTabReached,
+    openingTime,
+    closingTime,
+    selectedDays,
+    isLoadingDraft,
+    isSubmittingStartup,
+    isSavingDraft,
+  ]);
 
   useEffect(() => {
     fetch("https://psgc.gitlab.io/api/regions/")
@@ -1189,11 +1352,12 @@ const fetchDraftData = async (id) => {
     }
     
     // Registration validation
-    if (formData.isGovernmentRegistered === "") {
+    if (formData.isGovernmentRegistered === "" || formData.isGovernmentRegistered === null || formData.isGovernmentRegistered === undefined) {
       errors.isGovernmentRegistered = "Please specify registration status.";
       toast.error("Please specify if registered with a government agency.");
     }
-    if (formData.isGovernmentRegistered === "yes") {
+    const isGovRegistered = formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes";
+    if (isGovRegistered) {
       if (!formData.registrationAgency) {
         errors.registrationAgency = "Please select the registration agency.";
         toast.error("Please select the registration agency.");
@@ -1218,7 +1382,7 @@ const fetchDraftData = async (id) => {
         errors.tin = "TIN is required.";
         toast.error("TIN is required.");
       }
-      if (!formData.registrationCertificate) {
+      if (!formData.registrationCertificate && !draftCertificateUrl) {
         errors.registrationCertificate = "Registration certificate file is required.";
         toast.error("Registration certificate file is required.");
       }
@@ -1996,6 +2160,7 @@ const handleSubmit = async () => {
         setSubmissionProgress(95);
         setSubmissionStatus("Finalizing submission...");
         
+        try { localStorage.removeItem(FORM_STORAGE_KEY); } catch (e) {}
         toast.success("Startup added successfully! Verification email sent.");
 
         try {
@@ -2277,6 +2442,7 @@ const handleSubmit = async () => {
       setLoadingProgress(100);
       setLoadingStatus("Redirecting to dashboard...");
       setTimeout(() => {
+        try { localStorage.removeItem(FORM_STORAGE_KEY); } catch (e) {}
         navigate("/startup-dashboard");
       }, 1000);
     }, 1000);
@@ -2545,6 +2711,18 @@ const handleSubmit = async () => {
               >
                 {completedTabs.length} of {tabs.length} steps completed
               </span>
+              <div className="h-5 w-px bg-gray-300"></div>
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-md border border-gray-200 hover:border-red-200 transition-all duration-200"
+                title="Explicitly reset all entered values"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Reset Form</span>
+              </button>
             </div>
             
             {/* Percentage Badge */}
@@ -3319,19 +3497,29 @@ const handleSubmit = async () => {
                         ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
                         : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                     }`}
-                    value={formData.isGovernmentRegistered}
+                    value={
+                      formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes"
+                        ? "true"
+                        : formData.isGovernmentRegistered === false || formData.isGovernmentRegistered === "false" || formData.isGovernmentRegistered === "no"
+                        ? "false"
+                        : ""
+                    }
                     onChange={e => {
-                      const value = e.target.value === "true" ? true : e.target.value === "false" ? false : "";
+                      const val = e.target.value;
+                      const boolVal = val === "true" ? true : val === "false" ? false : "";
                       setFormData(prev => ({
                         ...prev,
-                        isGovernmentRegistered: value,
-                        registrationAgency: "",
-                        otherRegistrationAgency: "",
-                        registrationNumber: "",
-                        registrationDate: null,
-                        businessLicenseNumber: "",
-                        tin: "",
-                        registrationCertificate: null,
+                        isGovernmentRegistered: boolVal,
+                        // Only clear government registration details if user explicitly selects 'No' or unselects
+                        ...(boolVal === false ? {
+                          registrationAgency: "",
+                          otherRegistrationAgency: "",
+                          registrationNumber: "",
+                          registrationDate: null,
+                          businessLicenseNumber: "",
+                          tin: "",
+                          registrationCertificate: null,
+                        } : {})
                       }));
                       // Clear error when selection is made
                       if (fieldErrors.isGovernmentRegistered) {
@@ -3340,8 +3528,8 @@ const handleSubmit = async () => {
                     }}
                   >
                     <option value="">Select an option</option>
-                    <option value={true}>Yes, my startup is registered</option>
-                    <option value={false}>No, not yet registered</option>
+                    <option value="true">Yes, my startup is registered</option>
+                    <option value="false">No, not yet registered</option>
                   </select>
                 </div>
                 {fieldErrors.isGovernmentRegistered && (
@@ -3356,7 +3544,7 @@ const handleSubmit = async () => {
             </div>
 
             {/* Registration Agency (conditional) */}
-            {formData.isGovernmentRegistered && (
+            {Boolean(formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes") && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -3597,7 +3785,7 @@ const handleSubmit = async () => {
             )}
 
             {/* Registration Certificate Upload */}
-            {formData.isGovernmentRegistered && (
+            {Boolean(formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes") && (
               <div className="col-span-2">
                 <label className="block mb-2 text-sm font-medium text-gray-700">
                   Registration Certificate <span className="text-red-500">*</span>
@@ -5418,6 +5606,46 @@ const handleSubmit = async () => {
       <LoadingModal />
       <DraftLoadingModal />
       <SubmissionProgressModal />
+      {/* Reset Form Confirmation Modal */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">Reset Registration Form?</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  This will clear all entered registration information across all sections (organization details, TRL, engagement, support, and government registration). This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setIsResetModalOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Yes, Reset Form
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
     </>
