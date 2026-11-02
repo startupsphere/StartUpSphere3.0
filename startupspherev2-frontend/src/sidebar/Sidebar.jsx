@@ -1374,8 +1374,13 @@ export default function Sidebar({
     const currentFilters =
       viewingType === "startups" ? filters.startups : filters.stakeholders;
 
-    // If no query, return all items
-    if (!currentFilters.query && currentFilters.actorType === "All") return items;
+    // If no filters active, return all items
+    if (
+      !currentFilters.query &&
+      currentFilters.actorType === "All" &&
+      (!currentFilters.industry || currentFilters.industry === "" || currentFilters.industry === "All") &&
+      (!currentFilters.govReg || currentFilters.govReg === "All")
+    ) return items;
 
     // Helper function to safely check if a field contains the query (with robust date & year matching)
     const safeFieldCheck = (fieldValue, query) => {
@@ -1485,7 +1490,14 @@ export default function Sidebar({
           (currentFilters.govReg === "SEC" && Boolean(item.isGovernmentRegistered) && agencyStr.includes("SEC")) ||
           (currentFilters.govReg === "DTI" && Boolean(item.isGovernmentRegistered) && agencyStr.includes("DTI"));
 
-        return matchesQuery && matchesActorType && matchesGovReg;
+        const matchesIndustry =
+          !currentFilters.industry ||
+          currentFilters.industry === "" ||
+          currentFilters.industry === "All" ||
+          (item.industry &&
+            item.industry.toLowerCase().includes(currentFilters.industry.toLowerCase()));
+
+        return matchesQuery && matchesActorType && matchesGovReg && matchesIndustry;
       } catch (error) {
         console.error("Error in applyFilters:", error);
         return false;
@@ -2951,11 +2963,11 @@ export default function Sidebar({
             </div>
 
             {/* Filters Row - Consolidated & Visible */}
-            <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+            <div className="grid grid-cols-2 gap-1.5 mt-2.5">
               {viewingType === "startups" ? (
                 <>
                   <div className="relative">
-                    <label className="sr-only">Filter by Stakeholder Type</label>
+                    <label className="sr-only">Filter by Actor Type</label>
                     <select
                       value={filters.startups.actorType || "All"}
                       onChange={(e) => {
@@ -2972,6 +2984,27 @@ export default function Sidebar({
                       <option value="ROLE_STARTUP">Startup</option>
                       <option value="ROLE_HEI">University / HEI</option>
                       <option value="ROLE_RESEARCH">Research Body</option>
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <label className="sr-only">Filter by Industry/Sector</label>
+                    <select
+                      value={filters.startups.industry || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          startups: { ...prev.startups, industry: value },
+                        }));
+                      }}
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
+                      title="Filter by industry/sector"
+                    >
+                      <option value="">All Industries</option>
+                      {[...new Set((startups || []).map((s) => s.industry).filter(Boolean))].sort().map((ind) => (
+                        <option key={ind} value={ind}>{ind}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -3022,7 +3055,7 @@ export default function Sidebar({
                   </div>
                 </>
               ) : (
-                <div className="relative col-span-3">
+                <div className="relative col-span-2">
                   <select
                     value={filters.stakeholders.searchField || "All"}
                     onChange={(e) => {
@@ -3072,7 +3105,9 @@ export default function Sidebar({
               (viewingType === "startups" &&
                 (filters.startups.query ||
                   filters.startups.actorType !== "All" ||
-                  filters.startups.searchField !== "All")) ||
+                  filters.startups.searchField !== "All" ||
+                  (filters.startups.industry && filters.startups.industry !== "" && filters.startups.industry !== "All") ||
+                  (filters.startups.govReg && filters.startups.govReg !== "All"))) ||
                 (viewingType === "stakeholders" &&
                   (filters.stakeholders.query ||
                     filters.stakeholders.searchField !== "All"))
@@ -3086,6 +3121,8 @@ export default function Sidebar({
                       query: "",
                       actorType: "All",
                       searchField: "All",
+                      industry: "",
+                      govReg: "All",
                     },
                   }));
                 }}
@@ -4536,6 +4573,7 @@ export default function Sidebar({
           <Outlet
             context={{
               activeActorType: filters.startups.actorType,
+              activeIndustry: filters.startups.industry || "All",
               isSidebarExpanded: Boolean(hasLeftPanel384 || hasLeftPanel420),
               isAiOpen: Boolean(showGeminiAi),
             }}

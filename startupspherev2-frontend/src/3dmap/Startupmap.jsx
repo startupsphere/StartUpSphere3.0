@@ -47,6 +47,7 @@ export default function Startupmap({
 }) {
   const context = useOutletContext();
   const activeActorType = context?.activeActorType || "All";
+  const activeIndustry = context?.activeIndustry || "All";
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(
@@ -696,6 +697,7 @@ export default function Startupmap({
           name: s.companyName || s.name || "Startup",
           locationName: s.locationName || "",
           role: s.role || "ROLE_STARTUP",
+          industry: s.industry || "",
           colorClass: colorClass
         },
         geometry: { type: "Point", coordinates: [lng, lat] },
@@ -3715,7 +3717,7 @@ export default function Startupmap({
     });
   };
 
-  // Filter map layers based on the active actor type from Sidebar
+  // Filter map layers based on the active actor type and industry from Sidebar
   useEffect(() => {
     const map = mapInstanceRef?.current;
     if (!map) return;
@@ -3724,10 +3726,21 @@ export default function Startupmap({
       try {
         const layerId = "startups-layer";
         if (map.getLayer(layerId)) {
-          if (activeActorType !== "All") {
-            map.setFilter(layerId, ["==", ["get", "role"], activeActorType]);
+          const conditions = [];
+
+          if (activeActorType && activeActorType !== "All") {
+            conditions.push(["==", ["get", "role"], activeActorType]);
+          }
+          if (activeIndustry && activeIndustry !== "All" && activeIndustry !== "") {
+            conditions.push(["==", ["get", "industry"], activeIndustry]);
+          }
+
+          if (conditions.length === 0) {
+            map.setFilter(layerId, null); // Clear filter — show all
+          } else if (conditions.length === 1) {
+            map.setFilter(layerId, conditions[0]);
           } else {
-            map.setFilter(layerId, null); // Clear filter
+            map.setFilter(layerId, ["all", ...conditions]);
           }
         }
       } catch (e) {
@@ -3741,7 +3754,7 @@ export default function Startupmap({
     } else {
       map.once('styledata', applyFiltersToMap);
     }
-  }, [activeActorType, mapInstanceRef]);
+  }, [activeActorType, activeIndustry, mapInstanceRef]);
 
   return (
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
