@@ -3011,7 +3011,21 @@ const handleSubmit = async () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   <span>TRL Level</span>
-                  <TooltipInfo type="TRL" size="sm" />
+                  <TooltipInfo 
+                    type="TRL" 
+                    size="sm" 
+                    currentValue={formData.trlLevel}
+                    onSelect={(val) => {
+                      handleChange({ target: { name: "trlLevel", value: val } });
+                      if (fieldErrors.trlLevel) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.trlLevel;
+                          return next;
+                        });
+                      }
+                    }}
+                  />
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
