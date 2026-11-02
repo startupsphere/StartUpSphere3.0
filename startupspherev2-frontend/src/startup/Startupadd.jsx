@@ -242,6 +242,16 @@ const ACTOR_LABELS = {
 
 const FORM_STORAGE_KEY = "startupsphere_registration_form_data";
 
+// Helper to parse multiple government registration agencies
+const getSelectedAgencies = (rawAgency) => {
+  if (!rawAgency) return [];
+  if (Array.isArray(rawAgency)) return rawAgency;
+  return String(rawAgency)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
 export default function Startupadd() {
   const { toast, toasts, removeToast } = useToast();
   const [selectedTab, setSelectedTab] = useState("Company Information");
@@ -382,6 +392,35 @@ export default function Startupadd() {
   const [openingTime, setOpeningTime] = useState("09:00");
   const [closingTime, setClosingTime] = useState("17:00");
   const [selectedDays, setSelectedDays] = useState(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+
+  // Government Registration Agency helpers
+  const isAgencySelected = (code) => {
+    const list = getSelectedAgencies(formData.registrationAgency);
+    return list.includes(code);
+  };
+
+  const handleToggleAgency = (code) => {
+    const current = getSelectedAgencies(formData.registrationAgency);
+    let updated;
+    if (current.includes(code)) {
+      updated = current.filter((c) => c !== code);
+    } else {
+      updated = [...current, code];
+    }
+    const val = updated.join(", ");
+    setFormData((prev) => ({
+      ...prev,
+      registrationAgency: val,
+      otherRegistrationAgency: updated.includes("other") ? prev.otherRegistrationAgency : "",
+    }));
+    if (fieldErrors.registrationAgency && updated.length > 0) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.registrationAgency;
+        return next;
+      });
+    }
+  };
 
   // Smart address hierarchy restoration
   const restoreAddressData = async (targetRegion, targetProvince, targetCity, targetBarangay) => {
@@ -1358,11 +1397,12 @@ const fetchDraftData = async (id) => {
     }
     const isGovRegistered = formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes";
     if (isGovRegistered) {
-      if (!formData.registrationAgency) {
-        errors.registrationAgency = "Please select the registration agency.";
-        toast.error("Please select the registration agency.");
+      const selectedAgencies = getSelectedAgencies(formData.registrationAgency);
+      if (selectedAgencies.length === 0) {
+        errors.registrationAgency = "Please select at least one registration agency.";
+        toast.error("Please select at least one registration agency.");
       }
-      if (formData.registrationAgency === "other" && !formData.otherRegistrationAgency) {
+      if (selectedAgencies.includes("other") && !formData.otherRegistrationAgency) {
         errors.otherRegistrationAgency = "Please specify the other registration agency.";
         toast.error("Please specify the other registration agency.");
       }
@@ -3560,50 +3600,300 @@ const handleSubmit = async () => {
             {/* Registration Agency (conditional) */}
             {Boolean(formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes") && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <span>Registration Agency</span>
-                    <TooltipInfo type="GOV_REG" size="xs" />
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative group">
-                    <select
-                      name="registrationAgency"
-                      className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
-                        fieldErrors.registrationAgency 
-                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                      }`}
-                      value={formData.registrationAgency}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setFormData(prev => ({
-                          ...prev,
-                          registrationAgency: val,
-                          otherRegistrationAgency: val === "other" ? prev.otherRegistrationAgency : "",
-                        }));
-                      }}
-                    >
-                      <option value="">Select agency</option>
-                      <option value="DTI">DTI (Department of Trade and Industry)</option>
-                      <option value="SEC">SEC (Securities and Exchange Commission)</option>
-                      <option value="CDA">CDA (Cooperative Development Authority)</option>
-                      <option value="BIR">BIR (Bureau of Internal Revenue)</option>
-                      <option value="DOT">DOT (Department of Tourism)</option>
-                      <option value="DICT">DICT (Department of Information and Communications Technology)</option>
-                      <option value="DOST">DOST (Department of Science and Technology)</option>
-                      <option value="FDA">FDA (Food and Drug Administration)</option>
-                      <option value="BOI">BOI (Board of Investments)</option>
-                      <option value="PEZA">PEZA (Philippine Economic Zone Authority)</option>
-                      <option value="BSP">BSP (Bangko Sentral ng Pilipinas)</option>
-                      <option value="IPOPHL">IPOPHL (Intellectual Property Office of the Philippines)</option>
-                      <option value="LGU">LGU (Local Government Unit / Mayor's Permit)</option>
-                      <option value="other">Other (Please specify)</option>
-                    </select>
+                <div className="col-span-1 md:col-span-2 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Registration Agency</span>
+                      <TooltipInfo type="GOV_REG" size="xs" />
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      Select all that apply (e.g., BIR alongside SEC or DTI)
+                    </span>
                   </div>
+
+                  {/* Explicit Selectable Agency Options Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* BIR - Explicit Selectable Option */}
+                    <div
+                      onClick={() => handleToggleAgency("BIR")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("BIR")
+                          ? "border-emerald-500 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500/30"
+                          : "border-gray-200 hover:border-emerald-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_bir"
+                        name="registrationAgency_BIR"
+                        value="BIR"
+                        checked={isAgencySelected("BIR")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label
+                            htmlFor="reg_agency_bir"
+                            className="text-xs font-bold text-gray-900 cursor-pointer"
+                          >
+                            Bureau of Internal Revenue (BIR)
+                          </label>
+                          <TooltipInfo type="BIR" size="xs" />
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          Tax compliance, TIN verification &amp; official business receipts
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* SEC */}
+                    <div
+                      onClick={() => handleToggleAgency("SEC")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("SEC")
+                          ? "border-blue-500 bg-blue-50/70 shadow-xs ring-1 ring-blue-500/30"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_sec"
+                        name="registrationAgency_SEC"
+                        value="SEC"
+                        checked={isAgencySelected("SEC")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label
+                            htmlFor="reg_agency_sec"
+                            className="text-xs font-bold text-gray-900 cursor-pointer"
+                          >
+                            Securities &amp; Exchange Commission (SEC)
+                          </label>
+                          <TooltipInfo type="SEC" size="xs" />
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          Corporations, partnerships &amp; One-Person Corporations (OPC)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* DTI */}
+                    <div
+                      onClick={() => handleToggleAgency("DTI")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("DTI")
+                          ? "border-indigo-500 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500/30"
+                          : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_dti"
+                        name="registrationAgency_DTI"
+                        value="DTI"
+                        checked={isAgencySelected("DTI")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label
+                            htmlFor="reg_agency_dti"
+                            className="text-xs font-bold text-gray-900 cursor-pointer"
+                          >
+                            Dept. of Trade &amp; Industry (DTI)
+                          </label>
+                          <TooltipInfo type="DTI" size="xs" />
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          Sole proprietorships &amp; trade business name registration
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* CDA */}
+                    <div
+                      onClick={() => handleToggleAgency("CDA")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("CDA")
+                          ? "border-teal-500 bg-teal-50/70 shadow-xs ring-1 ring-teal-500/30"
+                          : "border-gray-200 hover:border-teal-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_cda"
+                        name="registrationAgency_CDA"
+                        value="CDA"
+                        checked={isAgencySelected("CDA")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-teal-600 focus:ring-teal-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <label
+                          htmlFor="reg_agency_cda"
+                          className="text-xs font-bold text-gray-900 cursor-pointer block"
+                        >
+                          Cooperative Development Authority (CDA)
+                        </label>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          Cooperative enterprises &amp; member associations
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* LGU */}
+                    <div
+                      onClick={() => handleToggleAgency("LGU")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("LGU")
+                          ? "border-purple-500 bg-purple-50/70 shadow-xs ring-1 ring-purple-500/30"
+                          : "border-gray-200 hover:border-purple-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_lgu"
+                        name="registrationAgency_LGU"
+                        value="LGU"
+                        checked={isAgencySelected("LGU")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <label
+                          htmlFor="reg_agency_lgu"
+                          className="text-xs font-bold text-gray-900 cursor-pointer block"
+                        >
+                          Local Government Unit (LGU)
+                        </label>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          Mayor's permit &amp; municipal business operations
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Other */}
+                    <div
+                      onClick={() => handleToggleAgency("other")}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isAgencySelected("other")
+                          ? "border-amber-500 bg-amber-50/70 shadow-xs ring-1 ring-amber-500/30"
+                          : "border-gray-200 hover:border-amber-300 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="reg_agency_other"
+                        name="registrationAgency_other"
+                        value="other"
+                        checked={isAgencySelected("other")}
+                        onChange={() => {}}
+                        className="mt-0.5 h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-gray-300 cursor-pointer pointer-events-none"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <label
+                          htmlFor="reg_agency_other"
+                          className="text-xs font-bold text-gray-900 cursor-pointer block"
+                        >
+                          Other Agency
+                        </label>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                          DICT, DOST, FDA, BOI, PEZA, etc.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Synchronized Select Dropdown */}
+                  <div className="pt-1">
+                    <label htmlFor="registrationAgency" className="block text-xs font-medium text-gray-600 mb-1">
+                      Or select / add agency from dropdown:
+                    </label>
+                    <div className="relative group">
+                      <select
+                        id="registrationAgency"
+                        name="registrationAgency"
+                        className={`w-full border-2 rounded-lg px-4 py-2.5 text-sm appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
+                          fieldErrors.registrationAgency 
+                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
+                        value={
+                          isAgencySelected("BIR") && isAgencySelected("SEC")
+                            ? "SEC, BIR"
+                            : isAgencySelected("BIR") && isAgencySelected("DTI")
+                            ? "DTI, BIR"
+                            : isAgencySelected("BIR") && !isAgencySelected("SEC") && !isAgencySelected("DTI")
+                            ? "BIR"
+                            : formData.registrationAgency
+                        }
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (!val) return;
+                          if (val === "SEC, BIR") {
+                            setFormData(prev => ({
+                              ...prev,
+                              registrationAgency: "SEC, BIR",
+                              otherRegistrationAgency: "",
+                            }));
+                          } else if (val === "DTI, BIR") {
+                            setFormData(prev => ({
+                              ...prev,
+                              registrationAgency: "DTI, BIR",
+                              otherRegistrationAgency: "",
+                            }));
+                          } else if (val === "BIR") {
+                            const current = getSelectedAgencies(formData.registrationAgency);
+                            if (!current.includes("BIR")) {
+                              const updated = current.length > 0 ? [...current, "BIR"].join(", ") : "BIR";
+                              setFormData(prev => ({ ...prev, registrationAgency: updated }));
+                            }
+                          } else {
+                            const current = getSelectedAgencies(formData.registrationAgency);
+                            if (!current.includes(val)) {
+                              const updated = current.length > 0 ? [...current, val].join(", ") : val;
+                              setFormData(prev => ({
+                                ...prev,
+                                registrationAgency: updated,
+                                otherRegistrationAgency: val === "other" || updated.includes("other") ? prev.otherRegistrationAgency : "",
+                              }));
+                            }
+                          }
+                          if (fieldErrors.registrationAgency) {
+                            setFieldErrors(prev => ({ ...prev, registrationAgency: "" }));
+                          }
+                        }}
+                      >
+                        <option value="">-- Choose or add agency --</option>
+                        <option value="BIR">BIR (Bureau of Internal Revenue)</option>
+                        <option value="SEC">SEC (Securities and Exchange Commission)</option>
+                        <option value="DTI">DTI (Department of Trade and Industry)</option>
+                        <option value="SEC, BIR">SEC &amp; BIR (Securities &amp; Exchange Commission + Bureau of Internal Revenue)</option>
+                        <option value="DTI, BIR">DTI &amp; BIR (Department of Trade and Industry + Bureau of Internal Revenue)</option>
+                        <option value="CDA">CDA (Cooperative Development Authority)</option>
+                        <option value="DOT">DOT (Department of Tourism)</option>
+                        <option value="DICT">DICT (Department of Information and Communications Technology)</option>
+                        <option value="DOST">DOST (Department of Science and Technology)</option>
+                        <option value="FDA">FDA (Food and Drug Administration)</option>
+                        <option value="BOI">BOI (Board of Investments)</option>
+                        <option value="PEZA">PEZA (Philippine Economic Zone Authority)</option>
+                        <option value="BSP">BSP (Bangko Sentral ng Pilipinas)</option>
+                        <option value="IPOPHL">IPOPHL (Intellectual Property Office of the Philippines)</option>
+                        <option value="LGU">LGU (Local Government Unit / Mayor's Permit)</option>
+                        <option value="other">Other (Please specify)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   {fieldErrors.registrationAgency && (
                     <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -3615,7 +3905,7 @@ const handleSubmit = async () => {
                 </div>
 
                 {/* Other Registration Agency (conditional) */}
-                {formData.registrationAgency === "other" && (
+                {isAgencySelected("other") && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
