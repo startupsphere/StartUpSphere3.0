@@ -1510,7 +1510,7 @@ export default function Sidebar({
 
       {/* Viewing Mode Indicators */}
       {viewingStartup && (
-        <div className="absolute w-fit top-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 z-50 flex items-center space-x-2 border border-gray-100">
+        <div className="absolute w-fit max-w-[calc(100vw-32px)] top-16 md:top-14 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md shadow-lg rounded-full px-4 py-1.5 z-30 flex items-center space-x-2 border border-gray-200/90">
           <button
             className="text-blue-600 hover:text-blue-700 transition-colors flex items-center cursor-pointer"
             onClick={() => {
@@ -1520,9 +1520,9 @@ export default function Sidebar({
           >
             <MdKeyboardReturn className="mr-1 cursor-pointer text-xl" />
           </button>
-          <span className="text-gray-700 text-sm flex items-center">
+          <span className="text-gray-700 text-xs sm:text-sm flex items-center truncate">
             Viewing{" "}
-            <p className="font-semibold ml-2 text-gray-900">
+            <p className="font-semibold ml-1.5 text-gray-900 truncate">
               {viewingStartup.companyName}
             </p>
           </span>
@@ -1530,7 +1530,7 @@ export default function Sidebar({
       )}
 
       {viewingStakeholder && (
-        <div className="absolute w-fit top-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 z-50 flex items-center space-x-2 border border-gray-100">
+        <div className="absolute w-fit max-w-[calc(100vw-32px)] top-16 md:top-14 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md shadow-lg rounded-full px-4 py-1.5 z-30 flex items-center space-x-2 border border-gray-200/90">
           <button
             className="text-blue-600 hover:text-blue-700 transition-colors flex items-center cursor-pointer"
             onClick={() => {
@@ -1540,9 +1540,9 @@ export default function Sidebar({
           >
             <MdKeyboardReturn className="mr-1 cursor-pointer text-xl" />
           </button>
-          <span className="text-gray-700 text-sm flex items-center">
+          <span className="text-gray-700 text-xs sm:text-sm flex items-center truncate">
             Viewing{" "}
-            <p className="font-semibold ml-2 text-gray-900">
+            <p className="font-semibold ml-1.5 text-gray-900 truncate">
               {viewingStakeholder.firstname} {viewingStakeholder.lastname}
             </p>
           </span>
@@ -4527,11 +4527,19 @@ export default function Sidebar({
 
       {/* Main Content */}
       <div
-        className="flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out pt-14 pb-16 md:pt-0 md:pb-0"
+        className={`relative z-10 flex-1 overflow-auto flex flex-col transition-all duration-300 ease-in-out pt-14 pb-16 md:pt-0 md:pb-0 ${
+          hasLeftPanel384 || hasLeftPanel420 ? "md:border-l md:border-slate-200/80" : ""
+        }`}
         style={{ marginLeft, marginRight }}
       >
         <div className="flex-1">
-          <Outlet context={{ activeActorType: filters.startups.actorType }} />
+          <Outlet
+            context={{
+              activeActorType: filters.startups.actorType,
+              isSidebarExpanded: Boolean(hasLeftPanel384 || hasLeftPanel420),
+              isAiOpen: Boolean(showGeminiAi),
+            }}
+          />
         </div>
       </div>
 

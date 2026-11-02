@@ -57,15 +57,17 @@
   z-index: 1;
 }
 
-/* Ensure mapbox popups are above other elements */
+/* Ensure mapbox popups sit above map markers and map controls within the map stacking context */
 .mapboxgl-popup {
-  z-index: 99999 !important;
+  z-index: 40 !important;
+  pointer-events: auto !important;
 }
 
 /* Fix for the sidebar and marker z-index issues */
 .map-container-relative {
   position: relative;
   z-index: 1;
+  isolation: isolate;
 }
 
 .sidebar-container {
@@ -75,10 +77,96 @@
 
 /* Fix popup styling */
 .mapboxgl-popup-content {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-  border-radius: 10px !important;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 14px !important;
   overflow: hidden !important;
   padding: 0 !important;
+  max-width: var(--map-safe-width, calc(100vw - 32px)) !important;
+  max-height: var(--map-safe-height, calc(100dvh - 140px)) !important;
+  transition: transform 0.08s ease-out;
+}
+
+/* Responsive Viewport-Constrained Startup Popup Card */
+.startup-popup-card {
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  color: #111827;
+  width: min(540px, var(--map-safe-width, calc(100vw - 32px)));
+  height: min(350px, var(--map-safe-height, calc(100dvh - 160px)));
+  min-height: 220px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.startup-popup-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  background: #ffffff;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.startup-popup-col-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  border-right: 1px solid #f1f5f9;
+  padding-right: 12px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.startup-popup-col-right {
+  flex: 1.1;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+@media (max-width: 640px) {
+  .startup-popup-card {
+    width: min(340px, var(--map-safe-width, calc(100vw - 24px)));
+    height: auto;
+    max-height: min(340px, var(--map-safe-height, calc(100dvh - 170px)));
+  }
+
+  .startup-popup-body {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+    overflow-y: auto;
+  }
+
+  .startup-popup-col-left {
+    border-right: none;
+    border-bottom: 1px solid #f1f5f9;
+    padding-right: 0;
+    padding-bottom: 8px;
+    overflow-y: visible;
+    flex: none;
+  }
+
+  .startup-popup-col-right {
+    flex: none;
+    height: auto;
+    max-height: 130px;
+  }
 }
 
 /* Professional styling for startup popups */
@@ -86,7 +174,7 @@
   border-radius: 16px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
   overflow: hidden !important;
-  max-width: none !important;
+  max-width: var(--map-safe-width, calc(100vw - 24px)) !important;
 }
 
 .startup-popup .mapboxgl-popup-close-button {
@@ -119,22 +207,30 @@
 /* Let Mapbox manage marker transforms/positioning to avoid conflicts */
 /* Intentionally avoid overriding transform/position on .mapboxgl-marker */
 
-/* Fix Mapbox Geocoder search bar suggestions visibility */
+/* Fix Mapbox Geocoder search bar suggestions visibility & control stacking */
 .mapboxgl-ctrl-geocoder,
-.mapboxgl-control-container,
-.mapboxgl-popup {
-  z-index: 10 !important;
+.mapboxgl-control-container {
+  z-index: 25 !important;
+}
+
+.mapboxgl-ctrl-bottom-right {
+  bottom: 8px !important;
+  right: 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 2px !important;
 }
 
 /* Marker container styling */
 .marker-container {
   position: relative !important;
-  z-index: 9999 !important;
+  z-index: 1 !important;
   pointer-events: auto !important;
 }
 
 .marker-container.active {
-  z-index: 99999 !important;
+  z-index: 2 !important;
 }
 
 /* Startup marker styling - professional and modern appearance */

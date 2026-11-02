@@ -152,13 +152,108 @@ export default function Startupmap({
     });
   }, [mapInstanceRef]);
 
+  const activePopupRef = useRef(null);
+  const showControlsRef = useRef(showControls);
   useEffect(() => {
-    const handleResize = () => setIsMobileMap(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    showControlsRef.current = showControls;
+  }, [showControls]);
+
+  // Dynamically constrain all map popups strictly within the visible map viewport (FR-2.5)
+  const constrainPopupsToViewport = useCallback(() => {
+    const containerEl = mapContainerRef.current;
+    if (!containerEl) return;
+
+    const mapRect = containerEl.getBoundingClientRect();
+    if (!mapRect.width || !mapRect.height) return;
+
+    const topPad = 58;
+    const bottomPad = showControlsRef.current ? 116 : 68;
+    const leftPad = 14;
+    const rightPad = 56;
+
+    const safeWidth = Math.max(250, mapRect.width - leftPad - rightPad);
+    const safeHeight = Math.max(200, mapRect.height - topPad - bottomPad);
+
+    containerEl.style.setProperty("--map-safe-width", `${Math.floor(safeWidth)}px`);
+    containerEl.style.setProperty("--map-safe-height", `${Math.floor(safeHeight)}px`);
+
+    const popups = containerEl.querySelectorAll(".mapboxgl-popup");
+    popups.forEach((popupEl) => {
+      const contentEl = popupEl.querySelector(".mapboxgl-popup-content");
+      const tipEl = popupEl.querySelector(".mapboxgl-popup-tip");
+      if (!contentEl) return;
+
+      // Reset clamping transform before measuring natural position
+      contentEl.style.transform = "translate3d(0px, 0px, 0px)";
+      if (tipEl) tipEl.style.transform = "translate3d(0px, 0px, 0px)";
+
+      const contentRect = contentEl.getBoundingClientRect();
+      const minLeft = mapRect.left + leftPad;
+      const maxRight = mapRect.right - rightPad;
+      const minTop = mapRect.top + topPad;
+      const maxBottom = mapRect.bottom - bottomPad;
+
+      let dx = 0;
+      let dy = 0;
+
+      if (contentRect.left < minLeft) {
+        dx = minLeft - contentRect.left;
+      } else if (contentRect.right > maxRight) {
+        dx = maxRight - contentRect.right;
+      }
+
+      if (contentRect.top < minTop) {
+        dy = minTop - contentRect.top;
+      } else if (contentRect.bottom > maxBottom) {
+        dy = maxBottom - contentRect.bottom;
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        contentEl.style.transform = `translate3d(${Math.round(dx)}px, ${Math.round(dy)}px, 0px)`;
+      }
+    });
   }, []);
 
-  const mapBottomOffset = isMobileMap ? "80px" : "16px";
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileMap(window.innerWidth < 768);
+      if (mapInstanceRef?.current) {
+        try {
+          mapInstanceRef.current.resize();
+        } catch (err) {
+          console.debug("Map resize ignored:", err);
+        }
+      }
+      requestAnimationFrame(() => constrainPopupsToViewport());
+    };
+    window.addEventListener("resize", handleResize);
+
+    let resizeObserver;
+    if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef?.current) {
+          try {
+            mapInstanceRef.current.resize();
+          } catch (err) {
+            console.debug("Map observer resize ignored:", err);
+          }
+        }
+        requestAnimationFrame(() => constrainPopupsToViewport());
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, [constrainPopupsToViewport, mapInstanceRef]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => constrainPopupsToViewport());
+  }, [showControls, showLegend, context?.isSidebarExpanded, context?.isAiOpen, constrainPopupsToViewport]);
+
+  const mapBottomOffset = isMobileMap ? "12px" : "14px";
   const [connectionLines, setConnectionLines] = useState([]);
   const [stakeholderMarkers, setStakeholderMarkers] = useState([]);
   const [filteredStakeholders, setFilteredStakeholders] = useState([]);
@@ -329,27 +424,34 @@ export default function Startupmap({
           stakeholderPopupRef.current.remove();
           stakeholderPopupRef.current = null;
         }
+        if (activePopupRef.current) {
+          activePopupRef.current.remove();
+          activePopupRef.current = null;
+        }
 
         // Build a clean, professional popup
         const html = `
-          <div style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; color: #1F2937;">
+          <div style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; color: #1F2937; max-width: min(300px, var(--map-safe-width, 85vw)); box-sizing: border-box;">
             <div style="background: linear-gradient(135deg, #4F46E5, #3B82F6); color: #fff; padding: 14px 16px; border-radius: 8px 8px 0 0;">
-              <div style="font-weight: 600; font-size: 16px;">${st.name || "Stakeholder"}</div>
-              ${st.organization ? `<div style="opacity: .9; font-size: 12px; margin-top: 2px;">${st.organization}</div>` : ""}
+              <div style="font-weight: 600; font-size: 15px; padding-right: 18px; word-break: break-word;">${st.name || "Stakeholder"}</div>
+              ${st.organization ? `<div style="opacity: .9; font-size: 12px; margin-top: 2px; word-break: break-word;">${st.organization}</div>` : ""}
             </div>
             <div style="padding: 12px 16px; background: #fff;">
-              ${st.locationName ? `<div style=\"font-size: 13px; color: #4B5563; margin-bottom: 6px;\">${st.locationName}</div>` : ""}
-              ${st.email ? `<div style=\"font-size: 13px;\"><a href=\"mailto:${st.email}\" style=\"color:#4F46E5; text-decoration: none;\">${st.email}</a></div>` : ""}
+              ${st.locationName ? `<div style=\"font-size: 13px; color: #4B5563; margin-bottom: 6px; word-break: break-word;\">${st.locationName}</div>` : ""}
+              ${st.email ? `<div style=\"font-size: 13px; word-break: break-all;\"><a href=\"mailto:${st.email}\" style=\"color:#4F46E5; text-decoration: none;\">${st.email}</a></div>` : ""}
             </div>
           </div>`;
 
-        stakeholderPopupRef.current = new mapboxgl.Popup({ offset: 12, closeButton: true, className: "stakeholder-popup" })
+        const stPopup = new mapboxgl.Popup({ offset: 12, closeButton: true, className: "stakeholder-popup", maxWidth: "none" })
           .setLngLat([lng, lat])
           .setHTML(html)
           .addTo(map);
+        stakeholderPopupRef.current = stPopup;
+        activePopupRef.current = stPopup;
+        requestAnimationFrame(() => constrainPopupsToViewport());
       }
     },
-    [activeStakeholderId, stakeholderMarkers]
+    [activeStakeholderId, stakeholderMarkers, constrainPopupsToViewport]
   );
 
   // Handle external highlight stakeholder requests
@@ -835,12 +937,29 @@ export default function Startupmap({
             }
           } catch { }
 
-          // Fly and popup
-          map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), speed: 0.8, curve: 1.2, essential: true });
+          // Close any previous popup before opening a new one
+          if (activePopupRef.current) {
+            activePopupRef.current.remove();
+            activePopupRef.current = null;
+          }
+          if (stakeholderPopupRef.current) {
+            stakeholderPopupRef.current.remove();
+            stakeholderPopupRef.current = null;
+          }
+
+          // Fly with safe viewport padding so the marker and its popup remain well within bounds
+          map.flyTo({
+            center: [lng, lat],
+            zoom: Math.max(map.getZoom(), 15),
+            speed: 0.8,
+            curve: 1.2,
+            essential: true,
+            padding: { top: 150, bottom: 90, left: 40, right: 60 },
+          });
 
           const props = f.properties || {};
 
-          // Initial popup with Loading State
+          // Initial popup with Loading State (Viewport-Constrained & Responsive)
           const initialHtml = `
             <style>
               .mapboxgl-popup-content {
@@ -886,22 +1005,24 @@ export default function Startupmap({
                 100% { transform: rotate(360deg); }
               }
             </style>
-            <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 560px; max-width: 90vw; height: 360px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff;">
+            <div class="startup-popup-card">
               <div style="padding: 14px 18px 12px 18px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; box-sizing: border-box;">
-                <div style="font-weight: 700; font-size: 15px; color: #111827; padding-right: 25px; line-height: 1.25;">${props.name || "Startup"}</div>
+                <div style="font-weight: 700; font-size: 15px; color: #111827; padding-right: 25px; line-height: 1.25; word-break: break-word;">${props.name || "Startup"}</div>
                 <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Startup Overview</div>
               </div>
               <div style="padding: 20px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 12px; box-sizing: border-box;">
                 <div style="width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin-popup 1s linear infinite;"></div>
-                <div style="font-size: 12.5px; color: #6b7280; font-weight: 500;">Generating AI Insights & Ecosystem Analytics...</div>
+                <div style="font-size: 12.5px; color: #6b7280; font-weight: 500; text-align: center;">Generating AI Insights & Ecosystem Analytics...</div>
               </div>
             </div>
           `;
 
-          const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: "startup-popup", maxWidth: "none" })
+          const popup = new mapboxgl.Popup({ offset: 22, closeButton: true, className: "startup-popup", maxWidth: "none" })
             .setLngLat([lng, lat])
             .setHTML(initialHtml)
             .addTo(map);
+          activePopupRef.current = popup;
+          requestAnimationFrame(() => constrainPopupsToViewport());
 
           try {
             const backendUrl = getBackendUrl() || "http://localhost:8080";
@@ -988,20 +1109,20 @@ export default function Startupmap({
                     background: #94a3b8;
                   }
                 </style>
-                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 560px; max-width: 90vw; height: 360px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; overflow: hidden;">
+                <div class="startup-popup-card">
                   
                   <!-- Clean Header Matching Photo 3 Engagement Summary -->
-                  <div style="padding: 14px 18px 12px 18px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; box-sizing: border-box;">
+                  <div style="padding: 12px 16px 10px 16px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 24px;">
                       <div style="display: flex; align-items: center; gap: 6px;">
-                        <svg style="width: 16px; height: 16px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg style="width: 16px; height: 16px; color: #2563eb; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                         </svg>
-                        <span style="font-weight: 700; font-size: 15px; color: #111827; line-height: 1.25;">Engagement & Startup Summary</span>
+                        <span style="font-weight: 700; font-size: 14.5px; color: #111827; line-height: 1.25;">Engagement & Startup Summary</span>
                       </div>
                     </div>
                     <div style="font-size: 11.5px; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 1px;">
-                      <span style="font-weight: 700; color: #1f2937;">${details.companyName || props.name}</span>
+                      <span style="font-weight: 700; color: #1f2937; word-break: break-word;">${details.companyName || props.name}</span>
                       <span>•</span>
                       <span style="background: #f3f4f6; color: #4b5563; padding: 2px 7px; border-radius: 6px; font-weight: 600; font-size: 10.5px;">${details.industry || "General"}</span>
                       <span>•</span>
@@ -1009,11 +1130,11 @@ export default function Startupmap({
                     </div>
                   </div>
                   
-                  <!-- Main 2-Column Side-by-Side Body (Fixed Container Height: 360px) -->
-                  <div style="padding: 14px 18px; display: flex; flex-direction: row; gap: 14px; background: #ffffff; box-sizing: border-box; flex: 1; min-height: 0; overflow: hidden;">
+                  <!-- Main Responsive 2-Column Body -->
+                  <div class="startup-popup-body">
                     
-                    <!-- LEFT COLUMN: Location + Ecosystem Analytics Stat Badges (Photo 3 Style) -->
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; border-right: 1px solid #f1f5f9; padding-right: 14px; box-sizing: border-box; overflow-y: auto;">
+                    <!-- LEFT COLUMN: Location + Ecosystem Analytics Stat Badges -->
+                    <div class="startup-popup-col-left ai-summary-scroll">
                       
                       <!-- Location line -->
                       <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; color: #4b5563;">
@@ -1093,8 +1214,8 @@ export default function Startupmap({
                       </div>` : ''}
                     </div>
 
-                    <!-- RIGHT COLUMN: Business Summary (Fixed Container, Scrollable Summary) -->
-                    <div style="flex: 1.1; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%;">
+                    <!-- RIGHT COLUMN: Business Summary (Responsive Container, Scrollable Summary) -->
+                    <div class="startup-popup-col-right">
                       <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 10.5px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;">
                         <svg style="width: 14px; height: 14px; color: #4f46e5; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
@@ -1110,22 +1231,24 @@ export default function Startupmap({
                 </div>
               `;
               popup.setHTML(loadedHtml);
+              requestAnimationFrame(() => constrainPopupsToViewport());
             }
           } catch (e) {
             console.error("Error loading popup dynamic context:", e);
             if (popup.isOpen()) {
               const errorHtml = `
-                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: 280px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); border-radius: 10px; overflow: hidden;">
+                <div style="font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #111827; width: min(280px, var(--map-safe-width, 85vw)); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); border-radius: 10px; overflow: hidden;">
                   <div style="background: linear-gradient(135deg, #0A66C2, #0077B5); color: #fff; padding: 16px 18px; border-radius: 10px 10px 0 0;">
-                    <div style="font-weight: 600; font-size: 16px;">${props.name || "Startup"}</div>
+                    <div style="font-weight: 600; font-size: 16px; padding-right: 16px; word-break: break-word;">${props.name || "Startup"}</div>
                   </div>
                   <div style="padding: 14px 18px; background: #fff; border-radius: 0 0 10px 10px; font-size: 13px; color: #4B5563;">
-                    <div>${props.locationName || "Location not specified"}</div>
+                    <div style="word-break: break-word;">${props.locationName || "Location not specified"}</div>
                     <div style="margin-top: 8px; color: #ef4444; font-size: 12px;">Failed to load live database insights.</div>
                   </div>
                 </div>
               `;
               popup.setHTML(errorHtml);
+              requestAnimationFrame(() => constrainPopupsToViewport());
             }
           }
         };// Standard Symbol/Marker Events
@@ -2497,10 +2620,21 @@ export default function Startupmap({
       `;
     }
 
-    new mapboxgl.Popup({ offset: 25 })
+    if (activePopupRef.current) {
+      activePopupRef.current.remove();
+      activePopupRef.current = null;
+    }
+    if (stakeholderPopupRef.current) {
+      stakeholderPopupRef.current.remove();
+      stakeholderPopupRef.current = null;
+    }
+
+    const suggestionPopup = new mapboxgl.Popup({ offset: 25, maxWidth: "none" })
       .setLngLat([lng, lat])
-      .setHTML(popupContent)
+      .setHTML(`<div style="padding: 12px 16px; max-width: min(280px, var(--map-safe-width, 85vw)); box-sizing: border-box; word-break: break-word;">${popupContent}</div>`)
       .addTo(map);
+    activePopupRef.current = suggestionPopup;
+    requestAnimationFrame(() => constrainPopupsToViewport());
   };
 
   const saveToSearchHistory = (query, result) => {
@@ -2535,9 +2669,9 @@ export default function Startupmap({
 
   const SearchComponent = () => (
     <div
-      className={`absolute top-4 left-4 transition-all duration-300 ease-in-out ${isSearchExpanded ? "w-96" : "w-12"
-        }`}
-      style={{ zIndex: 9999 }}
+      className={`absolute top-3 left-3 md:top-4 md:left-4 z-30 transition-all duration-300 ease-in-out ${
+        isSearchExpanded ? "w-[calc(100%-24px)] sm:w-80 md:w-96 max-w-[calc(100%-24px)]" : "w-11 h-11"
+      }`}
     >
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 transition-shadow duration-300 hover:shadow-xl">
         {isSearchExpanded ? (
@@ -2968,12 +3102,18 @@ export default function Startupmap({
             .addTo(map);
 
           // Add a popup with place info
-          new mapboxgl.Popup({ offset: 25 })
+          if (activePopupRef.current) {
+            activePopupRef.current.remove();
+            activePopupRef.current = null;
+          }
+          const placePopup = new mapboxgl.Popup({ offset: 25, maxWidth: "none" })
             .setLngLat([lng, lat])
             .setHTML(
-              `<div style="color: black; font-weight: bold;">${placeName}</div>`
+              `<div style="color: #111827; font-weight: 600; padding: 10px 14px; max-width: min(260px, var(--map-safe-width, 85vw)); word-break: break-word;">${placeName}</div>`
             )
             .addTo(map);
+          activePopupRef.current = placePopup;
+          requestAnimationFrame(() => constrainPopupsToViewport());
         }
       })
       .catch((error) => {
@@ -3172,6 +3312,16 @@ export default function Startupmap({
     map.touchZoomRotate.enableRotation();
     mapInstanceRef.current = map;
     map.resize();
+
+    // Dynamically recalculate popup viewport constraints on pan, zoom, pitch, rotate, and resize (FR-2.5)
+    const handleMapViewportUpdate = () => {
+      requestAnimationFrame(() => constrainPopupsToViewport());
+    };
+    map.on("move", handleMapViewportUpdate);
+    map.on("zoom", handleMapViewportUpdate);
+    map.on("pitch", handleMapViewportUpdate);
+    map.on("rotate", handleMapViewportUpdate);
+    map.on("resize", handleMapViewportUpdate);
 
     map.on("error", (e) => {
       const errorMsg = e?.error?.message || e?.message || "";
@@ -3638,26 +3788,27 @@ export default function Startupmap({
 
       {/* Dynamic Map Loading & Ecosystem Status Banner */}
       <div
-        style={{ zIndex: 9999 }}
-        className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300"
+        className={`absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all duration-300 max-w-[calc(100%-120px)] ${
+          isSearchExpanded ? "hidden xl:block" : "block"
+        }`}
       >
-        <div className={`px-4 py-1.5 rounded-full backdrop-blur-md border shadow-md flex items-center gap-2 text-xs font-semibold ${
+        <div className={`px-3.5 py-1.5 rounded-full backdrop-blur-md border shadow-md flex items-center gap-2 text-[11px] sm:text-xs font-semibold truncate ${
           mapLoading || isLoading
             ? "bg-slate-900/90 border-blue-500/60 text-white shadow-blue-500/20"
             : "bg-white/95 border-slate-200/90 text-slate-700 shadow-sm"
         }`}>
           {mapLoading || isLoading ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-              <span>Syncing Live Ecosystem & Solid Heatmap...</span>
+              <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+              <span className="truncate">Syncing Live Ecosystem & Solid Heatmap...</span>
             </>
           ) : (
             <>
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>
+              <span className="truncate">
                 Live Ecosystem: {startupMarkers.length} Startups • {stakeholderMarkers.length} Stakeholders
               </span>
             </>
@@ -3665,20 +3816,16 @@ export default function Startupmap({
         </div>
       </div>
 
-      {/* Map Controls Container & Toggle Button */}
+      {/* Map Controls Container & Toggle Button (UR-1: Non-overlapping with bottom-right zoom controls) */}
       <div
         style={{
-          position: 'absolute',
           bottom: mapBottomOffset,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10000,
         }}
-        className="flex flex-col items-center gap-2"
+        className="absolute left-3 right-14 md:left-1/2 md:right-auto md:-translate-x-1/2 z-30 flex flex-col items-start md:items-center gap-2 max-w-[calc(100%-68px)] md:max-w-[calc(100%-120px)] pointer-events-none"
       >
         {/* Expanded Controls Container */}
         {showControls && (
-          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap md:flex-nowrap items-center justify-center gap-1.5 max-w-[94vw] md:max-w-none transition-all duration-200">
+          <div className="pointer-events-auto bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-gray-200/90 flex flex-wrap items-center justify-center gap-1.5 w-auto max-w-full transition-all duration-200">
             {/* Legend Toggle Button */}
             <button
               onClick={() => {
@@ -3769,7 +3916,7 @@ export default function Startupmap({
         {/* Master Control Trigger Button */}
         <button
           onClick={() => setShowControls((prev) => !prev)}
-          className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-gray-200/90 flex items-center gap-2 text-xs md:text-sm font-semibold text-gray-800 hover:bg-white active:scale-95 transition-all cursor-pointer"
+          className="pointer-events-auto bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-gray-200/90 flex items-center gap-2 text-xs md:text-sm font-semibold text-gray-800 hover:bg-white active:scale-95 transition-all cursor-pointer"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -3787,11 +3934,10 @@ export default function Startupmap({
         </button>
       </div>
 
-      {/* Creative Compact Heatmap Legend (Top-Right Floating below profile avatar) */}
+      {/* Creative Compact Heatmap Legend (Top-Right Floating, Non-overlapping) */}
       {showLegend ? (
         <div
-          style={{ zIndex: 99999 }}
-          className="absolute top-16 md:top-20 right-3 md:right-4 w-[275px] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
+          className="absolute top-16 md:top-16 right-3 md:right-4 z-30 w-[min(275px,calc(100%-24px))] max-h-[calc(100%-150px)] overflow-y-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
           <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
@@ -3892,8 +4038,7 @@ export default function Startupmap({
         /* Floating Quick Toggle Button when Legend is minimized */
         <button
           onClick={() => setShowLegend(true)}
-          style={{ zIndex: 99999 }}
-          className="absolute top-16 md:top-20 right-3 md:right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
+          className="absolute top-16 md:top-16 right-3 md:right-4 z-30 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-200/90 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-white flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
           title="Show Map Legend"
         >
           <span>Legend</span>
