@@ -340,3 +340,73 @@ html {
     min-width: 420px !important;
   }
 }
+
+/* Dark modal scrollbar override */
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0f172a;
+}
+
+.dark-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Fix Flowbite v3 vs Tailwind v4.1 utility conflicts */
+.max-w-2xl {
+  max-width: var(--container-2xl, 42rem) !important;
+}
+
+.bg-gradient-to-r {
+  --tw-gradient-position: to right in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-l {
+  --tw-gradient-position: to left in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-t {
+  --tw-gradient-position: to top in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-b {
+  --tw-gradient-position: to bottom in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-tr {
+  --tw-gradient-position: to top right in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-tl {
+  --tw-gradient-position: to top left in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-br {
+  --tw-gradient-position: to bottom right in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}
+
+.bg-gradient-to-bl {
+  --tw-gradient-position: to bottom left in oklab !important;
+  background-image: linear-gradient(var(--tw-gradient-stops)) !important;
+}

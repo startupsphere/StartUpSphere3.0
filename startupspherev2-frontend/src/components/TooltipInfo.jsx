@@ -320,7 +320,11 @@ export default function TooltipInfo({
         }}
         className={`inline-flex items-center justify-center ${
           buttonPadSizes[size] || buttonPadSizes.sm
-        } text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer shadow-xs`}
+        } text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 ${
+          size === "xs"
+            ? "bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+            : "bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 shadow-xs"
+        } rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 cursor-pointer`}
         aria-label={resolvedTitle || "More information"}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
@@ -339,6 +343,13 @@ export default function TooltipInfo({
         ? createPortal(
             <div
               className="fixed inset-0 z-[99999] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
+              style={{
+                position: "fixed",
+                inset: 0,
+                width: "100vw",
+                height: "100vh",
+                zIndex: 99999,
+              }}
               role="dialog"
               aria-modal="true"
               aria-labelledby={`${dialogId}-title`}
@@ -346,16 +357,20 @@ export default function TooltipInfo({
             >
               <div
                 ref={modalRef}
-                className="relative w-full max-w-2xl bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col max-h-[90vh] overflow-hidden my-auto animate-fadeIn"
+                className="relative w-full bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col max-h-[88vh] overflow-hidden my-auto animate-fadeIn"
+                style={{
+                  width: "min(672px, calc(100vw - 24px))",
+                  maxWidth: "672px",
+                }}
                 onClick={(e) => e.stopPropagation()} // Prevent backdrop click from inner card
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-800 bg-slate-900/90 sticky top-0 z-10">
-                  <div className="min-w-0 flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex-shrink-0">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex-shrink-0">
                       <Layers className="h-5 w-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3
                           id={`${dialogId}-title`}
@@ -364,7 +379,7 @@ export default function TooltipInfo({
                           {resolvedTitle}
                         </h3>
                         {preset?.badge && (
-                          <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-500/25 text-indigo-300 border border-indigo-400/30 rounded-full">
+                          <span className="px-2.5 py-0.5 text-xs font-semibold bg-indigo-500/25 text-indigo-300 border border-indigo-400/30 rounded-full whitespace-nowrap">
                             {preset.badge}
                           </span>
                         )}
@@ -377,7 +392,7 @@ export default function TooltipInfo({
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer flex-shrink-0"
                     aria-label="Close guide"
                   >
                     <X className="h-5 w-5" />
@@ -388,15 +403,15 @@ export default function TooltipInfo({
                 <div className="px-5 py-3 bg-slate-800/40 border-b border-slate-800/80 text-xs text-slate-300 leading-relaxed">
                   <p>{resolvedSummary}</p>
                   {preset?.guidance && (
-                    <p className="mt-1.5 text-indigo-300 font-medium flex items-center gap-1.5">
-                      <span>💡</span>
+                    <p className="mt-1.5 text-indigo-300 font-medium flex items-start sm:items-center gap-1.5">
+                      <span className="flex-shrink-0">💡</span>
                       <span>{preset.guidance}</span>
                     </p>
                   )}
                 </div>
 
                 {/* Filter Tabs for Easy Browsing on Desktop & Mobile */}
-                <div className="px-5 pt-3 pb-2 bg-slate-900 flex items-center gap-1.5 overflow-x-auto border-b border-slate-800 scrollbar-none">
+                <div className="px-5 py-2.5 bg-slate-900 flex items-center gap-1.5 flex-wrap border-b border-slate-800">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1 flex-shrink-0">
                     Filter:
                   </span>
@@ -450,7 +465,13 @@ export default function TooltipInfo({
                 </div>
 
                 {/* Scrollable Levels List */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 divide-y divide-slate-800/60 max-h-[55vh]">
+                <div
+                  className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 divide-y divide-slate-800/60 max-h-[55vh] dark-scrollbar"
+                  style={{
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#475569 #0f172a",
+                  }}
+                >
                   {filteredLevels.map((lvl) => {
                     const isCurrent =
                       currentValue &&

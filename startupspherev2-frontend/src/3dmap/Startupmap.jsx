@@ -154,6 +154,7 @@ export default function Startupmap({
   }, [mapInstanceRef]);
 
   const activePopupRef = useRef(null);
+  const hoverPopupRef = useRef(null);
   const showControlsRef = useRef(showControls);
   useEffect(() => {
     showControlsRef.current = showControls;
@@ -178,7 +179,7 @@ export default function Startupmap({
     containerEl.style.setProperty("--map-safe-width", `${Math.floor(safeWidth)}px`);
     containerEl.style.setProperty("--map-safe-height", `${Math.floor(safeHeight)}px`);
 
-    const popups = containerEl.querySelectorAll(".mapboxgl-popup");
+    const popups = containerEl.querySelectorAll(".mapboxgl-popup:not(.startup-hover-tooltip)");
     popups.forEach((popupEl) => {
       const contentEl = popupEl.querySelector(".mapboxgl-popup-content");
       const tipEl = popupEl.querySelector(".mapboxgl-popup-tip");
@@ -712,12 +713,7 @@ export default function Startupmap({
       map.addSource(sourceId, {
         type: "geojson",
         data,
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 60, // Slightly larger radius to group zones better
-        clusterProperties: {
-          maxColorClass: ["max", ["get", "colorClass"]]
-        }
+        cluster: false,
       });
     }
 
@@ -740,7 +736,7 @@ export default function Startupmap({
               16, 0.44  // Bold but professional size at highest zoom
             ],
             "icon-allow-overlap": true,
-            "icon-ignore-placement": false,
+            "icon-ignore-placement": true,
             "icon-anchor": "bottom",
             "icon-pitch-alignment": "viewport",
             "icon-rotation-alignment": "viewport",
@@ -825,7 +821,7 @@ export default function Startupmap({
           }
         });
 
-        // Unclustered solid circle in the middle (glare removed, applies to all 3 TRL levels: 1=Green, 2=Yellow, 3=Red)
+        // Static solid circle per business location (never clusters or mixes when zooming in/out)
         map.addLayer({
           id: "startups-unclustered-core",
           type: "circle",
@@ -843,9 +839,20 @@ export default function Startupmap({
               3, "#dc2626", // Red (TRL 7-9: Market-ready / Deployed)
               "#16a34a"
             ],
-            "circle-radius": 12,
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              3, 5,
+              8, 7,
+              12, 10,
+              16, 12
+            ],
             "circle-blur": 0,
-            "circle-opacity": 1.0
+            "circle-opacity": 0.95,
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "#ffffff",
+            "circle-pitch-alignment": "map"
           }
         }, layerId);
 
@@ -940,6 +947,10 @@ export default function Startupmap({
           } catch { }
 
           // Close any previous popup before opening a new one
+          if (hoverPopupRef.current) {
+            hoverPopupRef.current.remove();
+            hoverPopupRef.current = null;
+          }
           if (activePopupRef.current) {
             activePopupRef.current.remove();
             activePopupRef.current = null;
@@ -1253,27 +1264,62 @@ export default function Startupmap({
               requestAnimationFrame(() => constrainPopupsToViewport());
             }
           }
-        };// Standard Symbol/Marker Events
-        map.on("mouseenter", layerId, () => {
+        };
+
+        const showStartupHoverTooltip = (e) => {
           map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", layerId, () => {
+          const feature = e.features?.[0];
+          if (!feature || !feature.geometry?.coordinates) return;
+
+          const coords = feature.geometry.coordinates.slice();
+          const rawName = feature.properties?.name || "Startup";
+          const escapedName = String(rawName)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+          if (!hoverPopupRef.current) {
+            hoverPopupRef.current = new mapboxgl.Popup({
+              closeButton: false,
+              closeOnClick: false,
+              offset: 16,
+              className: "startup-hover-tooltip",
+              maxWidth: "none",
+            });
+          }
+
+          hoverPopupRef.current
+            .setLngLat(coords)
+            .setHTML(`<div>${escapedName}</div>`)
+            .addTo(map);
+        };
+
+        const hideStartupHoverTooltip = () => {
           map.getCanvas().style.cursor = "";
-        });
+          if (hoverPopupRef.current) {
+            hoverPopupRef.current.remove();
+          }
+        };
+
+        // Standard Symbol/Marker Events
+        map.on("mouseenter", layerId, showStartupHoverTooltip);
+        map.on("mousemove", layerId, showStartupHoverTooltip);
+        map.on("mouseleave", layerId, hideStartupHoverTooltip);
         map.on("click", layerId, (e) => {
           if (!e.features?.length) return;
+          hideStartupHoverTooltip();
           handleSingleStartupClick(e.features[0]);
         });
 
         // Heatmap Unclustered core events
-        map.on("mouseenter", "startups-unclustered-core", () => {
-          map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", "startups-unclustered-core", () => {
-          map.getCanvas().style.cursor = "";
-        });
+        map.on("mouseenter", "startups-unclustered-core", showStartupHoverTooltip);
+        map.on("mousemove", "startups-unclustered-core", showStartupHoverTooltip);
+        map.on("mouseleave", "startups-unclustered-core", hideStartupHoverTooltip);
         map.on("click", "startups-unclustered-core", (e) => {
           if (!e.features?.length) return;
+          hideStartupHoverTooltip();
           handleSingleStartupClick(e.features[0]);
         });
       }
@@ -3725,23 +3771,32 @@ export default function Startupmap({
     const applyFiltersToMap = () => {
       try {
         const layerId = "startups-layer";
+        const coreLayerId = "startups-unclustered-core";
+        const conditions = [];
+
+        if (activeActorType && activeActorType !== "All") {
+          conditions.push(["==", ["get", "role"], activeActorType]);
+        }
+        if (activeIndustry && activeIndustry !== "All" && activeIndustry !== "") {
+          conditions.push(["==", ["get", "industry"], activeIndustry]);
+        }
+
+        const filterExpr =
+          conditions.length === 0
+            ? null
+            : conditions.length === 1
+            ? conditions[0]
+            : ["all", ...conditions];
+
         if (map.getLayer(layerId)) {
-          const conditions = [];
-
-          if (activeActorType && activeActorType !== "All") {
-            conditions.push(["==", ["get", "role"], activeActorType]);
-          }
-          if (activeIndustry && activeIndustry !== "All" && activeIndustry !== "") {
-            conditions.push(["==", ["get", "industry"], activeIndustry]);
-          }
-
-          if (conditions.length === 0) {
-            map.setFilter(layerId, null); // Clear filter — show all
-          } else if (conditions.length === 1) {
-            map.setFilter(layerId, conditions[0]);
-          } else {
-            map.setFilter(layerId, ["all", ...conditions]);
-          }
+          map.setFilter(layerId, filterExpr);
+        }
+        if (map.getLayer(coreLayerId)) {
+          const coreFilter =
+            conditions.length === 0
+              ? ["!", ["has", "point_count"]]
+              : ["all", ["!", ["has", "point_count"]], ...conditions];
+          map.setFilter(coreLayerId, coreFilter);
         }
       } catch (e) {
         console.warn("Could not apply layer filters yet", e);
@@ -3950,33 +4005,35 @@ export default function Startupmap({
       {/* Creative Compact Heatmap Legend (Top-Right Floating, Non-overlapping) */}
       {showLegend ? (
         <div
-          className="absolute top-16 md:top-16 right-3 md:right-4 z-30 w-[min(275px,calc(100%-24px))] max-h-[calc(100%-150px)] overflow-y-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
+          className="absolute top-16 md:top-16 right-3 md:right-4 z-30 w-[min(295px,calc(100%-24px))] max-h-[calc(100%-150px)] overflow-y-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
-          <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase">
+          <div className="flex items-center justify-between gap-2 mb-2.5 pb-2 border-b border-gray-100">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase whitespace-nowrap">
                 Heatmap Legend
               </span>
+              <TooltipInfo type="TRL" size="xs" />
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {/* Toggle TRL vs Engagement */}
               <div className="flex bg-gray-100/90 p-0.5 rounded-lg text-[10px] font-semibold">
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("TRL"); }}
-                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-0.5 ${
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
                     heatmapMode === "TRL"
                       ? "bg-white text-indigo-600 shadow-2xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
-                  <span>TRL</span>
-                  <TooltipInfo type="TRL" size="xs" />
+                  TRL
                 </button>
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setHeatmapMode("ENGAGEMENT"); }}
-                  className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
                     heatmapMode === "ENGAGEMENT"
                       ? "bg-white text-indigo-600 shadow-2xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
@@ -3988,6 +4045,7 @@ export default function Startupmap({
 
               {/* Minimize Legend Button */}
               <button
+                type="button"
                 onClick={() => setShowLegend(false)}
                 className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-700 rounded-full transition-colors cursor-pointer"
                 title="Minimize Legend"
@@ -4000,7 +4058,12 @@ export default function Startupmap({
           {/* Content: Continuous Visual Gradient Ramp & Detailed Categories */}
           {heatmapMode === "TRL" ? (
             <div className="space-y-2">
-              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner"></div>
+              <div
+                className="h-2 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 shadow-inner"
+                style={{
+                  background: "linear-gradient(90deg, #10b981 0%, #fbbf24 50%, #ef4444 100%)",
+                }}
+              ></div>
               <div className="space-y-1.5 text-[11px]">
                 <div className="flex items-start gap-1.5">
                   <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
@@ -4027,7 +4090,12 @@ export default function Startupmap({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner"></div>
+              <div
+                className="h-2 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner"
+                style={{
+                  background: "linear-gradient(90deg, #60a5fa 0%, #a855f7 50%, #ef4444 100%)",
+                }}
+              ></div>
               <div className="space-y-1.5 text-[11px]">
                 <div className="flex items-start gap-1.5">
                   <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
