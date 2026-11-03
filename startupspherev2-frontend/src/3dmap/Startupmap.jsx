@@ -264,6 +264,53 @@ export default function Startupmap({
   const stakeholderIconRef = useRef(null);
 
   // Preload the stakeholder icon as soon as component mounts
+
+  useEffect(() => {
+    const mockData = [];
+    const baseLng = 123.8907;
+    const baseLat = 10.3166;
+    const names = [
+      "TechHub Cebu Event", "Developers Meetup", "Startup Pitch Night",
+      "AI Hackathon", "Founders Mixer", "Investor Panel",
+      "Web3 Conference", "Design Sprint Workshop", "Cloud Computing Summit",
+      "Local Tech Podcast Live", "University Tech Fair", "FinTech Forum",
+      "E-commerce Expo", "AgriTech Showcase", "HealthTech Symposium"
+    ];
+    for (let i = 0; i < 15; i++) {
+      const offsetLng = (Math.random() - 0.5) * 0.05;
+      const offsetLat = (Math.random() - 0.5) * 0.05;
+      const likes = Math.floor(Math.random() * 500) + 50;
+      const views = Math.floor(Math.random() * 2000) + 100;
+      const bookmarks = Math.floor(Math.random() * 80) + 5;
+      const engagementScore = likes + views + bookmarks;
+      mockData.push({
+        id: `engagement-mock-${i}`,
+        name: names[i],
+        locationLng: baseLng + offsetLng,
+        locationLat: baseLat + offsetLat,
+        likes, views, bookmarks, engagementScore
+      });
+    }
+
+    // Add distinct blue zones (low engagement)
+    mockData.push({
+      id: 'engagement-mock-blue-1',
+      name: "Local Tech Meetup (Quiet Zone)",
+      locationLng: baseLng + 0.08,
+      locationLat: baseLat - 0.08,
+      likes: 2, views: 8, bookmarks: 1, engagementScore: 11
+    });
+    mockData.push({
+      id: 'engagement-mock-blue-2',
+      name: "New Founder Intro (Developing)",
+      locationLng: baseLng - 0.07,
+      locationLat: baseLat + 0.06,
+      likes: 0, views: 5, bookmarks: 0, engagementScore: 5
+    });
+
+    setEngagementMarkers(mockData);
+  }, []);
+
   useEffect(() => {
     console.log("Preloading stakeholder icon...");
     stakeholderIconRef.current = preloadStakeholderIcon();
@@ -271,10 +318,9 @@ export default function Startupmap({
     stakeholderIconRef.current.onerror = (e) => console.error("Failed to preload stakeholder icon:", e);
   }, []);
 
-  // Load startups and their live engagement scores (likes + views + bookmarks)
+  // Modify loadStartupMarkers to remove industry filtering
   const loadStartupMarkers = async (map) => {
     try {
-      const backendUrl = getBackendUrl() || "http://localhost:8080";
       // Fetch with pagination params - get large page size to show all startups on map
       const params = new URLSearchParams({
         page: "0",
@@ -284,7 +330,7 @@ export default function Startupmap({
       });
 
       const response = await fetch(
-        `${backendUrl}/startups/approved?${params.toString()}`,
+        `${getBackendUrl()}/startups/approved?${params.toString()}`,
         {
           credentials: "include",
         }
@@ -305,62 +351,10 @@ export default function Startupmap({
       });
       const mapRef = mapInstanceRef.current || map;
       if (mapRef && startupsWithLocation.length) {
-        const initialStartups = startupsWithLocation.map((s) => {
-          const views = Number(s.viewsCount) || 0;
-          const likes = Number(s.likes) || 0;
-          const bookmarks = Number(s.bookmarks) || 0;
-          return {
-            ...s,
-            likes,
-            bookmarks,
-            views,
-            engagementScore: likes + views + bookmarks,
-          };
-        });
-        setEngagementMarkers(initialStartups);
-        renderStartupMarkers(mapRef, initialStartups);
-
-        // Fetch live engagement metrics (likes, bookmarks, views) per startup/business/research
-        Promise.all(
-          startupsWithLocation.map(async (s) => {
-            try {
-              const [likesRes, bookmarksRes, viewsRes] = await Promise.all([
-                fetch(`${backendUrl}/api/likes/count/startup/${s.id}`, { credentials: "include" }).catch(() => null),
-                fetch(`${backendUrl}/api/bookmarks/count/startup/${s.id}`, { credentials: "include" }).catch(() => null),
-                fetch(`${backendUrl}/startups/${s.id}/view-count`, { credentials: "include" }).catch(() => null),
-              ]);
-              const likes = likesRes && likesRes.ok ? Number(await likesRes.json()) || 0 : Number(s.likes) || 0;
-              const bookmarks = bookmarksRes && bookmarksRes.ok ? Number(await bookmarksRes.json()) || 0 : Number(s.bookmarks) || 0;
-              const views = viewsRes && viewsRes.ok ? Number(await viewsRes.json()) || 0 : Number(s.viewsCount) || 0;
-              const engagementScore = likes + views + bookmarks;
-              return {
-                ...s,
-                likes,
-                bookmarks,
-                views,
-                viewsCount: views,
-                engagementScore,
-              };
-            } catch {
-              const views = Number(s.viewsCount) || 0;
-              return {
-                ...s,
-                likes: 0,
-                bookmarks: 0,
-                views,
-                engagementScore: views,
-              };
-            }
-          })
-        ).then((enrichedStartups) => {
-          setEngagementMarkers(enrichedStartups);
-          const activeMap = mapInstanceRef.current || map;
-          if (activeMap) {
-            renderStartupMarkers(activeMap, enrichedStartups);
-          }
-        });
+        renderStartupMarkers(mapRef, startupsWithLocation);
       } else if (mapRef) {
         // Hide startup layers if no data
+        const sourceId = "startups-src";
         const layerId = "startups-layer";
         const highlightLayerId = "startups-highlight";
 
@@ -546,16 +540,124 @@ export default function Startupmap({
 
   // Render startups using a Mapbox symbol layer (professional marker)
 
-  // Render engagement markers directly through renderStartupMarkers (focused per startup/business/research)
   const renderEngagementMarkers = (map, markers) => {
     if (!map || !markers || markers.length === 0) return;
     if (!map.isStyleLoaded()) {
-      map.once("styledata", () => {
-        if (map.isStyleLoaded()) renderStartupMarkers(map, markers);
+      map.once('styledata', () => {
+        if (map.isStyleLoaded()) renderEngagementMarkers(map, markers);
       });
       return;
     }
-    renderStartupMarkers(map, markers);
+    const sourceId = "engagement-src";
+
+    const features = markers.map(s => ({
+      type: "Feature",
+      id: s.id,
+      properties: s,
+      geometry: { type: "Point", coordinates: [s.locationLng, s.locationLat] }
+    }));
+
+    const data = { type: "FeatureCollection", features };
+
+    if (map.getSource(sourceId)) {
+      try { map.getSource(sourceId).setData(data); } catch { }
+    } else {
+      map.addSource(sourceId, {
+        type: "geojson",
+        data,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+        clusterProperties: {
+          sumScore: ["+", ["get", "engagementScore"]],
+          sumLikes: ["+", ["get", "likes"]],
+          sumViews: ["+", ["get", "views"]],
+          sumBookmarks: ["+", ["get", "bookmarks"]]
+        }
+      });
+    }
+
+    const isVisible = showHeatmap && heatmapModeRef.current === "ENGAGEMENT" ? "visible" : "none";
+
+    // TRUE MAPBOX HEATMAP LAYER for density gradients
+    if (!map.getLayer("engagement-heatmap-layer")) {
+      map.addLayer({
+        id: "engagement-heatmap-layer",
+        type: "heatmap",
+        source: sourceId,
+        layout: { visibility: isVisible },
+        paint: {
+          "heatmap-weight": [
+            "interpolate",
+            ["linear"],
+            ["coalesce", ["get", "sumScore"], ["get", "engagementScore"], 0],
+            0, 0.1,
+            15, 1,
+            3000, 3
+          ],
+          "heatmap-intensity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0, 3,
+            14, 15
+          ],
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0, "rgba(37, 99, 235, 0)",
+            0.12, "rgba(59, 130, 246, 0.75)",
+            0.35, "rgba(16, 185, 129, 0.88)",
+            0.65, "rgba(245, 158, 11, 0.95)",
+            0.9, "rgba(239, 68, 68, 0.98)",
+            1, "rgba(220, 38, 38, 1.0)"
+          ],
+          "heatmap-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0, 45,
+            9, 90,
+            15, 220
+          ],
+          "heatmap-opacity": 0.95
+        }
+      });
+    }
+
+    // Invisible circles on top to allow clicking the clusters/points
+    if (!map.getLayer("engagement-click-zone")) {
+      map.addLayer({
+        id: "engagement-click-zone",
+        type: "circle",
+        source: sourceId,
+        layout: { visibility: isVisible },
+        paint: {
+          "circle-radius": 30,
+          "circle-color": "transparent",
+          "circle-opacity": 0
+        }
+      });
+
+      // Events for clicking engagement zones
+      const handleZoneClick = (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['engagement-click-zone'] });
+        if (!features || !features.length) return;
+        const props = features[0].properties;
+        setSelectedEngagementData({
+          name: props.point_count ? `Zone of ${props.point_count} Events` : (props.name || "Event"),
+          likes: props.sumLikes || props.likes || 0,
+          views: props.sumViews || props.views || 0,
+          bookmarks: props.sumBookmarks || props.bookmarks || 0,
+          score: props.sumScore || props.engagementScore || 0
+        });
+      };
+
+      map.on('click', 'engagement-click-zone', handleZoneClick);
+      map.on('mouseenter', 'engagement-click-zone', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'engagement-click-zone', () => map.getCanvas().style.cursor = '');
+    }
   };
 
   const renderStartupMarkers = (map, startupsWithLocation) => {
@@ -588,14 +690,6 @@ export default function Startupmap({
       else if (trlScore >= 4 && trlScore <= 6) colorClass = 2; // Yellow (Mid TRL)
       else if (trlScore >= 7 && trlScore <= 9) colorClass = 3; // Red (High TRL)
 
-      const likes = Number(s.likes) || 0;
-      const views = Number(s.views ?? s.viewsCount) || 0;
-      const bookmarks = Number(s.bookmarks) || 0;
-      const engagementScore =
-        s.engagementScore !== undefined
-          ? Number(s.engagementScore) || 0
-          : likes + views + bookmarks;
-
       return {
         type: "Feature",
         id: s.id,
@@ -605,11 +699,7 @@ export default function Startupmap({
           locationName: s.locationName || "",
           role: s.role || "ROLE_STARTUP",
           industry: s.industry || "",
-          colorClass: colorClass,
-          likes,
-          views,
-          bookmarks,
-          engagementScore,
+          colorClass: colorClass
         },
         geometry: { type: "Point", coordinates: [lng, lat] },
       };
@@ -660,7 +750,9 @@ export default function Startupmap({
         });
       }
 
-      // Clean up legacy gradient / glare layers if they exist
+
+
+      // Clean up gradient / glare layers if they exist
       [
         "startups-zone-gradients",
         "startups-unclustered-gradient",
@@ -668,49 +760,51 @@ export default function Startupmap({
         "startups-true-heatmap"
       ].forEach((layerName) => {
         if (map.getLayer(layerName)) {
-          try { map.removeLayer(layerName); } catch { }
+          try { map.removeLayer(layerName); } catch (e) { }
         }
       });
 
-      const isTrlVisible = showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none";
-      const isEngVisible = showHeatmap && heatmapModeRef.current === "ENGAGEMENT" ? "visible" : "none";
+      // Ensure engagement heatmap layer is never visible when in TRL mode
+      if (map.getLayer("engagement-heatmap-layer") && heatmapModeRef.current !== "ENGAGEMENT") {
+        try { map.setLayoutProperty("engagement-heatmap-layer", "visibility", "none"); } catch (e) { }
+      }
 
-      // 1. TRL Building-Scoped Heat Aura & Core (covers only the pinned building footprint)
+      // Add solid circles for distinct color zones per area (glare removed, solid circle only)
       if (!map.getLayer("startups-zone-core")) {
+        // Solid core for cluster hotspots (applies to all 3 TRL levels: 1=Green, 2=Yellow, 3=Red)
         map.addLayer({
           id: "startups-zone-core",
           type: "circle",
           source: sourceId,
-          filter: ["!", ["has", "point_count"]],
+          filter: ["has", "point_count"],
           layout: {
-            visibility: isTrlVisible
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "circle-color": [
               "match",
-              ["get", "colorClass"],
+              ["get", "maxColorClass"],
               1, "#16a34a", // Green (TRL 1-3)
-              2, "#eab308", // Yellow (TRL 4-6)
-              3, "#ef4444", // Red (TRL 7-9)
-              "#16a34a"
+              2, "#ca8a04", // Yellow (TRL 4-6)
+              3, "#dc2626", // Red (TRL 7-9)
+              "#16a34a" // Default Green
             ],
             "circle-radius": [
-              "interpolate",
-              ["exponential", 1.65],
-              ["zoom"],
-              3, 6,
-              8, 8,
-              12, 11,
-              15, 16,
-              17, 24,
-              19, 36
+              "step",
+              ["get", "point_count"],
+              15,
+              4, 20,
+              10, 25,
+              21, 30
             ],
-            "circle-blur": 0.55,
-            "circle-opacity": 0.45,
-            "circle-pitch-alignment": "map"
+            "circle-blur": 0,
+            "circle-opacity": 1.0,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff"
           }
         }, layerId);
 
+        // Add zone count labels
         map.addLayer({
           id: "startups-zone-count",
           type: "symbol",
@@ -720,7 +814,7 @@ export default function Startupmap({
             "text-field": "{point_count_abbreviated}",
             "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
             "text-size": 14,
-            visibility: "none"
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "text-color": "#ffffff"
@@ -734,7 +828,7 @@ export default function Startupmap({
           source: sourceId,
           filter: ["!", ["has", "point_count"]],
           layout: {
-            visibility: isTrlVisible
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "circle-color": [
@@ -749,11 +843,10 @@ export default function Startupmap({
               "interpolate",
               ["linear"],
               ["zoom"],
-              3, 4,
-              8, 6,
-              12, 8,
-              15, 10,
-              17, 13
+              3, 5,
+              8, 7,
+              12, 10,
+              16, 12
             ],
             "circle-blur": 0,
             "circle-opacity": 0.95,
@@ -762,84 +855,43 @@ export default function Startupmap({
             "circle-pitch-alignment": "map"
           }
         }, layerId);
-      }
 
-      // 2. Engagement Score Heatmap per Startup/Business/Research (covers only the pinned building footprint)
-      if (!map.getLayer("engagement-heatmap-layer")) {
-        map.addLayer({
-          id: "engagement-heatmap-layer",
-          type: "circle",
-          source: sourceId,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            visibility: isEngVisible
-          },
-          paint: {
-            "circle-color": [
-              "interpolate",
-              ["linear"],
-              ["coalesce", ["get", "engagementScore"], 0],
-              0, "#3b82f6",   // Blue (Low engagement: 0)
-              5, "#60a5fa",   // Sky Blue (Low: 1-5)
-              10, "#a855f7",  // Purple (Moderate: 6-14)
-              15, "#ef4444",  // Red (High engagement: 15+)
-              50, "#dc2626"   // Deep Red (Very High: 50+)
-            ],
-            "circle-radius": [
-              "interpolate",
-              ["exponential", 1.65],
-              ["zoom"],
-              3, 6,
-              8, 8,
-              12, 11,
-              15, 16,
-              17, 24,
-              19, 36
-            ],
-            "circle-blur": 0.55,
-            "circle-opacity": 0.55,
-            "circle-pitch-alignment": "map"
-          }
-        }, layerId);
-      }
+        // Add click event to expand zones
+        if (!map.__zoneEventsAdded) {
+          map.__zoneEventsAdded = true;
 
-      if (!map.getLayer("engagement-click-zone")) {
-        map.addLayer({
-          id: "engagement-click-zone",
-          type: "circle",
-          source: sourceId,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            visibility: isEngVisible
-          },
-          paint: {
-            "circle-color": [
-              "interpolate",
-              ["linear"],
-              ["coalesce", ["get", "engagementScore"], 0],
-              0, "#2563eb",   // Blue (Low engagement: 0)
-              5, "#3b82f6",   // Blue (Low: 1-5)
-              10, "#9333ea",  // Purple (Moderate: 6-14)
-              15, "#dc2626",  // Red (High engagement: 15+)
-              50, "#b91c1c"   // Deep Red (Very High: 50+)
-            ],
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              3, 4,
-              8, 6,
-              12, 8,
-              15, 10,
-              17, 13
-            ],
-            "circle-blur": 0,
-            "circle-opacity": 0.95,
-            "circle-stroke-width": 1.5,
-            "circle-stroke-color": "#ffffff",
-            "circle-pitch-alignment": "map"
-          }
-        }, layerId);
+          const handleClusterClick = (e, layerName) => {
+            const features = map.queryRenderedFeatures(e.point, {
+              layers: [layerName]
+            });
+            if (!features || !features.length) return;
+            const clusterId = features[0].properties.cluster_id;
+            map.getSource(sourceId).getClusterExpansionZoom(
+              clusterId,
+              (err, zoom) => {
+                if (err) return;
+                map.easeTo({
+                  center: features[0].geometry.coordinates,
+                  zoom: zoom
+                });
+              }
+            );
+          };
+
+          const setupClusterLayerEvents = (layerName) => {
+            if (!map.getLayer(layerName)) return;
+            map.on('click', layerName, (e) => handleClusterClick(e, layerName));
+            map.on('mouseenter', layerName, () => {
+              map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', layerName, () => {
+              map.getCanvas().style.cursor = '';
+            });
+          };
+
+          setupClusterLayerEvents('startups-zone-core');
+          setupClusterLayerEvents('startups-zone-count');
+        }
       }
 
       if (!map.getLayer(highlightLayerId)) {
@@ -1251,22 +1303,24 @@ export default function Startupmap({
           }
         };
 
-        // Standard Symbol/Marker & Heatmap Pin Events (TRL & Engagement)
-        [
-          layerId,
-          "startups-unclustered-core",
-          "startups-zone-core",
-          "engagement-click-zone",
-          "engagement-heatmap-layer",
-        ].forEach((interactiveLayer) => {
-          map.on("mouseenter", interactiveLayer, showStartupHoverTooltip);
-          map.on("mousemove", interactiveLayer, showStartupHoverTooltip);
-          map.on("mouseleave", interactiveLayer, hideStartupHoverTooltip);
-          map.on("click", interactiveLayer, (e) => {
-            if (!e.features?.length) return;
-            hideStartupHoverTooltip();
-            handleSingleStartupClick(e.features[0]);
-          });
+        // Standard Symbol/Marker Events
+        map.on("mouseenter", layerId, showStartupHoverTooltip);
+        map.on("mousemove", layerId, showStartupHoverTooltip);
+        map.on("mouseleave", layerId, hideStartupHoverTooltip);
+        map.on("click", layerId, (e) => {
+          if (!e.features?.length) return;
+          hideStartupHoverTooltip();
+          handleSingleStartupClick(e.features[0]);
+        });
+
+        // Heatmap Unclustered core events
+        map.on("mouseenter", "startups-unclustered-core", showStartupHoverTooltip);
+        map.on("mousemove", "startups-unclustered-core", showStartupHoverTooltip);
+        map.on("mouseleave", "startups-unclustered-core", hideStartupHoverTooltip);
+        map.on("click", "startups-unclustered-core", (e) => {
+          if (!e.features?.length) return;
+          hideStartupHoverTooltip();
+          handleSingleStartupClick(e.features[0]);
         });
       }
     };
@@ -3717,12 +3771,7 @@ export default function Startupmap({
     const applyFiltersToMap = () => {
       try {
         const layerId = "startups-layer";
-        const heatmapTargetLayers = [
-          "startups-zone-core",
-          "startups-unclustered-core",
-          "engagement-heatmap-layer",
-          "engagement-click-zone",
-        ];
+        const coreLayerId = "startups-unclustered-core";
         const conditions = [];
 
         if (activeActorType && activeActorType !== "All") {
@@ -3742,17 +3791,13 @@ export default function Startupmap({
         if (map.getLayer(layerId)) {
           map.setFilter(layerId, filterExpr);
         }
-
-        const coreFilter =
-          conditions.length === 0
-            ? ["!", ["has", "point_count"]]
-            : ["all", ["!", ["has", "point_count"]], ...conditions];
-
-        heatmapTargetLayers.forEach((targetLayer) => {
-          if (map.getLayer(targetLayer)) {
-            map.setFilter(targetLayer, coreFilter);
-          }
-        });
+        if (map.getLayer(coreLayerId)) {
+          const coreFilter =
+            conditions.length === 0
+              ? ["!", ["has", "point_count"]]
+              : ["all", ["!", ["has", "point_count"]], ...conditions];
+          map.setFilter(coreLayerId, coreFilter);
+        }
       } catch (e) {
         console.warn("Could not apply layer filters yet", e);
       }
@@ -4056,21 +4101,14 @@ export default function Startupmap({
                   <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
                   <div>
                     <span className="font-bold text-gray-900">Red (High):</span>{" "}
-                    <span className="text-gray-600">Score 15+: High engagement</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-purple-500 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Purple (Mid):</span>{" "}
-                    <span className="text-gray-600">Score 6-14: Moderate engagement</span>
+                    <span className="text-gray-600">Score 15+: Active engagement zone</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-1.5">
                   <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-blue-400 shrink-0"></span>
                   <div>
                     <span className="font-bold text-gray-900">Blue (Low):</span>{" "}
-                    <span className="text-gray-600">Score 0-5: Low / developing engagement</span>
+                    <span className="text-gray-600">Score 0-14: Quiet/Developing area</span>
                   </div>
                 </div>
               </div>
