@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+
+import com.startupsphere.capstone.dtos.StartupEngagementDTO;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -569,6 +572,94 @@ public class StartupService {
 
     public List<Startup> getAllApprovedStartups() {
         return startupRepository.findAllApprovedStartups();
+    }
+
+    /**
+     * Compute individual engagement summary data for all approved businesses.
+     * Each business has its own score, solid color, and metrics based on registered coordinates.
+     */
+    public List<StartupEngagementDTO> getEngagementHeatmapData() {
+        List<Startup> approvedStartups = startupRepository.findAllApprovedStartups();
+
+        Map<Long, Long> likeCounts = new HashMap<>();
+        try {
+            List<Object[]> likesGrouped = likeRepository.countLikesGroupedByStartup();
+            if (likesGrouped != null) {
+                for (Object[] row : likesGrouped) {
+                    if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                        likeCounts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not query grouped likes: {}", e.getMessage());
+        }
+
+        Map<Long, Long> bookmarkCounts = new HashMap<>();
+        try {
+            List<Object[]> bookmarksGrouped = bookmarksRepository.countBookmarksGroupedByStartup();
+            if (bookmarksGrouped != null) {
+                for (Object[] row : bookmarksGrouped) {
+                    if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                        bookmarkCounts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not query grouped bookmarks: {}", e.getMessage());
+        }
+
+        List<StartupEngagementDTO> result = new ArrayList<>();
+        for (Startup s : approvedStartups) {
+            if (s.getLocationLat() == null || s.getLocationLng() == null) continue;
+
+            String fbLink = s.getFacebook();
+            boolean hasFbLink = fbLink != null && !fbLink.trim().isEmpty();
+            int fbLikes = (hasFbLink && s.getFacebookLikes() != null) ? s.getFacebookLikes() : 0;
+            long ssLikes = likeCounts.getOrDefault(s.getId(), 0L);
+            int views = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            long bookmarks = bookmarkCounts.getOrDefault(s.getId(), 0L);
+
+            result.add(new StartupEngagementDTO(
+                s.getId(),
+                s.getCompanyName(),
+                s.getLocationLat(),
+                s.getLocationLng(),
+                fbLink,
+                fbLikes,
+                ssLikes,
+                views,
+                bookmarks
+            ));
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve individual business engagement performance details.
+     */
+    public Optional<StartupEngagementDTO> getStartupEngagement(Long startupId) {
+        return startupRepository.findById(startupId).map(s -> {
+            String fbLink = s.getFacebook();
+            boolean hasFbLink = fbLink != null && !fbLink.trim().isEmpty();
+            int fbLikes = (hasFbLink && s.getFacebookLikes() != null) ? s.getFacebookLikes() : 0;
+            long ssLikes = likeRepository.countByStartupId(startupId);
+            int views = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            long bookmarks = bookmarksRepository.countByStartup_Id(startupId);
+
+            return new StartupEngagementDTO(
+                s.getId(),
+                s.getCompanyName(),
+                s.getLocationLat(),
+                s.getLocationLng(),
+                fbLink,
+                fbLikes,
+                ssLikes,
+                views,
+                bookmarks
+            );
+        });
     }
 
     @Scheduled(cron = "0 0 9 * * ?")

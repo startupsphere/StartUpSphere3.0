@@ -21,7 +21,8 @@ public class SecurityUtils {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(authentication != null && authentication.isAuthenticated()) {
             String email = authentication.getName();
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findFirstByEmailIgnoreCase(email)
+                .or(() -> userRepository.findFirstByEmail(email))
                 .orElseThrow(() -> new IllegalStateException("User not found with email: " + email));
             return user.getId();
         }

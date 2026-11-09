@@ -2,6 +2,7 @@ package com.startupsphere.capstone.controller;
 
 import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
+import com.startupsphere.capstone.dtos.StartupEngagementDTO;
 import com.startupsphere.capstone.repository.StartupRepository;
 import com.startupsphere.capstone.responses.ErrorResponse;
 import com.startupsphere.capstone.responses.SuccessResponse;
@@ -647,6 +648,19 @@ public class StartupController {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Startup> startups = startupService.getAllApprovedStartups(pageable);
         return ResponseEntity.ok(startups);
+    }
+
+    @GetMapping("/engagement-heatmap")
+    public ResponseEntity<List<StartupEngagementDTO>> getEngagementHeatmapData() {
+        List<StartupEngagementDTO> data = startupService.getEngagementHeatmapData();
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/{id:[0-9]+}/engagement")
+    public ResponseEntity<StartupEngagementDTO> getStartupEngagement(@PathVariable Long id) {
+        return startupService.getStartupEngagement(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/test-reminder-emails")

@@ -18,7 +18,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Award, Sparkles, User } from "lucide-react";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
-import { FaRegHeart, FaRegBookmark, FaPhone } from "react-icons/fa";
+import { FaRegHeart, FaRegBookmark, FaPhone, FaFacebook } from "react-icons/fa";
 import { BsCalendarEvent, BsPeople, BsBriefcase } from "react-icons/bs";
 import { HiOutlineMail } from "react-icons/hi";
 import { FaBell } from "react-icons/fa";
@@ -4153,14 +4153,27 @@ export default function Sidebar({
 
             {/* Stats overlay - improved */}
             <div className="absolute -bottom-2 right-4 flex space-x-2">
-              <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white">
+              <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white" title="Views">
                 <FaRegEye className="h-3.5 w-3.5" />
                 <span>{startup.viewsCount || 0}</span>
               </div>
-              <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white">
+              <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white" title="StartUpSphere Likes">
                 <FaHeart className="h-3.5 w-3.5" />
                 <span>{startupLikeCounts?.[startup.id] || 0}</span>
               </div>
+              {/* Show Facebook Likes ONLY if the business provides a facebook link */}
+              {startup.facebook && startup.facebook.trim() !== "" && (
+                <a
+                  href={startup.facebook.startsWith("http") ? startup.facebook : `https://${startup.facebook}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 bg-blue-600/90 hover:bg-blue-600 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white transition-colors"
+                  title={`Facebook Likes: ${(startup.facebookLikes || 0).toLocaleString()}`}
+                >
+                  <FaFacebook className="h-3.5 w-3.5" />
+                  <span>{(startup.facebookLikes || 0).toLocaleString()}</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -4527,9 +4540,9 @@ export default function Sidebar({
             )}
 
             {/* Contact and Links Section - optional content */}
-            {(startup.website || startup.email) && (
+            {(startup.website || startup.email || (startup.facebook && startup.facebook.trim() !== "")) && (
               <div className="space-y-2 mb-6 border-t border-gray-200 pt-4">
-                <h2 className="text-base font-medium text-gray-900">Contact</h2>
+                <h2 className="text-base font-medium text-gray-900">Contact & Social</h2>
                 <div className="space-y-2">
                   {startup.website && (
                     <a
@@ -4553,6 +4566,26 @@ export default function Sidebar({
                     >
                       <HiOutlineMail className="h-4 w-4 mr-2" />
                       {startup.email}
+                    </a>
+                  )}
+                  {startup.facebook && startup.facebook.trim() !== "" && (
+                    <a
+                      href={
+                        startup.facebook.startsWith("http")
+                          ? startup.facebook
+                          : `https://${startup.facebook}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between text-sm text-blue-600 hover:text-blue-700 transition-colors bg-blue-50/50 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100"
+                    >
+                      <span className="flex items-center">
+                        <FaFacebook className="h-4 w-4 mr-2 text-blue-600" />
+                        <span className="font-medium">Facebook Page</span>
+                      </span>
+                      <span className="text-xs bg-white text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200 shadow-2xs">
+                        {(startup.facebookLikes || 0).toLocaleString()} Likes
+                      </span>
                     </a>
                   )}
                 </div>

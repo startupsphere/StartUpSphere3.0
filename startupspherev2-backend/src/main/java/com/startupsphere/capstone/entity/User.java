@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Table(name = "users", indexes = {
     @Index(name = "idx_user_email", columnList = "email")
@@ -58,6 +59,14 @@ public class User implements UserDetails {
 
     @Column(nullable = false)
     private String role; // New role attribute
+
+    @Column(name = "reset_password_code")
+    @JsonIgnore
+    private String resetPasswordCode;
+
+    @Column(name = "reset_password_code_expires_at")
+    @JsonIgnore
+    private LocalDateTime resetPasswordCodeExpiresAt;
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
@@ -214,6 +223,24 @@ public class User implements UserDetails {
 
     public void setBookmarks(List<Bookmarks> bookmarks) {
         this.bookmarks = bookmarks;
+    }
+
+    public String getResetPasswordCode() {
+        return resetPasswordCode;
+    }
+
+    public User setResetPasswordCode(String resetPasswordCode) {
+        this.resetPasswordCode = resetPasswordCode;
+        return this;
+    }
+
+    public LocalDateTime getResetPasswordCodeExpiresAt() {
+        return resetPasswordCodeExpiresAt;
+    }
+
+    public User setResetPasswordCodeExpiresAt(LocalDateTime resetPasswordCodeExpiresAt) {
+        this.resetPasswordCodeExpiresAt = resetPasswordCodeExpiresAt;
+        return this;
     }
 
 }

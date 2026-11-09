@@ -27,6 +27,7 @@ public class    CapstoneApplication {
         setSystemProperty(dotenv, "MAIL_USERNAME", "spring.mail.username");
         setSystemProperty(dotenv, "MAIL_PASSWORD", "spring.mail.password");
         setSystemProperty(dotenv, "MAIL_FROM", "spring.mail.from");
+        setSystemProperty(dotenv, "BREVO_API_KEY", "brevo.api.key");
 
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");

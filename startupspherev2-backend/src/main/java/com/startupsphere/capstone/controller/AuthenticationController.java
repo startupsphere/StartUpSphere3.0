@@ -1,5 +1,7 @@
 package com.startupsphere.capstone.controller;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -9,10 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import jakarta.servlet.http.Cookie;
 
+import com.startupsphere.capstone.dtos.ForgotPasswordDto;
 import com.startupsphere.capstone.dtos.LoginUserDto;
 import com.startupsphere.capstone.dtos.RegisterUserDto;
+import com.startupsphere.capstone.dtos.ResetPasswordDto;
+import com.startupsphere.capstone.dtos.VerifyResetCodeDto;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.responses.LoginResponse;
 import com.startupsphere.capstone.service.AuthenticationService;
@@ -40,18 +44,18 @@ public class AuthenticationController {
             String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
             if (msg.contains("users_pkey") || msg.contains("duplicate key")) {
                 return ResponseEntity.status(409)
-                        .body(java.util.Map.of("error", "An account registration conflict occurred. Please try submitting again."));
+                        .body(Map.of("error", "An account registration conflict occurred. Please try submitting again."));
             }
             return ResponseEntity.status(400)
-                    .body(java.util.Map.of("error", "Registration could not be completed. Please check your information and try again."));
+                    .body(Map.of("error", "Registration could not be completed. Please check your information and try again."));
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.toLowerCase().contains("email already exists")) {
                 return ResponseEntity.status(409)
-                        .body(java.util.Map.of("error", "This email address is already registered. Please sign in or use a different email."));
+                        .body(Map.of("error", "This email address is already registered. Please sign in or use a different email."));
             }
             return ResponseEntity.status(400)
-                    .body(java.util.Map.of("error", "Registration failed. Please verify your details and try again."));
+                    .body(Map.of("error", "Registration failed. Please verify your details and try again."));
         }
     }
 
@@ -83,7 +87,7 @@ public class AuthenticationController {
             return ResponseEntity.ok(loginResponse);
         } catch (Exception e) {
             return ResponseEntity.status(401)
-                    .body(java.util.Map.of("error", "Invalid email or password. Please try again."));
+                    .body(Map.of("error", "Invalid email or password. Please try again."));
         }
     }
 
@@ -96,7 +100,6 @@ public class AuthenticationController {
                 .sameSite("None")
                 .maxAge(0) // Expire the cookie immediately
                 .build();
-                
 
         response.addHeader("Set-Cookie", cookie.toString());
 
@@ -112,5 +115,58 @@ public class AuthenticationController {
                         && authentication.getPrincipal().equals("anonymousUser"));
 
         return ResponseEntity.ok(isAuthenticated);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordDto dto) {
+        try {
+            authenticationService.initiateForgotPassword(dto.getEmail());
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "A verification code has been sent to your email.",
+                "email", dto.getEmail() != null ? dto.getEmail().trim() : ""
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Unable to send verification code. Please try again later."));
+        }
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<?> verifyResetCode(@RequestBody VerifyResetCodeDto dto) {
+        try {
+            authenticationService.verifyResetCode(dto.getEmail(), dto.getCode());
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "valid", true,
+                "message", "Verification code confirmed. You may now reset your password."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error verifying code. Please try again."));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDto dto) {
+        try {
+            authenticationService.resetPassword(dto.getEmail(), dto.getCode(), dto.getNewPassword());
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password has been reset successfully. You can now log in with your new password."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Unable to reset password. Please try again."));
+        }
     }
 }

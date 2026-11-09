@@ -42,7 +42,8 @@ public class BookmarksController {
     @PostMapping
     public ResponseEntity<Bookmarks> createBookmark(@RequestBody BookmarksRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findFirstByEmailIgnoreCase(email)
+                .or(() -> userRepository.findFirstByEmail(email))
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
         Startup startup = null;
@@ -78,7 +79,8 @@ public class BookmarksController {
     @GetMapping
     public ResponseEntity<List<Bookmarks>> getUserBookmarks() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findFirstByEmailIgnoreCase(email)
+                .or(() -> userRepository.findFirstByEmail(email))
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
         List<Bookmarks> userBookmarks = bookmarksService.getBookmarksByUser(user);

@@ -53,4 +53,7 @@ public interface BookmarksRepository extends JpaRepository<Bookmarks, Long> {
                         "GROUP BY MONTH(b.timestamp) " +
                         "ORDER BY MONTH(b.timestamp)")
         List<Object[]> countBookmarksGroupedByMonthForUserOwnedStartups(@Param("userId") Integer userId);
+
+        @Query("SELECT b.startup.id, COUNT(b) FROM Bookmarks b WHERE b.startup.id IS NOT NULL GROUP BY b.startup.id")
+        List<Object[]> countBookmarksGroupedByStartup();
 }

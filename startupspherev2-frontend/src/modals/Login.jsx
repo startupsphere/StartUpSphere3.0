@@ -2,14 +2,29 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
 import { formatErrorMessage } from "../utils/errorUtils";
+import ForgotPassword from "./ForgotPassword";
 
-export default function Login({ closeModal, openRegister, onLoginSuccess }) {
-  const [email, setEmail] = useState("");
+export default function Login({ closeModal, openRegister, onLoginSuccess, initialEmail = "", initialForgotPassword = false }) {
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(initialForgotPassword);
+
+  if (showForgotPassword) {
+    return (
+      <ForgotPassword
+        closeModal={closeModal}
+        openLogin={(prefilledEmail) => {
+          if (prefilledEmail) setEmail(prefilledEmail);
+          setShowForgotPassword(false);
+        }}
+        initialEmail={email}
+      />
+    );
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -294,7 +309,8 @@ export default function Login({ closeModal, openRegister, onLoginSuccess }) {
                   </label>
                   <button 
                     type="button" 
-                    className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors border-0 p-0 bg-transparent"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors border-0 p-0 bg-transparent cursor-pointer font-medium"
                   >
                     Forgot password?
                   </button>

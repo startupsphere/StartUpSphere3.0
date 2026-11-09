@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
 import { formatErrorMessage } from "../utils/errorUtils";
+import ForgotPassword from "./ForgotPassword";
 
 export default function Signup({ closeModal, openLogin }) {
   const [firstname, setFirstname] = useState("");
@@ -13,6 +14,20 @@ export default function Signup({ closeModal, openLogin }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  if (showForgotPassword) {
+    return (
+      <ForgotPassword
+        closeModal={closeModal}
+        openLogin={(prefilledEmail) => {
+          closeModal();
+          openLogin(prefilledEmail);
+        }}
+        initialEmail={email}
+      />
+    );
+  }
   const [emailError, setEmailError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -729,6 +744,15 @@ export default function Signup({ closeModal, openLogin }) {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm text-red-600">{error}</p>
+                    {typeof error === "string" && error.toLowerCase().includes("already registered") && (
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="mt-1 text-xs font-semibold text-blue-600 hover:text-blue-700 underline bg-transparent border-0 cursor-pointer p-0 block"
+                      >
+                        Forgot your password? Reset it here
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -770,14 +794,25 @@ export default function Signup({ closeModal, openLogin }) {
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center border-t border-gray-100 pt-6">
+          <div className="mt-8 text-center border-t border-gray-100 pt-6 space-y-2">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
               <button
+                type="button"
                 onClick={handleSwitchToLogin}
-                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline bg-transparent p-0 border-0"
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline bg-transparent p-0 border-0 cursor-pointer"
               >
                 Sign in
+              </button>
+            </p>
+            <p className="text-xs text-gray-500">
+              Forgot password?{" "}
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="font-medium text-blue-600 hover:text-blue-700 transition-colors hover:underline bg-transparent p-0 border-0 cursor-pointer"
+              >
+                Reset it here
               </button>
             </p>
           </div>

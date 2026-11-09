@@ -58,6 +58,25 @@ public class EmailService {
     @Value("${sendgrid.from.name:StartupSphere}")
     private String sendgridFromName;
 
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
+
+    public String getEffectiveBrevoKey() {
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            return brevoApiKey.trim();
+        }
+        String val = System.getProperty("brevo.api.key");
+        if (val != null && !val.isBlank()) return val.trim();
+        val = System.getenv("BREVO_API_KEY");
+        if (val != null && !val.isBlank()) return val.trim();
+        try {
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+            val = dotenv.get("BREVO_API_KEY");
+            if (val != null && !val.isBlank()) return val.trim();
+        } catch (Exception ignored) {}
+        return "";
+    }
+
     private JavaMailSender createSender(int port, boolean useSsl) {
         JavaMailSenderImpl impl = new JavaMailSenderImpl();
         impl.setHost("smtp.gmail.com");
@@ -208,9 +227,9 @@ public class EmailService {
     }
 
     private boolean sendViaBrevo(String toEmail, String companyName, String otpCode) {
-        String brevoKey = System.getenv("BREVO_API_KEY");
+        String brevoKey = getEffectiveBrevoKey();
         if (brevoKey == null || brevoKey.isBlank()) {
-            logger.warn("BREVO_API_KEY is not configured in environment.");
+            logger.warn("BREVO_API_KEY is not configured.");
             return false;
         }
         try {
@@ -389,6 +408,170 @@ public class EmailService {
         }
 
         return false;
+    }
+
+    /**
+     * Send password reset verification code email to a user.
+     * Uses Brevo HTTPS API first, with fallbacks to Gmail SMTP, Vercel relay, Resend, and SendGrid.
+     */
+    public boolean sendPasswordResetEmail(String toEmail, String userName, String resetCode) {
+        logger.info("Initiating password reset email to: {}", toEmail);
+
+        String subject = "StartupSphere - Password Reset Verification Code";
+        String htmlBody = buildPasswordResetHtmlContent(userName, resetCode);
+        String textBody = "Hello " + (userName != null && !userName.isBlank() ? userName : "there") + ",\n\n"
+                + "We received a request to confirm your identity and reset your password for StartupSphere.\n\n"
+                + "Your password reset verification code is: " + resetCode + "\n\n"
+                + "This verification code is valid for 10 minutes.\n\n"
+                + "If you did not request a password reset, please disregard this email. Your password will remain unchanged.\n\n"
+                + "Best regards,\nStartupSphere Team";
+
+        // 1. Try Brevo HTTPS API first (Port 443, immune to SMTP firewall blocks)
+        if (sendPasswordResetViaBrevo(toEmail, userName, resetCode, htmlBody, textBody)) {
+            return true;
+        }
+
+        // 2. Try direct Gmail SMTP (SSL port 465)
+        try {
+            JavaMailSender sender = createSender(465, true);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : getEffectiveUsername();
+            helper.setFrom(senderAddress, "StartupSphere");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(textBody, htmlBody);
+
+            sender.send(message);
+            logger.info("Successfully delivered password reset email via Gmail SMTP to {}", toEmail);
+            return true;
+        } catch (Exception e) {
+            logger.warn("Direct Gmail SMTP failed for password reset email: {}", e.getMessage());
+        }
+
+        // 3. Try Vercel HTTPS Relay
+        if (sendViaVercelRelay(toEmail, userName, resetCode)) {
+            return true;
+        }
+
+        // 4. Try Resend HTTPS API
+        if (sendViaResend(toEmail, userName, resetCode)) {
+            return true;
+        }
+
+        // 5. Try SendGrid
+        if (sendgridApiKey != null && !sendgridApiKey.isBlank() && !sendgridApiKey.equals("SG.placeholder")) {
+            try {
+                Email from = new Email(sendgridFromEmail, sendgridFromName);
+                Email to = new Email(toEmail);
+                Content content = new Content("text/html", htmlBody);
+                Mail mail = new Mail(from, subject, to, content);
+
+                SendGrid sg = new SendGrid(sendgridApiKey);
+                Request request = new Request();
+                request.setMethod(Method.POST);
+                request.setEndpoint("mail/send");
+                request.setBody(mail.build());
+
+                Response response = sg.api(request);
+                if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                    logger.info("Successfully sent password reset email via SendGrid to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.error("SendGrid password reset email failed: {}", e.getMessage());
+            }
+        }
+
+        throw new RuntimeException("Could not deliver password reset email via Brevo or SMTP. Please try again.");
+    }
+
+    private boolean sendPasswordResetViaBrevo(String toEmail, String userName, String resetCode, String htmlBody, String textBody) {
+        String brevoKey = getEffectiveBrevoKey();
+        if (brevoKey == null || brevoKey.isBlank()) {
+            logger.warn("BREVO_API_KEY is not configured.");
+            return false;
+        }
+        try {
+            logger.info("Attempting to send password reset email via Brevo HTTPS API to {}", toEmail);
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+            map.put("to", List.of(Map.of("email", toEmail, "name", userName != null && !userName.isBlank() ? userName : "User")));
+            map.put("subject", "Reset Your StartupSphere Password - Verification Code");
+            map.put("htmlContent", htmlBody);
+            map.put("textContent", textBody);
+
+            String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("api-key", brevoKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Brevo password reset response status: {}, body: {}", response.statusCode(), response.body());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("Successfully delivered password reset email via Brevo HTTPS API to {}", toEmail);
+                return true;
+            } else {
+                logger.warn("Brevo API returned non-200 status: {}", response.statusCode());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to send password reset email via Brevo HTTPS API: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private String buildPasswordResetHtmlContent(String userName, String resetCode) {
+        String greeting = (userName != null && !userName.isBlank()) ? userName : "User";
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset=\"UTF-8\"><title>Reset Your StartupSphere Password</title></head>"
+                + "<body style=\"margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">"
+                + "<table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;\">"
+                + "  <tr>"
+                + "    <td style=\"background: linear-gradient(135deg, #1D3557 0%, #16324F 100%); padding: 32px 30px; text-align: center;\">"
+                + "      <h1 style=\"color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;\">StartupSphere</h1>"
+                + "      <p style=\"color: #93c5fd; margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;\">Account Security &bull; Password Reset</p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"padding: 36px 32px 24px 32px;\">"
+                + "      <h2 style=\"color: #0f172a; margin: 0 0 14px 0; font-size: 20px; font-weight: 600;\">Confirm Your Account</h2>"
+                + "      <p style=\"color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;\">"
+                + "        Hello <strong>" + escapeHtml(greeting) + "</strong>,<br><br>"
+                + "        We received a request to confirm your identity and reset the password for your StartupSphere account. Please enter the verification code below to confirm this is your account:"
+                + "      </p>"
+                + "      <div style=\"text-align: center; margin: 28px 0; padding: 22px; background-color: #f8fafc; border-radius: 10px; border: 2px dashed #93c5fd;\">"
+                + "        <div style=\"color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;\">Verification Code</div>"
+                + "        <span style=\"display: inline-block; font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #1D3557; font-family: 'Courier New', Courier, monospace;\">" + resetCode + "</span>"
+                + "        <div style=\"color: #dc2626; font-size: 12px; margin-top: 10px; font-weight: 500;\">&bull; Expires in 10 minutes</div>"
+                + "      </div>"
+                + "      <p style=\"color: #64748b; font-size: 13px; line-height: 1.5; margin: 20px 0 0 0;\">"
+                + "        <strong>Didn't request this?</strong> If you did not make this request, you can safely ignore this email. Your password will remain unchanged and your account stays secure."
+                + "      </p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"background-color: #f8fafc; padding: 20px 32px; border-top: 1px solid #e2e8f0; text-align: center;\">"
+                + "      <p style=\"color: #94a3b8; font-size: 12px; margin: 0;\">"
+                + "        &copy; StartupSphere. All rights reserved."
+                + "      </p>"
+                + "    </td>"
+                + "  </tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
     }
 
     private String buildOtpHtmlContent(String companyName, String otpCode) {

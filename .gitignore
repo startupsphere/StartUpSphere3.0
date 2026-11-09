@@ -1,1 +1,6 @@
 supabase_backup.dump
+.env
+.env.local
+*.env
+target/
+dist/

@@ -265,51 +265,46 @@ export default function Startupmap({
 
   // Preload the stakeholder icon as soon as component mounts
 
-  useEffect(() => {
-    const mockData = [];
-    const baseLng = 123.8907;
-    const baseLat = 10.3166;
-    const names = [
-      "TechHub Cebu Event", "Developers Meetup", "Startup Pitch Night",
-      "AI Hackathon", "Founders Mixer", "Investor Panel",
-      "Web3 Conference", "Design Sprint Workshop", "Cloud Computing Summit",
-      "Local Tech Podcast Live", "University Tech Fair", "FinTech Forum",
-      "E-commerce Expo", "AgriTech Showcase", "HealthTech Symposium"
-    ];
-    for (let i = 0; i < 15; i++) {
-      const offsetLng = (Math.random() - 0.5) * 0.05;
-      const offsetLat = (Math.random() - 0.5) * 0.05;
-      const likes = Math.floor(Math.random() * 500) + 50;
-      const views = Math.floor(Math.random() * 2000) + 100;
-      const bookmarks = Math.floor(Math.random() * 80) + 5;
-      const engagementScore = likes + views + bookmarks;
-      mockData.push({
-        id: `engagement-mock-${i}`,
-        name: names[i],
-        locationLng: baseLng + offsetLng,
-        locationLat: baseLat + offsetLat,
-        likes, views, bookmarks, engagementScore
+  const loadEngagementHeatmapData = async (map) => {
+    try {
+      const response = await fetch(`${getBackendUrl()}/startups/engagement-heatmap`, {
+        credentials: "include",
       });
+      if (!response.ok) {
+        console.error("Failed to fetch engagement heatmap data:", response.statusText);
+        return;
+      }
+      const data = await response.json();
+      setEngagementMarkers(data || []);
+      const targetMap = mapInstanceRef.current || map;
+      if (targetMap && Array.isArray(data)) {
+        renderEngagementMarkers(targetMap, data);
+      }
+    } catch (err) {
+      console.error("Error loading engagement heatmap data:", err);
     }
+  };
 
-    // Add distinct blue zones (low engagement)
-    mockData.push({
-      id: 'engagement-mock-blue-1',
-      name: "Local Tech Meetup (Quiet Zone)",
-      locationLng: baseLng + 0.08,
-      locationLat: baseLat - 0.08,
-      likes: 2, views: 8, bookmarks: 1, engagementScore: 11
-    });
-    mockData.push({
-      id: 'engagement-mock-blue-2',
-      name: "New Founder Intro (Developing)",
-      locationLng: baseLng - 0.07,
-      locationLat: baseLat + 0.06,
-      likes: 0, views: 5, bookmarks: 0, engagementScore: 5
-    });
-
-    setEngagementMarkers(mockData);
+  useEffect(() => {
+    loadEngagementHeatmapData();
   }, []);
+
+  useEffect(() => {
+    window.__openStartupEngagement = (startupId) => {
+      const found = engagementMarkers.find(m => String(m.id) === String(startupId));
+      if (found) {
+        setSelectedEngagementData(found);
+      } else {
+        fetch(`${getBackendUrl()}/startups/${startupId}/engagement`, { credentials: "include" })
+          .then(res => res.json())
+          .then(data => setSelectedEngagementData(data))
+          .catch(err => console.error("Failed to load engagement:", err));
+      }
+    };
+    return () => {
+      delete window.__openStartupEngagement;
+    };
+  }, [engagementMarkers]);
 
   useEffect(() => {
     console.log("Preloading stakeholder icon...");
@@ -352,6 +347,7 @@ export default function Startupmap({
       const mapRef = mapInstanceRef.current || map;
       if (mapRef && startupsWithLocation.length) {
         renderStartupMarkers(mapRef, startupsWithLocation);
+        loadEngagementHeatmapData(mapRef);
       } else if (mapRef) {
         // Hide startup layers if no data
         const sourceId = "startups-src";
@@ -550,14 +546,47 @@ export default function Startupmap({
     }
     const sourceId = "engagement-src";
 
-    const features = markers.map(s => ({
+    // Re-use business's exact registered coordinates, validating latitude and longitude
+    const validMarkers = markers.filter(s => {
+      if (s.locationLat == null || s.locationLng == null) return false;
+      const lat = typeof s.locationLat === "string" ? parseFloat(s.locationLat) : s.locationLat;
+      const lng = typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng;
+      return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    });
+
+    const features = validMarkers.map(s => ({
       type: "Feature",
       id: s.id,
-      properties: s,
-      geometry: { type: "Point", coordinates: [s.locationLng, s.locationLat] }
+      properties: {
+        id: s.id,
+        name: s.name || s.companyName || "Business",
+        facebookLikes: s.facebookLikes || 0,
+        startupSphereLikes: s.startupSphereLikes || 0,
+        totalLikes: s.totalLikes != null ? s.totalLikes : ((s.facebookLikes || 0) + (s.startupSphereLikes || 0)),
+        views: s.views || 0,
+        bookmarks: s.bookmarks || 0,
+        engagementScore: s.engagementScore != null ? s.engagementScore : 0,
+        heatmapColor: s.heatmapColor || "Blue",
+        heatmapColorHex: s.heatmapColorHex || "#2563eb",
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [
+          typeof s.locationLng === "string" ? parseFloat(s.locationLng) : s.locationLng,
+          typeof s.locationLat === "string" ? parseFloat(s.locationLat) : s.locationLat
+        ]
+      }
     }));
 
     const data = { type: "FeatureCollection", features };
+
+    // Clean up old density heatmap layer if it existed previously
+    if (map.getLayer("engagement-heatmap-layer")) {
+      try { map.removeLayer("engagement-heatmap-layer"); } catch (e) { }
+    }
+    if (map.getLayer("engagement-click-zone")) {
+      try { map.removeLayer("engagement-click-zone"); } catch (e) { }
+    }
 
     if (map.getSource(sourceId)) {
       try { map.getSource(sourceId).setData(data); } catch { }
@@ -565,98 +594,76 @@ export default function Startupmap({
       map.addSource(sourceId, {
         type: "geojson",
         data,
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
-        clusterProperties: {
-          sumScore: ["+", ["get", "engagementScore"]],
-          sumLikes: ["+", ["get", "likes"]],
-          sumViews: ["+", ["get", "views"]],
-          sumBookmarks: ["+", ["get", "bookmarks"]]
-        }
+        // Requirement 7: Never cluster or merge nearby businesses into shared blobs
+        cluster: false
       });
     }
 
     const isVisible = showHeatmap && heatmapModeRef.current === "ENGAGEMENT" ? "visible" : "none";
 
-    // TRUE MAPBOX HEATMAP LAYER for density gradients
-    if (!map.getLayer("engagement-heatmap-layer")) {
+    // Fixed-size soft halo/glow layer around the engagement marker
+    if (!map.getLayer("engagement-heatmap-glow")) {
       map.addLayer({
-        id: "engagement-heatmap-layer",
-        type: "heatmap",
-        source: sourceId,
-        layout: { visibility: isVisible },
-        paint: {
-          "heatmap-weight": [
-            "interpolate",
-            ["linear"],
-            ["coalesce", ["get", "sumScore"], ["get", "engagementScore"], 0],
-            0, 0.1,
-            15, 1,
-            3000, 3
-          ],
-          "heatmap-intensity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            0, 3,
-            14, 15
-          ],
-          "heatmap-color": [
-            "interpolate",
-            ["linear"],
-            ["heatmap-density"],
-            0, "rgba(37, 99, 235, 0)",
-            0.12, "rgba(59, 130, 246, 0.75)",
-            0.35, "rgba(16, 185, 129, 0.88)",
-            0.65, "rgba(245, 158, 11, 0.95)",
-            0.9, "rgba(239, 68, 68, 0.98)",
-            1, "rgba(220, 38, 38, 1.0)"
-          ],
-          "heatmap-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            0, 45,
-            9, 90,
-            15, 220
-          ],
-          "heatmap-opacity": 0.95
-        }
-      });
-    }
-
-    // Invisible circles on top to allow clicking the clusters/points
-    if (!map.getLayer("engagement-click-zone")) {
-      map.addLayer({
-        id: "engagement-click-zone",
+        id: "engagement-heatmap-glow",
         type: "circle",
         source: sourceId,
         layout: { visibility: isVisible },
         paint: {
-          "circle-radius": 30,
-          "circle-color": "transparent",
-          "circle-opacity": 0
+          // Requirement 8: Constant pixel-based size across all zoom levels
+          "circle-radius": 26,
+          // Requirement 5: One solid color per business matching its Engagement Summary Score
+          "circle-color": ["coalesce", ["get", "heatmapColorHex"], "#2563eb"],
+          "circle-opacity": 0.22,
+          "circle-blur": 0.5
+        }
+      });
+    }
+
+    // Primary Engagement Heatmap Marker:
+    // Requirement 5: Solid color based on score (Blue, Cyan, Yellow, Orange, Red)
+    // Requirement 6: Exactly 60% (0.60) opacity
+    // Requirement 7: Independent marker for every business
+    // Requirement 8: Constant screen-space pixel radius (18px) across all zoom levels
+    if (!map.getLayer("engagement-heatmap-circle")) {
+      map.addLayer({
+        id: "engagement-heatmap-circle",
+        type: "circle",
+        source: sourceId,
+        layout: { visibility: isVisible },
+        paint: {
+          "circle-radius": 18,
+          "circle-color": ["coalesce", ["get", "heatmapColorHex"], "#2563eb"],
+          "circle-opacity": 0.60,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": ["coalesce", ["get", "heatmapColorHex"], "#2563eb"],
+          "circle-stroke-opacity": 0.90
         }
       });
 
-      // Events for clicking engagement zones
-      const handleZoneClick = (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['engagement-click-zone'] });
-        if (!features || !features.length) return;
-        const props = features[0].properties;
+      // Requirement 10: Click an individual business to view its complete engagement details
+      const handleMarkerClick = (e) => {
+        const feats = map.queryRenderedFeatures(e.point, { layers: ['engagement-heatmap-circle'] });
+        if (!feats || !feats.length) return;
+        const props = feats[0].properties;
         setSelectedEngagementData({
-          name: props.point_count ? `Zone of ${props.point_count} Events` : (props.name || "Event"),
-          likes: props.sumLikes || props.likes || 0,
-          views: props.sumViews || props.views || 0,
-          bookmarks: props.sumBookmarks || props.bookmarks || 0,
-          score: props.sumScore || props.engagementScore || 0
+          id: props.id,
+          name: props.name || "Business",
+          businessName: props.name || "Business",
+          totalLikes: Number(props.totalLikes) || 0,
+          facebookLikes: Number(props.facebookLikes) || 0,
+          startupSphereLikes: Number(props.startupSphereLikes) || 0,
+          views: Number(props.views) || 0,
+          bookmarks: Number(props.bookmarks) || 0,
+          score: Number(props.engagementScore) || 0,
+          engagementScore: Number(props.engagementScore) || 0,
+          heatmapColor: props.heatmapColor || "Blue",
+          heatmapColorHex: props.heatmapColorHex || "#2563eb"
         });
       };
 
-      map.on('click', 'engagement-click-zone', handleZoneClick);
-      map.on('mouseenter', 'engagement-click-zone', () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', 'engagement-click-zone', () => map.getCanvas().style.cursor = '');
+      map.on('click', 'engagement-heatmap-circle', handleMarkerClick);
+      map.on('mouseenter', 'engagement-heatmap-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'engagement-heatmap-circle', () => { map.getCanvas().style.cursor = ''; });
     }
   };
 
@@ -764,10 +771,12 @@ export default function Startupmap({
         }
       });
 
-      // Ensure engagement heatmap layer is never visible when in TRL mode
-      if (map.getLayer("engagement-heatmap-layer") && heatmapModeRef.current !== "ENGAGEMENT") {
-        try { map.setLayoutProperty("engagement-heatmap-layer", "visibility", "none"); } catch (e) { }
-      }
+      // Ensure engagement heatmap layers are never visible when in TRL mode
+      ["engagement-heatmap-circle", "engagement-heatmap-glow", "engagement-click-zone", "engagement-heatmap-layer"].forEach((l) => {
+        if (map.getLayer(l) && heatmapModeRef.current !== "ENGAGEMENT") {
+          try { map.setLayoutProperty(l, "visibility", "none"); } catch (e) { }
+        }
+      });
 
       // Add solid circles for distinct color zones per area (glare removed, solid circle only)
       if (!map.getLayer("startups-zone-core")) {
@@ -1040,21 +1049,49 @@ export default function Startupmap({
           try {
             const backendUrl = getBackendUrl() || "http://localhost:8080";
 
-            // 1. Fetch live database details, likes, bookmarks, and views concurrently
-            const [detailRes, likesRes, bookmarksRes, viewsRes] = await Promise.all([
+            // 1. Fetch live database details and engagement analytics concurrently
+            const [detailRes, engagementRes] = await Promise.all([
               fetch(`${backendUrl}/startups/${id}`, { credentials: "include" }),
-              fetch(`${backendUrl}/api/likes/count/startup/${id}`, { credentials: "include" }).catch(() => null),
-              fetch(`${backendUrl}/api/bookmarks/count/startup/${id}`, { credentials: "include" }).catch(() => null),
-              fetch(`${backendUrl}/startups/${id}/view-count`, { credentials: "include" }).catch(() => null)
+              fetch(`${backendUrl}/startups/${id}/engagement`, { credentials: "include" }).catch(() => null)
             ]);
 
             if (!detailRes.ok) throw new Error("Failed to fetch database details");
             const details = await detailRes.json();
 
-            let likes = 0, bookmarks = 0, views = 0;
-            if (likesRes && likesRes.ok) likes = await likesRes.json();
-            if (bookmarksRes && bookmarksRes.ok) bookmarks = await bookmarksRes.json();
-            if (viewsRes && viewsRes.ok) views = await viewsRes.json();
+            const hasFbLink = Boolean(details.facebook && typeof details.facebook === 'string' && details.facebook.trim() !== '');
+            const fbLinkUrl = hasFbLink ? (details.facebook.startsWith('http') ? details.facebook : 'https://' + details.facebook) : null;
+
+            let engData = {
+              id: id,
+              name: details.companyName || props.name || "Business",
+              facebook: hasFbLink ? details.facebook : null,
+              facebookLikes: 0,
+              startupSphereLikes: 0,
+              totalLikes: 0,
+              views: 0,
+              bookmarks: 0,
+              engagementScore: 0,
+              heatmapColor: "Blue",
+              heatmapColorHex: "#2563eb"
+            };
+
+            if (engagementRes && engagementRes.ok) {
+              const engJson = await engagementRes.json();
+              engData = { ...engData, ...engJson };
+              if (!hasFbLink) {
+                engData.facebook = null;
+                engData.facebookLikes = 0;
+                engData.totalLikes = engData.startupSphereLikes || 0;
+                engData.engagementScore = engData.totalLikes + (engData.views || 0) + (engData.bookmarks || 0);
+              }
+            } else {
+              const fb = hasFbLink ? (details.facebookLikes || 0) : 0;
+              const views = details.viewsCount || 0;
+              engData.facebookLikes = fb;
+              engData.totalLikes = fb;
+              engData.views = views;
+              engData.engagementScore = fb + views;
+            }
 
             // Parse TRL Stage
             let trlValue = 0;
@@ -1124,14 +1161,14 @@ export default function Startupmap({
                 </style>
                 <div class="startup-popup-card">
                   
-                  <!-- Clean Header Matching Photo 3 Engagement Summary -->
+                  <!-- Clean Header: Startup Overview -->
                   <div style="padding: 12px 16px 10px 16px; border-bottom: 1px solid #f1f5f9; background: #ffffff; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 24px;">
                       <div style="display: flex; align-items: center; gap: 6px;">
                         <svg style="width: 16px; height: 16px; color: #2563eb; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                         </svg>
-                        <span style="font-weight: 700; font-size: 14.5px; color: #111827; line-height: 1.25;">Engagement & Startup Summary</span>
+                        <span style="font-weight: 700; font-size: 14.5px; color: #111827; line-height: 1.25;">Startup Overview</span>
                       </div>
                     </div>
                     <div style="font-size: 11.5px; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 1px;">
@@ -1166,18 +1203,36 @@ export default function Startupmap({
                         <span>Ecosystem Analytics</span>
                       </div>
 
-                      <!-- Stat Card 1: Likes (Soft Pink/Rose Card matching Photo 3) -->
+                      <!-- Stat Card 1: StartUpSphere Platform Likes -->
                       <div style="background: #fff1f2; border: 1px solid #ffe4e6; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                           <svg style="width: 15px; height: 15px; color: #e11d48;" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                           </svg>
-                          <span style="font-size: 12px; font-weight: 600; color: #be123c;">Likes</span>
+                          <div>
+                            <div style="font-size: 12px; font-weight: 600; color: #be123c;">${hasFbLink ? "StartUpSphere Likes" : "Likes"}</div>
+                            <div style="font-size: 9.5px; color: #9f1239; font-weight: 500;">${hasFbLink ? `Combined Total: ${engData.totalLikes.toLocaleString()}` : "Platform Likes"}</div>
+                          </div>
                         </div>
-                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${likes.toLocaleString()}</span>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${engData.startupSphereLikes.toLocaleString()}</span>
                       </div>
 
-                      <!-- Stat Card 2: Views (Soft Blue Card matching Photo 3) -->
+                      ${hasFbLink ? `
+                      <!-- Stat Card 1B: Facebook Likes (Shown ONLY if the business provides a facebook link) -->
+                      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <svg style="width: 15px; height: 15px; color: #1877f2; flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                          </svg>
+                          <div style="overflow: hidden;">
+                            <div style="font-size: 12px; font-weight: 600; color: #1e40af;">Facebook Likes</div>
+                            <a href="${fbLinkUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 9.5px; color: #2563eb; text-decoration: underline; font-weight: 500; display: block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Page Link ↗</a>
+                          </div>
+                        </div>
+                        <span style="font-size: 13px; font-weight: 700; color: #1e3a8a;">${(engData.facebookLikes || 0).toLocaleString()}</span>
+                      </div>` : ''}
+
+                      <!-- Stat Card 2: Views -->
                       <div style="background: #eff6ff; border: 1px solid #dbeafe; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                           <svg style="width: 15px; height: 15px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1186,10 +1241,10 @@ export default function Startupmap({
                           </svg>
                           <span style="font-size: 12px; font-weight: 600; color: #1d4ed8;">Views</span>
                         </div>
-                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${views.toLocaleString()}</span>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${engData.views.toLocaleString()}</span>
                       </div>
 
-                      <!-- Stat Card 3: Bookmarks (Soft Purple Card matching Photo 3) -->
+                      <!-- Stat Card 3: Bookmarks -->
                       <div style="background: #faf5ff; border: 1px solid #f3e8ff; border-radius: 10px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                           <svg style="width: 15px; height: 15px; color: #9333ea;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1197,13 +1252,22 @@ export default function Startupmap({
                           </svg>
                           <span style="font-size: 12px; font-weight: 600; color: #7e22ce;">Bookmarks</span>
                         </div>
-                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${bookmarks.toLocaleString()}</span>
+                        <span style="font-size: 13px; font-weight: 700; color: #111827;">${engData.bookmarks.toLocaleString()}</span>
                       </div>
 
-                      <!-- Total Score & TRL Level Section -->
+                      <!-- Total Engagement Score & Heatmap Color -->
                       <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 1px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Total Score</div>
-                        <div style="font-size: 14px; font-weight: 800; color: #4f46e5;">${(likes + views + bookmarks).toLocaleString()}</div>
+                        <div>
+                          <div style="font-size: 10.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Engagement Score</div>
+                          <div style="font-size: 10px; font-weight: 600; color: ${engData.heatmapColorHex}; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${engData.heatmapColorHex};"></span>
+                            <span>Heatmap: ${engData.heatmapColor}</span>
+                          </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                          <div style="font-size: 15px; font-weight: 800; color: #1e293b;">${engData.engagementScore.toLocaleString()}</div>
+                          <button onclick="if(window.__openStartupEngagement){window.__openStartupEngagement(${id});}" style="font-size: 10px; font-weight: 600; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 2px 6px; margin-top: 3px; cursor: pointer;">Engagement Details</button>
+                        </div>
                       </div>
 
                       ${trlValue > 0 ? `
@@ -1510,7 +1574,7 @@ export default function Startupmap({
         }
       });
 
-      const engagementLayers = ["engagement-heatmap-layer", "engagement-click-zone"];
+      const engagementLayers = ["engagement-heatmap-circle", "engagement-heatmap-glow", "engagement-click-zone", "engagement-heatmap-layer"];
       engagementLayers.forEach((layerId) => {
         if (map.getLayer(layerId)) {
           try {
@@ -1542,7 +1606,7 @@ export default function Startupmap({
     if (!map || !map.isStyleLoaded()) return;
 
     const trlLayers = ["startups-heatmap", "startups-zone-core", "startups-zone-count", "startups-unclustered-core"];
-    const engagementLayers = ["engagement-heatmap-layer", "engagement-click-zone"];
+    const engagementLayers = ["engagement-heatmap-circle", "engagement-heatmap-glow", "engagement-click-zone", "engagement-heatmap-layer"];
 
     trlLayers.forEach(layer => {
       if (map.getLayer(layer)) {
@@ -4008,10 +4072,10 @@ export default function Startupmap({
           className="absolute top-16 md:top-16 right-3 md:right-4 z-30 w-[min(295px,calc(100%-24px))] max-h-[calc(100%-150px)] overflow-y-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-gray-200/90 text-gray-800 transition-all duration-300"
         >
           {/* Header with Mode Segment Control & Minimize Button */}
-          <div className="flex items-center justify-between gap-2 mb-2.5 pb-2 border-b border-gray-100">
-            <div className="flex items-center gap-1 min-w-0">
+          <div className="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[11px] font-bold tracking-tight text-gray-800 uppercase whitespace-nowrap">
-                Heatmap Legend
+                Legend
               </span>
               <TooltipInfo type="TRL" size="xs" />
             </div>
@@ -4090,27 +4154,54 @@ export default function Startupmap({
             </div>
           ) : (
             <div className="space-y-2">
-              <div
-                className="h-2 w-full rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 shadow-inner"
-                style={{
-                  background: "linear-gradient(90deg, #60a5fa 0%, #a855f7 50%, #ef4444 100%)",
-                }}
-              ></div>
+              {/* Requirement 5: One solid color per business based on score */}
+              <div className="flex h-2 w-full rounded-full overflow-hidden shadow-inner">
+                <span className="flex-1 bg-[#2563eb]" title="Blue: Score 0"></span>
+                <span className="flex-1 bg-[#06b6d4]" title="Cyan: Score 1–10"></span>
+                <span className="flex-1 bg-[#eab308]" title="Yellow: Score 11–20"></span>
+                <span className="flex-1 bg-[#f97316]" title="Orange: Score 21–30"></span>
+                <span className="flex-1 bg-[#ef4444]" title="Red: Score 31+"></span>
+              </div>
               <div className="space-y-1.5 text-[11px]">
                 <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#ef4444] shrink-0"></span>
                   <div>
-                    <span className="font-bold text-gray-900">Red (High):</span>{" "}
-                    <span className="text-gray-600">Score 15+: Active engagement zone</span>
+                    <span className="font-bold text-gray-900">Red:</span>{" "}
+                    <span className="text-gray-600">Score 31 and above</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-blue-400 shrink-0"></span>
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#f97316] shrink-0"></span>
                   <div>
-                    <span className="font-bold text-gray-900">Blue (Low):</span>{" "}
-                    <span className="text-gray-600">Score 0-14: Quiet/Developing area</span>
+                    <span className="font-bold text-gray-900">Orange:</span>{" "}
+                    <span className="text-gray-600">Score 21–30</span>
                   </div>
                 </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#eab308] shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Yellow:</span>{" "}
+                    <span className="text-gray-600">Score 11–20</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#06b6d4] shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Cyan:</span>{" "}
+                    <span className="text-gray-600">Score 1–10</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#2563eb] shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-gray-900">Blue:</span>{" "}
+                    <span className="text-gray-600">Score 0</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-1.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                <span>Opacity: 60%</span>
+                <span>Constant Size</span>
               </div>
             </div>
           )}

@@ -5,11 +5,17 @@ import org.springframework.stereotype.Repository;
 
 import com.startupsphere.capstone.entity.User;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends CrudRepository<User, Integer> {
     Optional<User> findByEmail(String email);
+    Optional<User> findFirstByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
+    Optional<User> findFirstByEmailIgnoreCase(String email);
+    List<User> findAllByEmailIgnoreCase(String email);
+    List<User> findAllByEmail(String email);
     long countByRole(String role);
     long countByRoleNot(String role);
 }
