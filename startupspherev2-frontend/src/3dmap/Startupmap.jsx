@@ -788,12 +788,15 @@ export default function Startupmap({
 
 
 
-      // Clean up gradient / glare layers if they exist
+      // Clean up gradient / glare / glow layers if they exist
       [
         "startups-zone-gradients",
         "startups-unclustered-gradient",
         "startups-heatmap",
-        "startups-true-heatmap"
+        "startups-true-heatmap",
+        "startups-zone-glow",
+        "startups-unclustered-glow",
+        "startups-unclustered-center"
       ].forEach((layerName) => {
         if (map.getLayer(layerName)) {
           try { map.removeLayer(layerName); } catch (e) { }
@@ -807,40 +810,16 @@ export default function Startupmap({
         }
       });
 
-      // Add circles with soft green feathered outer edges (matching reference heatmap style)
+      // Add solid circles for distinct color zones per area (glare removed, solid circle only)
       if (!map.getLayer("startups-zone-core")) {
-        // Soft feathered green outer edge for cluster hotspots
-        map.addLayer({
-          id: "startups-zone-glow",
-          type: "circle",
-          source: sourceId,
-          filter: ["has", "point_count"],
-          layout: {
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
-          },
-          paint: {
-            "circle-color": "#22c55e",
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              36,
-              4, 46,
-              10, 56,
-              21, 66
-            ],
-            "circle-blur": 0.70,
-            "circle-opacity": 0.75
-          }
-        }, layerId);
-
-        // Core for cluster hotspots maintaining TRL colors (1=Green, 2=Yellow, 3=Red) with soft blend into green edge
+        // Solid core for cluster hotspots (applies to all 3 TRL levels: 1=Green, 2=Yellow, 3=Red)
         map.addLayer({
           id: "startups-zone-core",
           type: "circle",
           source: sourceId,
           filter: ["has", "point_count"],
           layout: {
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "circle-color": [
@@ -859,9 +838,10 @@ export default function Startupmap({
               10, 25,
               21, 30
             ],
-            "circle-blur": 0.45,
-            "circle-opacity": 0.85,
-            "circle-stroke-width": 0
+            "circle-blur": 0,
+            "circle-opacity": 1.0,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff"
           }
         }, layerId);
 
@@ -875,47 +855,21 @@ export default function Startupmap({
             "text-field": "{point_count_abbreviated}",
             "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
             "text-size": 14,
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "text-color": "#ffffff"
           }
         });
 
-        // Soft feathered green outer edge per business location
-        map.addLayer({
-          id: "startups-unclustered-glow",
-          type: "circle",
-          source: sourceId,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
-          },
-          paint: {
-            "circle-color": "#22c55e",
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              3, 18,
-              8, 24,
-              12, 34,
-              16, 40
-            ],
-            "circle-blur": 0.70,
-            "circle-opacity": 0.75,
-            "circle-pitch-alignment": "map"
-          }
-        }, layerId);
-
-        // Circle per business location maintaining TRL colors and blending softly into the green outer edge
+        // Static solid circle per business location (never clusters or mixes when zooming in/out)
         map.addLayer({
           id: "startups-unclustered-core",
           type: "circle",
           source: sourceId,
           filter: ["!", ["has", "point_count"]],
           layout: {
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
+            visibility: showHeatmap ? "visible" : "none"
           },
           paint: {
             "circle-color": [
@@ -930,37 +884,12 @@ export default function Startupmap({
               "interpolate",
               ["linear"],
               ["zoom"],
-              3, 7,
-              8, 10,
-              12, 14,
-              16, 16
+              3, 5,
+              8, 7,
+              12, 10,
+              16, 12
             ],
-            "circle-blur": 0.45,
-            "circle-opacity": 0.85,
-            "circle-stroke-width": 0,
-            "circle-pitch-alignment": "map"
-          }
-        }, layerId);
-
-        // Crisp center dot with white ring at the heart of each TRL circle
-        map.addLayer({
-          id: "startups-unclustered-center",
-          type: "circle",
-          source: sourceId,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            visibility: showHeatmap && heatmapModeRef.current === "TRL" ? "visible" : "none"
-          },
-          paint: {
-            "circle-color": [
-              "match",
-              ["get", "colorClass"],
-              1, "#16a34a",
-              2, "#ca8a04",
-              3, "#dc2626",
-              "#16a34a"
-            ],
-            "circle-radius": 3.5,
+            "circle-blur": 0,
             "circle-opacity": 0.95,
             "circle-stroke-width": 1.5,
             "circle-stroke-color": "#ffffff",
@@ -1004,34 +933,6 @@ export default function Startupmap({
           setupClusterLayerEvents('startups-zone-core');
           setupClusterLayerEvents('startups-zone-count');
         }
-      } else {
-        try {
-          if (map.getLayer("startups-zone-glow")) {
-            map.setPaintProperty("startups-zone-glow", "circle-radius", [
-              "step",
-              ["get", "point_count"],
-              36,
-              4, 46,
-              10, 56,
-              21, 66
-            ]);
-            map.setPaintProperty("startups-zone-glow", "circle-blur", 0.70);
-            map.setPaintProperty("startups-zone-glow", "circle-opacity", 0.75);
-          }
-          if (map.getLayer("startups-unclustered-glow")) {
-            map.setPaintProperty("startups-unclustered-glow", "circle-radius", [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              3, 18,
-              8, 24,
-              12, 34,
-              16, 40
-            ]);
-            map.setPaintProperty("startups-unclustered-glow", "circle-blur", 0.70);
-            map.setPaintProperty("startups-unclustered-glow", "circle-opacity", 0.75);
-          }
-        } catch (e) { }
       }
 
       if (!map.getLayer(highlightLayerId)) {
@@ -1696,7 +1597,7 @@ export default function Startupmap({
       const isTrl = heatmapModeRef.current === "TRL";
       const isEngagement = heatmapModeRef.current === "ENGAGEMENT";
 
-      const trlLayers = ["startups-zone-glow", "startups-zone-core", "startups-zone-count", "startups-unclustered-glow", "startups-unclustered-core", "startups-unclustered-center"];
+      const trlLayers = ["startups-zone-core", "startups-zone-count", "startups-unclustered-core"];
       trlLayers.forEach((layerId) => {
         if (map.getLayer(layerId)) {
           try {
@@ -1736,7 +1637,7 @@ export default function Startupmap({
     const map = mapInstanceRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    const trlLayers = ["startups-heatmap", "startups-zone-glow", "startups-zone-core", "startups-zone-count", "startups-unclustered-glow", "startups-unclustered-core", "startups-unclustered-center"];
+    const trlLayers = ["startups-heatmap", "startups-zone-core", "startups-zone-count", "startups-unclustered-core"];
     const engagementLayers = ["engagement-heatmap-circle", "engagement-heatmap-glow", "engagement-heatmap-center", "engagement-click-zone", "engagement-heatmap-layer"];
 
     trlLayers.forEach(layer => {
@@ -3986,15 +3887,13 @@ export default function Startupmap({
         if (map.getLayer(layerId)) {
           map.setFilter(layerId, filterExpr);
         }
-        const coreFilter =
-          conditions.length === 0
-            ? ["!", ["has", "point_count"]]
-            : ["all", ["!", ["has", "point_count"]], ...conditions];
-        ["startups-unclustered-glow", "startups-unclustered-core", "startups-unclustered-center"].forEach((id) => {
-          if (map.getLayer(id)) {
-            map.setFilter(id, coreFilter);
-          }
-        });
+        if (map.getLayer(coreLayerId)) {
+          const coreFilter =
+            conditions.length === 0
+              ? ["!", ["has", "point_count"]]
+              : ["all", ["!", ["has", "point_count"]], ...conditions];
+          map.setFilter(coreLayerId, coreFilter);
+        }
       } catch (e) {
         console.warn("Could not apply layer filters yet", e);
       }
