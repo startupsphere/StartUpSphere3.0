@@ -611,18 +611,18 @@ export default function Startupmap({
         layout: { visibility: isVisible },
         paint: {
           // Requirement 8: Constant pixel-based size across all zoom levels
-          "circle-radius": 30,
+          "circle-radius": 44,
           "circle-color": "#22c55e",
-          "circle-opacity": 0.65,
-          "circle-blur": 0.75
+          "circle-opacity": 0.75,
+          "circle-blur": 0.70
         }
       });
     } else {
       try {
-        map.setPaintProperty("engagement-heatmap-glow", "circle-radius", 30);
+        map.setPaintProperty("engagement-heatmap-glow", "circle-radius", 44);
         map.setPaintProperty("engagement-heatmap-glow", "circle-color", "#22c55e");
-        map.setPaintProperty("engagement-heatmap-glow", "circle-opacity", 0.65);
-        map.setPaintProperty("engagement-heatmap-glow", "circle-blur", 0.75);
+        map.setPaintProperty("engagement-heatmap-glow", "circle-opacity", 0.75);
+        map.setPaintProperty("engagement-heatmap-glow", "circle-blur", 0.70);
       } catch (e) { }
     }
 
@@ -823,13 +823,13 @@ export default function Startupmap({
             "circle-radius": [
               "step",
               ["get", "point_count"],
-              24,
-              4, 32,
-              10, 40,
-              21, 48
+              36,
+              4, 46,
+              10, 56,
+              21, 66
             ],
-            "circle-blur": 0.75,
-            "circle-opacity": 0.65
+            "circle-blur": 0.70,
+            "circle-opacity": 0.75
           }
         }, layerId);
 
@@ -897,13 +897,13 @@ export default function Startupmap({
               "interpolate",
               ["linear"],
               ["zoom"],
-              3, 12,
-              8, 16,
-              12, 22,
-              16, 26
+              3, 18,
+              8, 24,
+              12, 34,
+              16, 40
             ],
-            "circle-blur": 0.75,
-            "circle-opacity": 0.65,
+            "circle-blur": 0.70,
+            "circle-opacity": 0.75,
             "circle-pitch-alignment": "map"
           }
         }, layerId);
@@ -1004,6 +1004,34 @@ export default function Startupmap({
           setupClusterLayerEvents('startups-zone-core');
           setupClusterLayerEvents('startups-zone-count');
         }
+      } else {
+        try {
+          if (map.getLayer("startups-zone-glow")) {
+            map.setPaintProperty("startups-zone-glow", "circle-radius", [
+              "step",
+              ["get", "point_count"],
+              36,
+              4, 46,
+              10, 56,
+              21, 66
+            ]);
+            map.setPaintProperty("startups-zone-glow", "circle-blur", 0.70);
+            map.setPaintProperty("startups-zone-glow", "circle-opacity", 0.75);
+          }
+          if (map.getLayer("startups-unclustered-glow")) {
+            map.setPaintProperty("startups-unclustered-glow", "circle-radius", [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              3, 18,
+              8, 24,
+              12, 34,
+              16, 40
+            ]);
+            map.setPaintProperty("startups-unclustered-glow", "circle-blur", 0.70);
+            map.setPaintProperty("startups-unclustered-glow", "circle-opacity", 0.75);
+          }
+        } catch (e) { }
       }
 
       if (!map.getLayer(highlightLayerId)) {
