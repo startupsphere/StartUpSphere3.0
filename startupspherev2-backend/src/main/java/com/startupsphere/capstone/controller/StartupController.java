@@ -9,7 +9,7 @@ import com.startupsphere.capstone.responses.SuccessResponse;
 import com.startupsphere.capstone.service.NotificationService;
 import com.startupsphere.capstone.service.StartupService;
 
-import io.jsonwebtoken.io.IOException;
+import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,15 +197,9 @@ public class StartupController {
 
     @PutMapping("/{id:[0-9]+}/increment-views")
     public ResponseEntity<Integer> incrementViews(@PathVariable Long id) {
-        Optional<Startup> optionalStartup = startupRepository.findById(id);
-        if (optionalStartup.isPresent()) {
-            Startup startup = optionalStartup.get();
-            startup.setViewsCount(startup.getViewsCount() + 1);
-            startupRepository.save(startup);
-            return ResponseEntity.ok(startup.getViewsCount());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return startupService.incrementViews(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{startupId:[0-9]+}/upload-csv")
@@ -1015,7 +1009,7 @@ public class StartupController {
             // Save all valid startups in batch
             if (!startups.isEmpty()) {
                 try {
-                    List<Startup> savedStartups = startupRepository.saveAll(startups);
+                    List<Startup> savedStartups = startupService.saveAllStartups(startups);
                     logger.info("Successfully saved {} startups from CSV upload", savedStartups.size());
                     
                     // Log sample of saved data for verification (first startup only)

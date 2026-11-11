@@ -47,6 +47,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/notifications", "/notifications/**").permitAll()
                         .requestMatchers("/users", "/users/**").permitAll()
                         .requestMatchers("/api/bookmarks", "/api/bookmarks/**").permitAll()
+                        .requestMatchers("/api/views", "/api/views/**").permitAll()
+                        .requestMatchers("/api/social", "/api/social/**").permitAll()
                         .anyRequest().permitAll())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

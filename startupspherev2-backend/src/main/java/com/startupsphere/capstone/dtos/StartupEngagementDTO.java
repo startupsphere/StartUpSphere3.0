@@ -117,7 +117,8 @@ public class StartupEngagementDTO {
     }
 
     public void setFacebookLikes(int facebookLikes) {
-        this.facebookLikes = facebookLikes;
+        boolean hasFbLink = this.facebook != null && !this.facebook.trim().isEmpty();
+        this.facebookLikes = hasFbLink ? facebookLikes : 0;
         recalculate();
     }
 
@@ -181,24 +182,13 @@ public class StartupEngagementDTO {
     }
 
     private void recalculate() {
+        boolean hasFbLink = this.facebook != null && !this.facebook.trim().isEmpty();
+        if (!hasFbLink) {
+            this.facebookLikes = 0;
+        }
         this.totalLikes = (long) this.facebookLikes + this.startupSphereLikes;
         this.engagementScore = this.totalLikes + this.views + this.bookmarks;
-        if (this.engagementScore == 0) {
-            this.heatmapColor = "Blue";
-            this.heatmapColorHex = "#2563eb";
-        } else if (this.engagementScore <= 10) {
-            this.heatmapColor = "Cyan";
-            this.heatmapColorHex = "#06b6d4";
-        } else if (this.engagementScore <= 20) {
-            this.heatmapColor = "Yellow";
-            this.heatmapColorHex = "#eab308";
-        } else if (this.engagementScore <= 30) {
-            this.heatmapColor = "Orange";
-            this.heatmapColorHex = "#f97316";
-        } else {
-            this.heatmapColor = "Red";
-            this.heatmapColorHex = "#ef4444";
-        }
+        updateColorClassification();
     }
 }
 

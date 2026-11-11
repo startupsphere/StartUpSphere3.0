@@ -560,6 +560,7 @@ export default function Startupmap({
       properties: {
         id: s.id,
         name: s.name || s.companyName || "Business",
+        facebook: s.facebook || "",
         facebookLikes: s.facebookLikes || 0,
         startupSphereLikes: s.startupSphereLikes || 0,
         totalLikes: s.totalLikes != null ? s.totalLikes : ((s.facebookLikes || 0) + (s.startupSphereLikes || 0)),
@@ -649,6 +650,7 @@ export default function Startupmap({
           id: props.id,
           name: props.name || "Business",
           businessName: props.name || "Business",
+          facebook: props.facebook || null,
           totalLikes: Number(props.totalLikes) || 0,
           facebookLikes: Number(props.facebookLikes) || 0,
           startupSphereLikes: Number(props.startupSphereLikes) || 0,

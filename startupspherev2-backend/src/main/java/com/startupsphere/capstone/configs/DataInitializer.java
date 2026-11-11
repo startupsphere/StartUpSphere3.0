@@ -54,7 +54,9 @@ public class DataInitializer {
             }
 
             // Check if an admin account already exists
-            if (userRepository.findByEmail(adminEmail).isEmpty()) {
+            if (userRepository.findFirstByEmailIgnoreCase(adminEmail)
+                    .or(() -> userRepository.findFirstByEmail(adminEmail))
+                    .isEmpty()) {
                 User admin = new User()
                         .setFirstname("Admin")
                         .setLastname("User")

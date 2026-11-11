@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,6 @@ import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/social")
-@CrossOrigin(origins = "*")
 public class SocialEngagementController {
 
     private static final Logger logger = LoggerFactory.getLogger(SocialEngagementController.class);
@@ -212,6 +212,7 @@ public class SocialEngagementController {
     }
 
     @PostMapping("/sync/{startupId:[0-9]+}")
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
     public ResponseEntity<Map<String, Object>> syncStartupSocial(@PathVariable Long startupId) {
         Optional<Startup> opt = startupRepository.findById(startupId);
         if (opt.isEmpty()) {

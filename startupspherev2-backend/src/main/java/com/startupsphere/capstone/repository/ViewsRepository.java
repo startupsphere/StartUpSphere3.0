@@ -45,4 +45,9 @@ public interface ViewsRepository extends JpaRepository<Views, Long> {
                         "GROUP BY MONTH(v.timestamp) " +
                         "ORDER BY MONTH(v.timestamp)")
         List<Object[]> countViewsGroupedByMonthForUserOwnedStartups(@Param("userId") Integer userId);
+
+        long countByStartup_Id(Long startupId);
+
+        @Query("SELECT v.startup.id, COUNT(v) FROM Views v WHERE v.startup.id IS NOT NULL GROUP BY v.startup.id")
+        List<Object[]> countViewsGroupedByStartup();
 }

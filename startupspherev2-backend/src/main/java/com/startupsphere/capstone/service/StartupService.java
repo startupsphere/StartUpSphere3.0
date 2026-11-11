@@ -137,7 +137,9 @@ public class StartupService {
                     startup.setContactEmail(updatedStartup.getContactEmail());
                     startup.setStreetAddress(updatedStartup.getStreetAddress());
                     startup.setCity(updatedStartup.getCity());
-                    startup.setStatus(updatedStartup.getStatus());
+                    if (updatedStartup.getStatus() != null && !updatedStartup.getStatus().trim().isEmpty()) {
+                        startup.setStatus(updatedStartup.getStatus());
+                    }
                     startup.setProvince(updatedStartup.getProvince());
                     startup.setPostalCode(updatedStartup.getPostalCode());
                     startup.setIndustry(updatedStartup.getIndustry());
@@ -176,9 +178,15 @@ public class StartupService {
                     startup.setNumberOfMentorsOrAdvisorsInvolved(updatedStartup.getNumberOfMentorsOrAdvisorsInvolved());
                     startup.setPublicPrivatePartnershipsInvolvingStartups(
                             updatedStartup.getPublicPrivatePartnershipsInvolvingStartups());
-                    startup.setVerificationCode(updatedStartup.getVerificationCode());
-                    startup.setVerificationCodeExpiresAt(updatedStartup.getVerificationCodeExpiresAt());
-                    startup.setEmailVerified(updatedStartup.getEmailVerified());
+                    if (updatedStartup.getVerificationCode() != null) {
+                        startup.setVerificationCode(updatedStartup.getVerificationCode());
+                    }
+                    if (updatedStartup.getVerificationCodeExpiresAt() != null) {
+                        startup.setVerificationCodeExpiresAt(updatedStartup.getVerificationCodeExpiresAt());
+                    }
+                    if (Boolean.TRUE.equals(updatedStartup.getEmailVerified())) {
+                        startup.setEmailVerified(true);
+                    }
                     startup.setTrlLevel(updatedStartup.getTrlLevel());
                     startup.setVerifiedCredentials(updatedStartup.getVerifiedCredentials());
                     startup.setHasSupports(updatedStartup.getHasSupports());
@@ -574,6 +582,23 @@ public class StartupService {
         return startupRepository.findAllApprovedStartups();
     }
 
+    @Transactional
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
+    public Optional<Integer> incrementViews(Long id) {
+        return startupRepository.findById(id).map(startup -> {
+            int currentViews = startup.getViewsCount() != null ? startup.getViewsCount() : 0;
+            startup.setViewsCount(currentViews + 1);
+            startupRepository.save(startup);
+            return startup.getViewsCount();
+        });
+    }
+
+    @Transactional
+    @CacheEvict(value = {"startups", "startupById", "approvedStartups", "submittedStartups", "emailVerifiedStartups", "searchStartups", "filteredStartups"}, allEntries = true)
+    public List<Startup> saveAllStartups(List<Startup> startups) {
+        return startupRepository.saveAll(startups);
+    }
+
     /**
      * Compute individual engagement summary data for all approved businesses.
      * Each business has its own score, solid color, and metrics based on registered coordinates.
@@ -609,6 +634,20 @@ public class StartupService {
             logger.warn("Could not query grouped bookmarks: {}", e.getMessage());
         }
 
+        Map<Long, Long> viewCounts = new HashMap<>();
+        try {
+            List<Object[]> viewsGrouped = viewsRepository.countViewsGroupedByStartup();
+            if (viewsGrouped != null) {
+                for (Object[] row : viewsGrouped) {
+                    if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                        viewCounts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not query grouped views: {}", e.getMessage());
+        }
+
         List<StartupEngagementDTO> result = new ArrayList<>();
         for (Startup s : approvedStartups) {
             if (s.getLocationLat() == null || s.getLocationLng() == null) continue;
@@ -617,7 +656,9 @@ public class StartupService {
             boolean hasFbLink = fbLink != null && !fbLink.trim().isEmpty();
             int fbLikes = (hasFbLink && s.getFacebookLikes() != null) ? s.getFacebookLikes() : 0;
             long ssLikes = likeCounts.getOrDefault(s.getId(), 0L);
-            int views = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            int columnViews = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            int tableViews = viewCounts.getOrDefault(s.getId(), 0L).intValue();
+            int views = Math.max(columnViews, tableViews);
             long bookmarks = bookmarkCounts.getOrDefault(s.getId(), 0L);
 
             result.add(new StartupEngagementDTO(
@@ -645,7 +686,9 @@ public class StartupService {
             boolean hasFbLink = fbLink != null && !fbLink.trim().isEmpty();
             int fbLikes = (hasFbLink && s.getFacebookLikes() != null) ? s.getFacebookLikes() : 0;
             long ssLikes = likeRepository.countByStartupId(startupId);
-            int views = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            int columnViews = s.getViewsCount() != null ? s.getViewsCount() : 0;
+            int tableViews = (int) viewsRepository.countByStartup_Id(startupId);
+            int views = Math.max(columnViews, tableViews);
             long bookmarks = bookmarksRepository.countByStartup_Id(startupId);
 
             return new StartupEngagementDTO(
