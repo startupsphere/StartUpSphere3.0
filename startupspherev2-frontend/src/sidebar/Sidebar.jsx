@@ -15,7 +15,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award, Sparkles, User } from "lucide-react";
+import { Award, Sparkles, User, RotateCcw } from "lucide-react";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone, FaFacebook } from "react-icons/fa";
@@ -158,7 +158,7 @@ export default function Sidebar({
   const [showRecents, setShowRecents] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [notificationActiveIndex, setNotificationActiveIndex] = useState("All");
-  const [filters, setFilters] = useState({
+  const initialFilters = {
     startups: {
       query: "",
       searchField: "All",
@@ -175,7 +175,58 @@ export default function Sidebar({
       searchField: "All",
       actorType: "All",
     },
-  });
+  };
+  const [filters, setFilters] = useState(initialFilters);
+
+  const resetAllFilters = () => {
+    setFilters(initialFilters);
+    if (mapInstanceRef && mapInstanceRef.current) {
+      try {
+        const map = mapInstanceRef.current;
+        if (map.isStyleLoaded() && map.getLayer("startups-layer")) {
+          map.setFilter("startups-layer", ["==", "id", ""]);
+        }
+      } catch (e) {}
+    }
+  };
+
+  const isFilterActive =
+    viewingType === "startups"
+      ? Boolean(
+          (filters.startups.query && filters.startups.query.trim() !== "") ||
+          (filters.startups.actorType && filters.startups.actorType !== "All") ||
+          (filters.startups.searchField && filters.startups.searchField !== "All") ||
+          (filters.startups.industry && filters.startups.industry !== "" && filters.startups.industry !== "All") ||
+          (filters.startups.govReg && filters.startups.govReg !== "All")
+        )
+      : Boolean(
+          (filters.stakeholders.query && filters.stakeholders.query.trim() !== "") ||
+          (filters.stakeholders.actorType && filters.stakeholders.actorType !== "All") ||
+          (filters.stakeholders.searchField && filters.stakeholders.searchField !== "All")
+        );
+
+  const handleCloseBrowseDirectory = () => {
+    resetAllFilters();
+    if (mapInstanceRef && mapInstanceRef.current) {
+      try {
+        const map = mapInstanceRef.current;
+        if (map.isStyleLoaded() && map.getLayer("startups-layer")) {
+          map.setFilter("startups-layer", ["==", "id", ""]);
+        }
+      } catch (e) {}
+    }
+    const container = document.querySelector(".animate-slide-in");
+    if (container) {
+      container.classList.add("animate-slide-out");
+      setTimeout(() => {
+        setShowSearchContainer(false);
+        setContainerMode(null);
+      }, 300);
+    } else {
+      setShowSearchContainer(false);
+      setContainerMode(null);
+    }
+  };
   const [startups, setStartups] = useState([]);
   const [notificationsCount, setNotificationsCount] = useState(null);
   const [notifications, setNotifications] = useState([]);
@@ -1833,8 +1884,7 @@ export default function Sidebar({
                       setViewingStartup(null);
                       setViewingStakeholder(null);
                       if (showSearchContainer && (containerMode === "search" || !containerMode)) {
-                        setShowSearchContainer(false);
-                        setContainerMode(null);
+                        handleCloseBrowseDirectory();
                       } else {
                         setContainerMode("search");
                         setShowSearchContainer(true);
@@ -2833,19 +2883,7 @@ export default function Sidebar({
 
               <button
                 className="h-7 w-7 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition-all duration-150 focus:outline-none border border-white/20 cursor-pointer shadow-xs"
-                onClick={() => {
-                  const container = document.querySelector(".animate-slide-in");
-                  if (container) {
-                    container.classList.add("animate-slide-out");
-                    setTimeout(() => {
-                      setShowSearchContainer(false);
-                      setContainerMode(null);
-                    }, 300);
-                  } else {
-                    setShowSearchContainer(false);
-                    setContainerMode(null);
-                  }
-                }}
+                onClick={handleCloseBrowseDirectory}
                 aria-label="Close"
               >
                 <MdClose className="h-4 w-4" />
@@ -3080,7 +3118,7 @@ export default function Sidebar({
 
           {/* Results Status Subheader */}
           <div className="px-4 py-2 bg-gray-50/90 border-b border-gray-100 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
-            <span>
+            <span className="font-medium text-slate-600">
               {viewingType === "startups" ? (
                 startups ? (
                   `${applyFilters(startups).length} innovation${
@@ -3100,37 +3138,20 @@ export default function Sidebar({
               )}
             </span>
 
-            {/* Clear filters shortcut if any filter is set */}
-            {Boolean(
-              (viewingType === "startups" &&
-                (filters.startups.query ||
-                  filters.startups.actorType !== "All" ||
-                  filters.startups.searchField !== "All" ||
-                  (filters.startups.industry && filters.startups.industry !== "" && filters.startups.industry !== "All") ||
-                  (filters.startups.govReg && filters.startups.govReg !== "All"))) ||
-                (viewingType === "stakeholders" &&
-                  (filters.stakeholders.query ||
-                    filters.stakeholders.searchField !== "All"))
-            ) && (
-              <button
-                onClick={() => {
-                  setFilters((prev) => ({
-                    ...prev,
-                    [viewingType]: {
-                      ...prev[viewingType],
-                      query: "",
-                      actorType: "All",
-                      searchField: "All",
-                      industry: "",
-                      govReg: "All",
-                    },
-                  }));
-                }}
-                className="text-blue-600 hover:text-blue-800 font-medium hover:underline text-[11px] cursor-pointer"
-              >
-                Reset filters
-              </button>
-            )}
+            {/* Clear Filter button that resets to original state */}
+            <button
+              onClick={resetAllFilters}
+              disabled={!isFilterActive}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all duration-150 ${
+                isFilterActive
+                  ? "text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 active:scale-95 cursor-pointer shadow-xs"
+                  : "text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed opacity-50"
+              }`}
+              title={isFilterActive ? "Reset all filters to original state" : "Filters are at default state"}
+            >
+              <RotateCcw className={`w-3 h-3 ${isFilterActive ? "text-blue-600" : "text-gray-400"}`} />
+              <span>Clear Filter</span>
+            </button>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 pb-32 overscroll-contain">
@@ -3231,18 +3252,7 @@ export default function Sidebar({
                       Try adjusting your keywords or clearing current filters.
                     </p>
                     <button
-                      onClick={() => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          startups: {
-                            ...prev.startups,
-                            query: "",
-                            actorType: "All",
-                            searchField: "All",
-                          },
-                        }));
-                        fetchStartups();
-                      }}
+                      onClick={resetAllFilters}
                       className="px-3.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
                     >
                       Clear search & filters
@@ -3288,16 +3298,7 @@ export default function Sidebar({
                     Try different keywords or search in all fields.
                   </p>
                   <button
-                    onClick={() => {
-                      setFilters((prev) => ({
-                        ...prev,
-                        stakeholders: {
-                          ...prev.stakeholders,
-                          query: "",
-                          searchField: "All",
-                        },
-                      }));
-                    }}
+                    onClick={resetAllFilters}
                     className="px-3.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
                   >
                     Clear search & filters
@@ -4607,6 +4608,8 @@ export default function Sidebar({
             context={{
               activeActorType: filters.startups.actorType,
               activeIndustry: filters.startups.industry || "All",
+              isBrowseDirectoryOpen: showSearchContainer,
+              selectedStartupId: startup?.id || null,
               isSidebarExpanded: Boolean(hasLeftPanel384 || hasLeftPanel420),
               isAiOpen: Boolean(showGeminiAi),
             }}

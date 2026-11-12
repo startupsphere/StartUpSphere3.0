@@ -48,6 +48,8 @@ export default function Startupmap({
   const context = useOutletContext();
   const activeActorType = context?.activeActorType || "All";
   const activeIndustry = context?.activeIndustry || "All";
+  const isBrowseDirectoryOpen = Boolean(context?.isBrowseDirectoryOpen);
+  const selectedStartupId = context?.selectedStartupId || null;
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(
@@ -3870,28 +3872,32 @@ export default function Startupmap({
         const coreLayerId = "startups-unclustered-core";
         const conditions = [];
 
-        if (activeActorType && activeActorType !== "All") {
-          conditions.push(["==", ["get", "role"], activeActorType]);
-        }
-        if (activeIndustry && activeIndustry !== "All" && activeIndustry !== "") {
-          conditions.push(["==", ["get", "industry"], activeIndustry]);
+        if (isBrowseDirectoryOpen) {
+          if (activeActorType && activeActorType !== "All") {
+            conditions.push(["==", ["get", "role"], activeActorType]);
+          }
+          if (activeIndustry && activeIndustry !== "All" && activeIndustry !== "") {
+            conditions.push(["==", ["get", "industry"], activeIndustry]);
+          }
         }
 
-        const filterExpr =
-          conditions.length === 0
-            ? null
-            : conditions.length === 1
-            ? conditions[0]
-            : ["all", ...conditions];
+        let filterExpr;
+        if (isBrowseDirectoryOpen && conditions.length > 0) {
+          filterExpr = conditions.length === 1 ? conditions[0] : ["all", ...conditions];
+        } else if (selectedStartupId) {
+          filterExpr = ["==", "id", selectedStartupId];
+        } else {
+          filterExpr = ["==", "id", ""];
+        }
 
         if (map.getLayer(layerId)) {
           map.setFilter(layerId, filterExpr);
         }
         if (map.getLayer(coreLayerId)) {
           const coreFilter =
-            conditions.length === 0
-              ? ["!", ["has", "point_count"]]
-              : ["all", ["!", ["has", "point_count"]], ...conditions];
+            isBrowseDirectoryOpen && conditions.length > 0
+              ? ["all", ["!", ["has", "point_count"]], ...conditions]
+              : ["!", ["has", "point_count"]];
           map.setFilter(coreLayerId, coreFilter);
         }
       } catch (e) {
@@ -3905,7 +3911,7 @@ export default function Startupmap({
     } else {
       map.once('styledata', applyFiltersToMap);
     }
-  }, [activeActorType, activeIndustry, mapInstanceRef]);
+  }, [activeActorType, activeIndustry, isBrowseDirectoryOpen, selectedStartupId, mapInstanceRef]);
 
   return (
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
