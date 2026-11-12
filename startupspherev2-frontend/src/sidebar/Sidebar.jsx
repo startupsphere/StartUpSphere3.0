@@ -2035,7 +2035,9 @@ export default function Sidebar({
                     {/* Dashboard Icon */}
                     <li className="flex justify-center relative">
                       {(location.pathname === "/startup-dashboard" ||
-                        (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard")) && (
+                        (currentUser?.role === "ROLE_ADMIN" &&
+                          location.pathname === "/all-startup-dashboard" &&
+                          location.state?.activeTab !== "rankings")) && (
                         <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                       )}
                       <button
@@ -2047,14 +2049,23 @@ export default function Sidebar({
                           if (!isAuthenticated) {
                             setOpenLogin(true);
                           } else if (currentUser?.role === "ROLE_ADMIN") {
-                            navigate("/all-startup-dashboard");
+                            window.dispatchEvent(
+                              new CustomEvent("switch-startup-dashboard-tab", {
+                                detail: { tab: "overview" },
+                              })
+                            );
+                            navigate("/all-startup-dashboard", {
+                              state: { activeTab: "overview" },
+                            });
                           } else {
                             navigate("/startup-dashboard");
                           }
                         }}
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                          (location.pathname === "/startup-dashboard" ||
-                            (currentUser?.role === "ROLE_ADMIN" && location.pathname === "/all-startup-dashboard"))
+                          location.pathname === "/startup-dashboard" ||
+                          (currentUser?.role === "ROLE_ADMIN" &&
+                            location.pathname === "/all-startup-dashboard" &&
+                            location.state?.activeTab !== "rankings")
                             ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                             : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                         }`}
@@ -2072,23 +2083,34 @@ export default function Sidebar({
 
                     {/* All Startups Icon */}
                     <li className="flex justify-center relative">
-                      {location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN" && (
-                        <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                      )}
+                      {location.pathname === "/all-startup-dashboard" &&
+                        (currentUser?.role !== "ROLE_ADMIN" ||
+                          location.state?.activeTab === "rankings") && (
+                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                        )}
                       <button
                         onClick={() => {
                           setShowRecents(false);
                           setShowSearchContainer(false);
                           setShowBookmarks(false);
                           setShowGeminiAi(false);
-                          navigate("/all-startup-dashboard");
+                          window.dispatchEvent(
+                            new CustomEvent("switch-startup-dashboard-tab", {
+                              detail: { tab: "rankings" },
+                            })
+                          );
+                          navigate("/all-startup-dashboard", {
+                            state: { activeTab: "rankings" },
+                          });
                         }}
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${
-                          location.pathname === "/all-startup-dashboard" && currentUser?.role !== "ROLE_ADMIN"
+                          location.pathname === "/all-startup-dashboard" &&
+                          (currentUser?.role !== "ROLE_ADMIN" ||
+                            location.state?.activeTab === "rankings")
                             ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                             : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                         }`}
-                        aria-label="All Startups"
+                        aria-label="All Startups & Rankings"
                       >
                         <Award className="h-5.5 w-5.5" />
                         <span
@@ -2319,16 +2341,42 @@ export default function Sidebar({
 
                   <div className="p-1.5 space-y-0.5">
                     {currentUser?.role === "ROLE_ADMIN" && (
-                      <button
-                        onClick={() => {
-                          setShowTooltip(false);
-                          navigate("/all-startup-dashboard");
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <LuLayoutDashboard className="h-4 w-4 text-amber-600" />
-                        <span>Admin Dashboard</span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowTooltip(false);
+                            window.dispatchEvent(
+                              new CustomEvent("switch-startup-dashboard-tab", {
+                                detail: { tab: "overview" },
+                              })
+                            );
+                            navigate("/all-startup-dashboard", {
+                              state: { activeTab: "overview" },
+                            });
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <LuLayoutDashboard className="h-4 w-4 text-amber-600" />
+                          <span>Admin Dashboard</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowTooltip(false);
+                            window.dispatchEvent(
+                              new CustomEvent("switch-startup-dashboard-tab", {
+                                detail: { tab: "rankings" },
+                              })
+                            );
+                            navigate("/all-startup-dashboard", {
+                              state: { activeTab: "rankings" },
+                            });
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Award className="h-4 w-4 text-indigo-600" />
+                          <span>All Startups & Rankings</span>
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => {

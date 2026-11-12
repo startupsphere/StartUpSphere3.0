@@ -1027,6 +1027,11 @@ export default function AllStartupDashboard() {
   useEffect(() => {
     closeSidebar();
 
+    // Sync active tab if passed from navigation
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+
     // Check if we have a startup ID to review from navigation
     if (
       location.state?.activeTab === "review" &&
@@ -1041,6 +1046,19 @@ export default function AllStartupDashboard() {
       }
     }
   }, [closeSidebar, location.state]);
+
+  // Listen for instant tab switch events dispatched from sidebar buttons
+  useEffect(() => {
+    const handleSwitchTab = (e) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+      }
+    };
+    window.addEventListener("switch-startup-dashboard-tab", handleSwitchTab);
+    return () => {
+      window.removeEventListener("switch-startup-dashboard-tab", handleSwitchTab);
+    };
+  }, []);
 
   // Update the PaginationControls component for 0-based server-side pagination
   const PaginationControls = () => {
