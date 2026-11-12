@@ -3,9 +3,7 @@
  * Handles communication with Groq Cloud's ultra-fast LPU OpenAI-compatible chat endpoints.
  */
 
-// Default fallback key provided for StartUpSphere project
-const DEFAULT_GROQ_KEY = ["gsk", "_uooDlnuo1tzsbXfymQb0", "WGdyb3FYs11eluaqYU0E1WDxUG6jkRvp"].join("");
-
+// API key must be provided via environment variables (e.g. Vercel Environment Variables or local .env)
 export const getGroqApiKey = () => {
   const envKey =
     import.meta.env.VITE_GROQ_API_KEY ||
@@ -24,7 +22,7 @@ export const getGroqApiKey = () => {
     }
   }
 
-  return DEFAULT_GROQ_KEY;
+  return "";
 };
 
 export const getGroqModel = () => {
@@ -69,7 +67,7 @@ export async function sendGroqChat({
   const apiKey = getGroqApiKey();
   if (!apiKey) {
     throw new Error(
-      "Groq API key is not configured. Please add VITE_GROQ_API_KEY to your .env file."
+      "Groq API key is not configured. Please add VITE_GROQ_API_KEY to your Vercel Environment Variables or local .env file."
     );
   }
 
