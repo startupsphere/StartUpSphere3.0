@@ -338,11 +338,11 @@ export default function TooltipInfo({
         />
       </button>
 
-      {/* RENDER MODE 1: Full-Featured Responsive Popover/Modal for TRL 1-9 Scale */}
+      {/* RENDER MODE 1: Full-Featured Responsive Modal for TRL 1-9 Scale */}
       {isOpen && hasLevels && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[99999] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
+              className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
               style={{
                 position: "fixed",
                 inset: 0,
@@ -357,38 +357,38 @@ export default function TooltipInfo({
             >
               <div
                 ref={modalRef}
-                className="relative w-full bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-[85vh] overflow-hidden my-auto animate-fadeIn"
+                className="relative w-full bg-white text-gray-900 rounded-2xl shadow-2xl border border-gray-200/90 flex flex-col max-h-[85vh] overflow-hidden my-auto animate-fadeIn"
                 style={{
                   width: "min(620px, calc(100vw - 24px))",
                   maxWidth: "620px",
                 }}
                 onClick={(e) => e.stopPropagation()} // Prevent backdrop click from inner card
               >
-                {/* Minimal Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900 sticky top-0 z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-100 bg-white sticky top-0 z-10">
                   <div>
                     <h3
                       id={`${dialogId}-title`}
-                      className="font-semibold text-white text-base"
+                      className="font-bold text-gray-900 text-base sm:text-lg tracking-tight"
                     >
                       {resolvedTitle}
                     </h3>
-                    <p className="text-slate-400 text-xs mt-0.5">
+                    <p className="text-gray-500 text-xs mt-0.5">
                       Technology maturity scale from basic principles (TRL 1) to market deployment (TRL 9).
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                     aria-label="Close guide"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                {/* Minimal Text Tabs */}
-                <div className="px-5 py-2 flex items-center gap-1 border-b border-slate-800 bg-slate-900 text-xs overflow-x-auto">
+                {/* Minimal Segmented Tabs */}
+                <div className="px-6 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto text-xs">
                   {[
                     { id: "all", label: "All (1–9)" },
                     { id: "1-3", label: "1–3 Concept" },
@@ -399,10 +399,10 @@ export default function TooltipInfo({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-3 py-1 rounded-md text-xs transition-colors cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === tab.id
-                          ? "bg-slate-800 text-white font-medium"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                          ? "bg-white text-blue-600 shadow-xs border border-gray-200/80"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
                       }`}
                     >
                       {tab.label}
@@ -410,12 +410,12 @@ export default function TooltipInfo({
                   ))}
                 </div>
 
-                {/* Minimal Scrollable Levels List */}
+                {/* Scrollable Levels List */}
                 <div
-                  className="flex-1 overflow-y-auto px-5 py-2 divide-y divide-slate-800/60 max-h-[58vh]"
+                  className="flex-1 overflow-y-auto px-6 py-3 divide-y divide-gray-100 max-h-[58vh]"
                   style={{
                     scrollbarWidth: "thin",
-                    scrollbarColor: "#334155 transparent",
+                    scrollbarColor: "#cbd5e1 transparent",
                   }}
                 >
                   {filteredLevels.map((lvl) => {
@@ -428,17 +428,19 @@ export default function TooltipInfo({
                     return (
                       <div
                         key={lvl.level}
-                        className={`py-3 transition-colors ${
-                          isCurrent ? "bg-indigo-950/20 px-3 -mx-3 rounded-lg" : ""
+                        className={`py-3.5 transition-colors ${
+                          isCurrent
+                            ? "bg-blue-50/60 px-3 -mx-3 rounded-xl border border-blue-200/60"
+                            : "hover:bg-gray-50/60 px-3 -mx-3 rounded-xl"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-baseline gap-2">
-                            <span className="font-mono text-xs font-semibold text-indigo-400">
+                            <span className="font-mono text-xs font-bold text-blue-600">
                               {lvl.code}
                             </span>
-                            <span className="text-slate-600 text-xs">·</span>
-                            <h4 className="font-medium text-white text-sm">
+                            <span className="text-gray-300 text-xs">·</span>
+                            <h4 className="font-semibold text-gray-900 text-sm">
                               {lvl.name}
                             </h4>
                           </div>
@@ -446,8 +448,8 @@ export default function TooltipInfo({
                           {/* Action button if onSelect provided */}
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {isCurrent && (
-                              <span className="text-[11px] font-medium text-indigo-400 flex items-center gap-1">
-                                <Check className="h-3 w-3" />
+                              <span className="text-[11px] font-semibold text-blue-600 flex items-center gap-1">
+                                <Check className="h-3.5 w-3.5" />
                                 Selected
                               </span>
                             )}
@@ -455,10 +457,10 @@ export default function TooltipInfo({
                               <button
                                 type="button"
                                 onClick={() => handleSelectLevel(lvl.code)}
-                                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                                   isCurrent
-                                    ? "bg-indigo-600 text-white"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700/60"
+                                    ? "bg-blue-600 text-white shadow-xs"
+                                    : "text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 shadow-2xs"
                                 }`}
                               >
                                 {isCurrent ? "Keep" : "Select"}
@@ -467,12 +469,12 @@ export default function TooltipInfo({
                           </div>
                         </div>
 
-                        <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        <p className="text-xs text-gray-600 mt-1 leading-relaxed">
                           {lvl.plainExplanation}
                         </p>
                         {lvl.example && (
-                          <p className="text-[11px] text-slate-400 mt-1">
-                            <span className="text-slate-400 font-medium">Indicator: </span>
+                          <p className="text-[11.5px] text-gray-500 mt-1">
+                            <span className="text-gray-700 font-medium">Indicator: </span>
                             {lvl.example}
                           </p>
                         )}
@@ -481,12 +483,12 @@ export default function TooltipInfo({
                   })}
                 </div>
 
-                {/* Minimal Footer */}
-                <div className="px-5 py-3 border-t border-slate-800 flex justify-end bg-slate-900">
+                {/* Footer */}
+                <div className="px-6 py-3.5 bg-gray-50/80 border-t border-gray-100 flex justify-end">
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="px-4 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    className="px-4 py-1.5 text-xs font-semibold bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 rounded-lg shadow-2xs transition-colors cursor-pointer"
                   >
                     Close
                   </button>
@@ -501,30 +503,21 @@ export default function TooltipInfo({
       {isOpen && !hasLevels && (
         <div
           role="tooltip"
-          className={`absolute z-[9999] w-72 sm:w-80 p-3.5 bg-slate-900/95 backdrop-blur-md text-white text-xs rounded-xl shadow-2xl border border-slate-700/80 pointer-events-auto transition-all animate-fadeIn ${
+          className={`absolute z-[9999] w-72 sm:w-80 p-4 bg-white/95 backdrop-blur-md text-gray-800 text-xs rounded-2xl shadow-xl border border-gray-200/90 pointer-events-auto transition-all animate-fadeIn ${
             positionClasses[position] || positionClasses.top
           }`}
           style={{ maxWidth: "calc(100vw - 32px)" }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-2 pb-2 mb-2 border-b border-slate-700/70">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-white text-xs tracking-wide">
-                  {resolvedTitle}
-                </span>
-                {preset?.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded">
-                    {preset.badge}
-                  </span>
-                )}
-              </div>
-            </div>
+          <div className="flex items-start justify-between gap-2 pb-2.5 mb-2 border-b border-gray-100">
+            <span className="font-bold text-gray-900 text-xs tracking-wide">
+              {resolvedTitle}
+            </span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
+              className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors cursor-pointer"
               aria-label="Close tooltip"
             >
               <X className="h-3.5 w-3.5" />
@@ -532,24 +525,24 @@ export default function TooltipInfo({
           </div>
 
           {/* Body Content */}
-          <p className="text-slate-300 leading-relaxed text-[11.5px] font-normal">
+          <p className="text-gray-600 leading-relaxed text-xs">
             {resolvedSummary}
           </p>
 
           {/* Sections if present */}
           {preset?.sections && (
-            <div className="mt-2.5 pt-2 border-t border-slate-800 space-y-1.5">
+            <div className="mt-2.5 pt-2 border-t border-gray-100 space-y-1.5">
               {preset.sections.map((sec, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-2 bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/40"
+                  className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100"
                 >
                   <span className={`h-2 w-2 rounded-full mt-1 flex-shrink-0 ${sec.color}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-200 text-[11px] leading-tight">
+                    <p className="font-semibold text-gray-800 text-[11px] leading-tight">
                       {sec.stage}
                     </p>
-                    <p className="text-slate-400 text-[10px] leading-normal mt-0.5">
+                    <p className="text-gray-500 text-[10px] leading-normal mt-0.5">
                       {sec.desc}
                     </p>
                   </div>
@@ -559,12 +552,12 @@ export default function TooltipInfo({
           )}
 
           {preset?.guidance && (
-            <p className="mt-2 text-[10.5px] text-indigo-300 font-medium italic border-t border-slate-800/80 pt-1.5">
-              💡 {preset.guidance}
+            <p className="mt-2 text-[11px] text-blue-600 font-medium border-t border-gray-100 pt-1.5">
+              {preset.guidance}
             </p>
           )}
 
-          {children && <div className="mt-2 pt-2 border-t border-slate-800">{children}</div>}
+          {children && <div className="mt-2 pt-2 border-t border-gray-100">{children}</div>}
         </div>
       )}
     </div>
