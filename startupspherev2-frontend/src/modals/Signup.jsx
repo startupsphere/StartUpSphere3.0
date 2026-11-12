@@ -184,22 +184,12 @@ export default function Signup({ closeModal, openLogin }) {
 
           {/* Header & Brand */}
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center p-2 shadow-inner">
-                <img
-                  src="/StartUpSphere_logo.png"
-                  alt="StartUpSphere"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              <div>
-                <span className="text-lg font-bold tracking-tight text-white block leading-tight">
-                  StartUp<span className="text-blue-300">Sphere</span>
-                </span>
-                <span className="text-[10px] text-blue-200/80 uppercase font-semibold tracking-wider block mt-0.5">
-                  Join the Community
-                </span>
-              </div>
+            <div className="flex items-center mb-8">
+              <img
+                src="/StartUpSphere_logo_white.png"
+                alt="StartUpSphere"
+                className="h-12 w-auto object-contain filter drop-shadow"
+              />
             </div>
 
             {/* Title & Description */}

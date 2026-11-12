@@ -188,20 +188,12 @@ export default function ForgotPassword({ closeModal, openLogin, initialEmail = "
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-500/10 rounded-full -ml-28 -mb-28 blur-xl"></div>
 
             <div className="relative z-10 space-y-6">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <img
-                  src="/StartUpSphere_loginLogo.png"
+                  src="/StartUpSphere_logo_white.png"
                   alt="StartUpSphere Logo"
-                  className="h-14 w-auto object-contain filter drop-shadow"
+                  className="h-12 w-auto object-contain filter drop-shadow"
                 />
-                <div>
-                  <span className="text-xl font-bold tracking-tight text-white block">
-                    StartupSphere
-                  </span>
-                  <span className="text-xs text-blue-200 tracking-wider uppercase font-semibold">
-                    Account Security
-                  </span>
-                </div>
               </div>
 
               <div className="space-y-2 pt-2">
