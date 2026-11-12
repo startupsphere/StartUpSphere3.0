@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
 import { formatErrorMessage } from "../utils/errorUtils";
 import ForgotPassword from "./ForgotPassword";
+import { ShieldCheck, Rocket, Sparkles } from "lucide-react";
 
 export default function Signup({ closeModal, openLogin }) {
   const [firstname, setFirstname] = useState("");
@@ -176,103 +177,71 @@ export default function Signup({ closeModal, openLogin }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Side - Brand Section */}
-        <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-8 lg:p-12 flex-col justify-between relative overflow-hidden">
-          {/* Decorative shapes */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40"></div>
-          <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full -ml-30 -mb-30"></div>
-          
-          {/* Content */}
-          <div className="relative z-10 space-y-8">
-            {/* Logo */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="flex justify-center"
-            >
-              <motion.img
-                src="/StartUpSphere_loginLogo.png"
-                alt="StartUpSphere Logo"
-                className="h-32 w-auto object-contain drop-shadow-lg brightness-110 filter"
-                animate={{ y: [0, -8, 0] }}
-                transition={{
-                  duration: 4,
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                  delay: 0.5,
-                }}
-              />
-            </motion.div>
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 p-8 lg:p-10 flex-col justify-between relative overflow-hidden text-white">
+          {/* Ambient decorative glowing orbs */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/15 rounded-full -mr-28 -mt-28 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full -ml-28 -mb-28 blur-2xl pointer-events-none" />
 
-            {/* Heading */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-              className="space-y-4 text-center"
-            >
-              <h1 className="text-4xl font-bold text-gray-900 leading-tight">
+          {/* Header & Brand */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center p-2 shadow-inner">
+                <img
+                  src="/StartUpSphere_logo.png"
+                  alt="StartUpSphere"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div>
+                <span className="text-lg font-bold tracking-tight text-white block leading-tight">
+                  StartUp<span className="text-blue-300">Sphere</span>
+                </span>
+                <span className="text-[10px] text-blue-200/80 uppercase font-semibold tracking-wider block mt-0.5">
+                  Join the Community
+                </span>
+              </div>
+            </div>
+
+            {/* Title & Description */}
+            <div className="space-y-2 mb-8">
+              <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug">
                 Build Your Future
               </h1>
-              <p className="text-gray-600 font-medium italic text-base leading-relaxed">
-                Connect with government support and industry leaders to accelerate your startup growth
+              <p className="text-blue-100/80 text-xs sm:text-sm leading-relaxed">
+                Connect with government support, academic institutions, and industry leaders across the ecosystem.
               </p>
-            </motion.div>
+            </div>
 
-            {/* Benefits Section */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25, duration: 0.4 }}
-              className="space-y-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mt-1">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+            {/* Modern Feature Cards */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/30 text-blue-200 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-blue-200" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-blue-900 font-medium text-sm">Secure & Verified</p>
-                  <p className="text-blue-600 text-xs">Industry-leading security standards</p>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-xs">Verified Ecosystem</p>
+                  <p className="text-blue-200/70 text-[11px]">Official DICT/DOST aligned network</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mt-1">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/30 text-indigo-200 flex items-center justify-center shrink-0">
+                  <Rocket className="w-4 h-4 text-indigo-200" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-blue-900 font-medium text-sm">Quick Setup</p>
-                  <p className="text-blue-600 text-xs">Get started in minutes</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mt-1">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="text-blue-900 font-medium text-sm">Expert Support</p>
-                  <p className="text-blue-600 text-xs">24/7 dedicated assistance</p>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-xs">Accelerate Growth</p>
+                  <p className="text-blue-200/70 text-[11px]">Access grants, mentors & partnerships</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
 
-          {/* Tagline at bottom */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.35, duration: 0.4 }}
-            className="relative z-10 pt-8 border-t border-blue-400/30 text-center"
-          >
-            <p className="text-sm font-medium italic text-gray-800">
+          {/* Bottom Tagline */}
+          <div className="relative z-10 pt-6 border-t border-white/10">
+            <p className="text-xs text-blue-200/75 italic">
               "Bridging Startups and Government for a Unified Ecosystem"
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Right Side - Form Section */}

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
 import { formatErrorMessage } from "../utils/errorUtils";
 import ForgotPassword from "./ForgotPassword";
+import { Mail, Lock, Eye, EyeOff, X, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function Login({ closeModal, openRegister, onLoginSuccess, initialEmail = "", initialForgotPassword = false }) {
   const [email, setEmail] = useState(initialEmail);
@@ -62,7 +63,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
         if (data && data.token) {
           localStorage.setItem("token", data.token);
         }
-        console.log(response);
+        
         const userResponse = await fetch(
           `${backendUrl}/users/me`,
           {
@@ -80,13 +81,11 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
         }
 
         const userData = await parseJSON(userResponse);
-        console.log("Login successful, user data:", userData);
-
         setSuccess(true);
         setTimeout(() => {
           onLoginSuccess(userData);
           closeModal();
-        }, 1500);
+        }, 1200);
       }
     } catch (err) {
       setError(formatErrorMessage(err));
@@ -96,138 +95,104 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity p-3 sm:p-4 overflow-y-auto">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-4xl mx-auto overflow-hidden bg-white rounded-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.3)] my-auto max-h-[92dvh] flex flex-col"
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="w-full max-w-4xl mx-auto overflow-hidden bg-white rounded-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.35)] my-auto max-h-[92dvh] flex flex-col border border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col md:flex-row h-auto md:h-[500px]">
+        <div className="flex flex-col md:flex-row h-auto md:min-h-[520px]">
           {/* Left Side - Brand Section */}
-          <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-8 lg:p-12 flex-col justify-between relative overflow-hidden">
-            {/* Decorative shapes */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40"></div>
-            <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full -ml-30 -mb-30"></div>
-            
-            {/* Content */}
-            <div className="relative z-10 space-y-8">
-              {/* Logo */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex justify-center"
-              >
-                <motion.img
-                  src="/StartUpSphere_loginLogo.png"
-                  alt="StartUpSphere Logo"
-                  className="h-28 w-auto object-contain drop-shadow-lg brightness-110 filter"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{
-                    duration: 4,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                    delay: 0.5,
-                  }}
-                />
-              </motion.div>
+          <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 p-8 lg:p-10 flex-col justify-between relative overflow-hidden text-white">
+            {/* Ambient decorative glowing orbs */}
+            <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/15 rounded-full -mr-28 -mt-28 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full -ml-28 -mb-28 blur-2xl pointer-events-none" />
 
-              {/* Heading */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.4 }}
-                className="space-y-3 text-center"
-              >
-                <h1 className="text-3xl font-bold text-gray-800 leading-tight">
+            {/* Header & Brand */}
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center p-2 shadow-inner">
+                  <img
+                    src="/StartUpSphere_logo.png"
+                    alt="StartUpSphere"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div>
+                  <span className="text-lg font-bold tracking-tight text-white block leading-tight">
+                    StartUp<span className="text-blue-300">Sphere</span>
+                  </span>
+                  <span className="text-[10px] text-blue-200/80 uppercase font-semibold tracking-wider block mt-0.5">
+                    Innovation Ecosystem
+                  </span>
+                </div>
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2 mb-8">
+                <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug">
                   Welcome Back
                 </h1>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  Access your startup dashboard and continue your growth journey
+                <p className="text-blue-100/80 text-xs sm:text-sm leading-relaxed">
+                  Log in to access your startup dashboard, rankings, ecosystem map, and verified analytics.
                 </p>
-              </motion.div>
+              </div>
 
-              {/* Quick Access Info */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.25, duration: 0.4 }}
-                className="space-y-3"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+              {/* Modern Feature Cards */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 shadow-xs">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/30 text-blue-200 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-blue-200" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-blue-900  font-medium text-sm">Secure Login</p>
-                    <p className="text-gray-500 text-xs">Industry-leading encryption</p>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold text-xs">Secure Access</p>
+                    <p className="text-blue-200/70 text-[11px]">Role-based encrypted session</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 shadow-xs">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/30 text-indigo-200 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-indigo-200" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-blue-900 font-medium text-sm">Instant Access</p>
-                    <p className="text-gray-500 text-xs">Get to your dashboard in seconds</p>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold text-xs">Smart AI Insights</p>
+                    <p className="text-blue-200/70 text-[11px]">Direct data assistance & directory</p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
 
-            {/* Tagline at bottom */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
-              className="relative z-10 pt-6 border-t border-blue-400/30 text-center"
-            >
-              <p className="text-sm font-medium text-gray-800 italic">
-                "Your Success is Our Mission"
+            {/* Bottom Tagline */}
+            <div className="relative z-10 pt-6 border-t border-white/10">
+              <p className="text-xs text-blue-200/75 italic">
+                "Bridging Startups, HEIs, and Government for a Unified Ecosystem"
               </p>
-            </motion.div>
+            </div>
           </div>
 
           {/* Right Side - Form Section */}
-          <div className="w-full md:w-3/5 bg-white p-6 sm:p-10 lg:p-12 flex flex-col justify-center relative overflow-y-auto">
+          <div className="w-full md:w-7/12 bg-white p-6 sm:p-10 flex flex-col justify-center relative overflow-y-auto">
             {/* Close button */}
             <button
-              className="absolute top-4 sm:top-6 right-4 sm:right-6 p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer"
+              className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer"
               onClick={closeModal}
               aria-label="Close login modal"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="h-5 w-5" />
             </button>
 
             {/* Mobile Header Brand */}
-            <div className="md:hidden flex items-center gap-2 mb-3">
-              <img src="/StartUpSphere_logo.png" alt="StartUpSphere" className="h-6 w-6 object-contain" />
+            <div className="md:hidden flex items-center gap-2 mb-4">
+              <img src="/StartUpSphere_logo.png" alt="StartUpSphere" className="h-7 w-7 object-contain" />
               <span className="font-bold text-gray-900 text-base">StartUp<span className="text-blue-600">Sphere</span></span>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-5 max-w-md w-full mx-auto">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign In</h2>
-                <p className="text-gray-600 text-sm">Enter your credentials to access your account</p>
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Sign In</h2>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">Enter your credentials to access your account</p>
               </div>
 
               {/* Success message */}
@@ -237,7 +202,7 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3"
+                  className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
                 >
                   <div className="flex-shrink-0">
                     <motion.svg
@@ -259,8 +224,8 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
                     </motion.svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-green-800">Login successful!</p>
-                    <p className="text-xs text-green-700">Redirecting to your dashboard...</p>
+                    <p className="text-sm font-semibold text-green-800">Login successful!</p>
+                    <p className="text-xs text-green-700 mt-0.5">Redirecting to your dashboard...</p>
                   </div>
                 </motion.div>
               )}
@@ -268,208 +233,143 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
               {success ? null : (
                 <>
                   {/* Email Field */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        id="email"
+                        className="block w-full px-3.5 py-2.5 pl-10 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-2xs transition-all"
+                        type="email"
+                        placeholder="your.email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
                       />
-                    </svg>
+                    </div>
                   </div>
-                  <input
-                    id="email"
-                    className="block w-full px-4 py-3 pl-11 text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
 
-              {/* Password Field */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Password
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors border-0 p-0 bg-transparent cursor-pointer font-medium"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  {/* Password Field */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label
+                        htmlFor="password"
+                        className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                      >
+                        Password
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors border-0 p-0 bg-transparent cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        id="password"
+                        className="block w-full px-3.5 py-2.5 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-2xs transition-all"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
                       />
-                    </svg>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-2 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors border-0 bg-transparent cursor-pointer"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    id="password"
-                    className="block w-full px-4 py-3 pl-11 pr-11 text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+
+                  {/* Error message */}
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg
+                          className="h-4 w-4 text-red-500"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-xs font-medium text-red-700 leading-normal">{error}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Sign In button */}
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-2 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors border-0 bg-transparent p-0"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 cursor-pointer text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:opacity-60 disabled:cursor-not-allowed border-0 flex items-center justify-center gap-2 mt-2"
                   >
-                    {showPassword ? (
-                      <svg
-                        className="w-5 h-5"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803m5.596-3.856a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>Signing in...</span>
+                      </>
                     ) : (
-                      <svg
-                        className="w-5 h-5"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
+                      <span>Sign In</span>
                     )}
                   </button>
-                </div>
-              </div>
 
-              {/* Error message */}
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-2.5 sm:p-3 bg-red-50 border border-red-100 rounded-lg"
-                >
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg
-                        className="h-5 w-5 text-red-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
+                  {/* Register link */}
+                  <div className="text-center pt-2">
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Don't have an account?{" "}
+                      <button
+                        onClick={openRegister}
+                        type="button"
+                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline bg-transparent p-0 border-0 cursor-pointer"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-600">{error}</p>
-                    </div>
+                        Create one now
+                      </button>
+                    </p>
                   </div>
-                </motion.div>
-              )}
-
-              {/* Sign In button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 cursor-pointer text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-semibold rounded-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm border-0 flex items-center justify-center mt-2"
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <span>Sign In</span>
-                )}
-              </button>
-
-              {/* Register link */}
-              <div className="text-center pt-2">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <button
-                    onClick={openRegister}
-                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline bg-transparent p-0 border-0"
-                  >
-                    Create one now
-                  </button>
-                </p>
-              </div>
                 </>
               )}
             </form>
