@@ -28,14 +28,19 @@ export const getGroqApiKey = () => {
 export const getGroqModel = () => {
   const envModel = import.meta.env.VITE_GROQ_MODEL;
   if (envModel && envModel.trim() !== "") {
-    return envModel.trim();
+    const trimmed = envModel.trim();
+    // Guard against inaccessible llama models on this account
+    if (!trimmed.toLowerCase().includes("llama")) {
+      return trimmed;
+    }
   }
-  return "llama-3.3-70b-versatile";
+  return "openai/gpt-oss-120b";
 };
 
 const FALLBACK_MODELS = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant"
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b"
 ];
 
 export const getGroqEndpoint = () => {
@@ -145,19 +150,31 @@ export async function sendGroqChat({
 
   let data = await response.json().catch(() => null);
 
-  // If rate limited (HTTP 429) or error message indicates rate limit, retry with fast high-capacity fallback model
-  if (!response.ok && (response.status === 429 || (data?.error?.message && String(data.error.message).toLowerCase().includes("rate limit")))) {
-    console.warn(`Groq model ${payload.model} hit rate limit, falling back to llama-3.1-8b-instant...`);
+  // If rate limited (HTTP 429), model not found (HTTP 404), or error message indicates rate limit / model issue
+  const isRateLimit = response.status === 429 || (data?.error?.message && String(data.error.message).toLowerCase().includes("rate limit"));
+  const isModelNotFound = response.status === 404 || data?.error?.code === "model_not_found" || (data?.error?.message && String(data.error.message).toLowerCase().includes("does not exist"));
+
+  if (!response.ok && (isRateLimit || isModelNotFound)) {
+    const nextModel = payload.model === "openai/gpt-oss-20b" ? "qwen/qwen3.8-27b" : "openai/gpt-oss-20b";
+    console.warn(`Groq model ${payload.model} failed with status ${response.status}, falling back to ${nextModel}...`);
     const fallbackPayload = {
       ...payload,
-      model: "llama-3.1-8b-instant",
+      model: nextModel,
     };
     try {
-      const fallbackRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const fallbackEndpoint = primaryEndpoint.startsWith("/") ? primaryEndpoint : "https://api.groq.com/openai/v1/chat/completions";
+      let fallbackRes = await fetch(fallbackEndpoint, {
         method: "POST",
         headers,
         body: JSON.stringify(fallbackPayload),
       });
+      if (!fallbackRes.ok && fallbackEndpoint.startsWith("/")) {
+        fallbackRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(fallbackPayload),
+        });
+      }
       if (fallbackRes.ok) {
         data = await fallbackRes.json();
         response = fallbackRes;
