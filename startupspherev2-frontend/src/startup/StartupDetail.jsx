@@ -47,6 +47,60 @@ export default function StartupDetail() {
   const [stakeholderLoading, setStakeholderLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const [editDataReady, setEditDataReady] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deleteStartupModal, setDeleteStartupModal] = useState({
+    isOpen: false,
+    isDeleting: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch(`${getBackendUrl()}/users/me/role`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const userRole = await res.text();
+          if (userRole === "ROLE_ADMIN" || userRole === "ADMIN") {
+            setIsAdmin(true);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking role:", err);
+      }
+    };
+    checkRole();
+  }, []);
+
+  const handleDeleteStartup = async () => {
+    setDeleteStartupModal(prev => ({ ...prev, isDeleting: true, error: null }));
+    try {
+      const response = await fetch(`${getBackendUrl()}/startups/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Failed to delete startup (${response.status})`);
+      }
+
+      setDeleteStartupModal({ isOpen: false, isDeleting: false, error: null });
+      navigate("/all-startup-dashboard", {
+        state: { 
+          activeTab: "rankings",
+          message: `"${startup?.companyName || "Startup"}" was deleted successfully.`
+        }
+      });
+    } catch (err) {
+      console.error("Error deleting startup:", err);
+      setDeleteStartupModal(prev => ({ ...prev, isDeleting: false, error: err.message || "Failed to delete startup" }));
+    }
+  };
 
   // Validation functions
   const validateEmail = (email) => {
@@ -1417,6 +1471,24 @@ export default function StartupDetail() {
               <span className="hidden sm:inline">Edit Startup</span>
               <span className="sm:hidden">Edit</span>
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  setDeleteStartupModal({
+                    isOpen: true,
+                    isDeleting: false,
+                    error: null,
+                  })
+                }
+                className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-red-200 rounded-lg text-xs sm:text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                title="Delete this startup permanently (Admin only)"
+              >
+                <Trash2 size={16} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Delete Startup</span>
+                <span className="sm:hidden">Delete</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -3572,6 +3644,62 @@ export default function StartupDetail() {
                   </>
                 ) : (
                   "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Startup Deletion Confirmation Modal for Admin */}
+      {deleteStartupModal.isOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-scaleUp">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 text-center">
+              Delete Startup?
+            </h3>
+            <p className="text-sm text-gray-600 text-center mt-2 leading-relaxed">
+              Are you sure you want to permanently delete{" "}
+              <span className="font-semibold text-gray-900">
+                "{startup?.companyName}"
+              </span>
+              ? All records, metrics, associated stakeholders, and engagement data will be permanently removed. This action cannot be undone.
+            </p>
+
+            {deleteStartupModal.error && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+                {deleteStartupModal.error}
+              </div>
+            )}
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  !deleteStartupModal.isDeleting &&
+                  setDeleteStartupModal({ ...deleteStartupModal, isOpen: false })
+                }
+                disabled={deleteStartupModal.isDeleting}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteStartup}
+                disabled={deleteStartupModal.isDeleting}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-md shadow-red-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {deleteStartupModal.isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Startup</span>
                 )}
               </button>
             </div>

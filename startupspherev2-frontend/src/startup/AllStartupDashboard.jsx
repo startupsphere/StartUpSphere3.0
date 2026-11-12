@@ -37,6 +37,8 @@ import {
   RotateCcw,
   CheckCircle2,
   HelpCircle,
+  Trash2,
+  Eye,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
 import jsPDF from "jspdf";
@@ -122,6 +124,37 @@ export default function AllStartupDashboard() {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
   const [role, setRole] = useState(null);
+  const [deleteConfirmStartup, setDeleteConfirmStartup] = useState(null);
+  const [isDeletingStartup, setIsDeletingStartup] = useState(false);
+
+  const handleConfirmDeleteStartup = async () => {
+    if (!deleteConfirmStartup) return;
+    setIsDeletingStartup(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${getBackendUrl()}/startups/${deleteConfirmStartup.id}`, {
+        method: "DELETE",
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok && res.status !== 204) {
+        throw new Error(`Failed to delete startup (${res.status})`);
+      }
+
+      toast.success(`"${deleteConfirmStartup.companyName}" deleted successfully`);
+      setRankedStartups((prev) => prev.filter((s) => s.id !== deleteConfirmStartup.id));
+      setTopStartups((prev) => prev.filter((s) => s.id !== deleteConfirmStartup.id));
+      setTotalStartups((prev) => Math.max(0, prev - 1));
+      setDeleteConfirmStartup(null);
+    } catch (err) {
+      console.error("Error deleting startup:", err);
+      toast.error(err.message || "Failed to delete startup");
+    } finally {
+      setIsDeletingStartup(false);
+    }
+  };
 
   const fetchRole = async () => {
     try {
@@ -1692,6 +1725,9 @@ export default function AllStartupDashboard() {
                           <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Industry</th>
                           <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Overall Score</th>
                           <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Growth Rate</th>
+                          {role === "ROLE_ADMIN" && (
+                            <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -1727,6 +1763,28 @@ export default function AllStartupDashboard() {
                                 +{(startup.growthScore ?? startup.growthRate ?? 0).toFixed(1)}%
                               </div>
                             </td>
+                            {role === "ROLE_ADMIN" && (
+                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/startup/${startup.id}`)}
+                                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                    title="View startup details"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmStartup(startup)}
+                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete startup (Admin only)"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -2127,6 +2185,9 @@ export default function AllStartupDashboard() {
                             <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Investment</th>
                             <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Ecosystem</th>
                             <th className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Engagement</th>
+                            {role === "ROLE_ADMIN" && (
+                              <th className="px-5 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -2209,6 +2270,28 @@ export default function AllStartupDashboard() {
                                     {startup.engagementScore}
                                   </span>
                                 </td>
+                                {role === "ROLE_ADMIN" && (
+                                  <td className="px-5 py-4 whitespace-nowrap text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => navigate(`/startup/${startup.id}`)}
+                                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                        title="View startup details"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeleteConfirmStartup(startup)}
+                                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                        title="Delete startup (Admin only)"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })}
@@ -3039,6 +3122,52 @@ export default function AllStartupDashboard() {
               </div>
             </div>
              */}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal for Admin */}
+        {deleteConfirmStartup && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-scaleUp">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto mb-4">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center">
+                Delete Startup?
+              </h3>
+              <p className="text-sm text-gray-600 text-center mt-2 leading-relaxed">
+                Are you sure you want to permanently delete{" "}
+                <span className="font-semibold text-gray-900">
+                  "{deleteConfirmStartup.companyName}"
+                </span>
+                ? All associated records, metrics, and engagement data will be permanently removed. This action cannot be undone.
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => !isDeletingStartup && setDeleteConfirmStartup(null)}
+                  disabled={isDeletingStartup}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteStartup}
+                  disabled={isDeletingStartup}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-md shadow-red-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeletingStartup ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <span>Delete Startup</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
