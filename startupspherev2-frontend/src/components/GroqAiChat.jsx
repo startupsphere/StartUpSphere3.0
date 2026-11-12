@@ -35,7 +35,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
     return [
       {
         role: "assistant",
-        content: `Hello, ${userName}! Welcome to StartUpSphere AI Agent. I am here to help you scale your venture.\n\nPlease feel free to ask me anything about:\n* **Startup Valuation & Cap Tables**\n* **Finding Investors & Ecosystem Matching**\n* **Business Compliance in the Philippines**\n* **Pitch Deck Strategies & Traction Metrics**\n* **Technology Trends & Readiness (TRL)**\n* **Ecosystem Index Insights (IDI, SI, EBS, EGS)**\n\nHow can I help you scale your venture today?`
+        content: `Hello, ${userName}! Welcome to StartUpSphere AI Assistant. I am directly connected to the StartUpSphere live database.\n\nPlease feel free to ask me anything about:\n* **Approved Startups & Technologies** (descriptions, industries, locations)\n* **Technology Readiness Levels (TRL)** & maturity\n* **Registered Stakeholders** (incubators, universities, agencies)\n* **Ecosystem Index Insights (IDI, SI, EBS, EGS)**\n* **Business Compliance in the Philippines (SEC, DTI, BIR)**\n\nHow can I help you explore our startup ecosystem today?`
       }
     ];
   };
@@ -47,6 +47,8 @@ export default function GroqAiChat({ currentUser, onClose }) {
   const messagesEndRef = useRef(null);
   const [dashboardMetrics, setDashboardMetrics] = useState(null);
   const [userStartups, setUserStartups] = useState([]);
+  const [allStartups, setAllStartups] = useState([]);
+  const [allStakeholders, setAllStakeholders] = useState([]);
   const [fetchingDb, setFetchingDb] = useState(true);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 768 : false
@@ -131,13 +133,14 @@ export default function GroqAiChat({ currentUser, onClose }) {
 
         // 3. Format dynamic system instructions and prompt
         const systemInstruction = 
-          "You are the StartUpSphere AI Agent, an expert startup advisor and data analyst for the StartUpSphere platform. " +
+          "You are the StartUpSphere AI Assistant, an expert startup advisor and data analyst strictly dedicated to the StartUpSphere platform. " +
           "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
           "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output nicely with clean bullet points and bold headers if needed.\n\n" +
           "**CRITICAL RESPONSE RULES:**\n" +
-          "- The user has clicked on this startup's pinpoint/hotspot on the live map heatmap.\n" +
-          "- Respond DIRECTLY by introducing and describing the startup based on its database record provided below.\n" +
-          "- Make it simple and easy to learn. Describe what they do, their industry, location, and potential in engaging, layperson terms.\n" +
+          "- The user has clicked on this startup's pinpoint on the live map.\n" +
+          "- Respond DIRECTLY by introducing and describing the startup based STRICTLY on its database record provided below.\n" +
+          "- Describe what they do, their industry, location, and potential in clear, accurate terms.\n" +
+          "- Never hallucinate or invent features, metrics, or partnerships not present in the record.\n" +
           "- Avoid conversational pleasantries (e.g. do NOT say 'Sure! Here is the description...'). Start your response directly with the startup's name and description.\n" +
           "- Limit the answer to 2-3 concise paragraphs.";
 
@@ -153,7 +156,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
         const aiText = await sendGroqChat({
           systemInstruction,
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
+          temperature: 0.2,
         });
 
         setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
@@ -216,7 +219,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
           if (startupsRes.ok) {
             const startupsList = await startupsRes.json();
             
-            // 3. For each startup, fetch metrics
+            // For each user startup, fetch metrics
             const enrichedStartups = await Promise.all(
               startupsList.map(async (startup) => {
                 try {
@@ -241,6 +244,33 @@ export default function GroqAiChat({ currentUser, onClose }) {
         } catch (e) {
           console.error("Groq AI chat failed to fetch user startups:", e);
         }
+
+        // 3. Fetch All Approved Startups in the platform directory
+        try {
+          const approvedRes = await fetch(
+            `${backendUrl}/startups/approved?page=0&size=200&sortBy=companyName&sortDir=ASC`,
+            { credentials: "include" }
+          );
+          if (approvedRes.ok) {
+            const approvedData = await approvedRes.json();
+            setAllStartups(approvedData.content || []);
+          }
+        } catch (e) {
+          console.error("Groq AI chat failed to fetch approved startups:", e);
+        }
+
+        // 4. Fetch All Stakeholders in the platform directory
+        try {
+          const stakeholdersRes = await fetch(`${backendUrl}/stakeholders`, {
+            credentials: "include"
+          });
+          if (stakeholdersRes.ok) {
+            const stakeholdersData = await stakeholdersRes.json();
+            setAllStakeholders(Array.isArray(stakeholdersData) ? stakeholdersData : []);
+          }
+        } catch (e) {
+          console.error("Groq AI chat failed to fetch stakeholders:", e);
+        }
       } catch (err) {
         console.error("Failed to load database context for Groq AI:", err);
       } finally {
@@ -261,33 +291,31 @@ export default function GroqAiChat({ currentUser, onClose }) {
     setLoading(true);
 
     try {
-      // Format system instructions for Groq API
+      // Format system instructions with strict domain guardrails and database grounding
       let systemInstruction = 
-        "You are the StartUpSphere AI Agent, an expert startup advisor, venture strategist, and data analyst for the StartUpSphere platform. " +
-        "You have direct, real-time read-only access to the platform's database and dashboard metrics. " +
-        "You help founders, investors, and stakeholders gain insights into business growth, funding stages, technology readiness levels (TRL), cap tables, and government compliance (BIR, SEC, DTI). " +
-        "Keep your tone sharp, engaging, highly professional, encouraging, and direct. Format your output with clear executive summaries, bullet points, and bold headers.\n\n" +
-        "**CRITICAL RESPONSE RULES:**\n" +
-        "- Focus DIRECTLY on the requested data and deliver clear, high-value insights. Eliminate conversational filler, pleasantries, or preambles (do NOT say 'Sure! Here is the data', 'I'd be glad to help', or 'Here is a breakdown'). Start directly with the core summary or answer.\n" +
-        "- Structure your summaries into 3 intuitive parts:\n" +
-        "   1. **📌 Executive Summary**: 2 punchy, crystal-clear sentences delivering the high-level takeaway.\n" +
-        "   2. **📊 Key Metrics & Details**: Clean bulleted highlights with bold metric values, intuitive context, and plain-language definitions.\n" +
-        "   3. **💡 Strategic Action Items**: 2-3 concrete, prioritized recommendations for the user or founder.\n" +
-        "- Explain complex metrics in layperson terms:\n" +
-        "   • **TRL (Technology Readiness Level)**: Technology maturity scale (TRL 1-3 Concept, TRL 4-6 Prototype/Validation, TRL 7-9 Commercial/Market-Ready).\n" +
-        "   • **IDI (Innovation Density)**: Concentration of active startups in a geographic or industry hub.\n" +
-        "   • **SI (Support Index)**: Depth of incubation, accelerator, and academic lab backing.\n" +
-        "   • **EBS (Ecosystem Balance Score)**: Health between startup demand and support resources (0-10 scale).\n" +
-        "   • **EGS (Ecosystem Gap Score)**: Deficits in capital, mentorship, or regulatory backing (lower is better).\n" +
-        "   • **Government Compliance**: State of BIR (tax), SEC (corporate), and DTI (sole proprietorship) registration.\n" +
-        "- Format tables using standard markdown tables or formatted bullet lists for readability on all devices.";
+        "You are the StartUpSphere AI Assistant, an expert startup advisor and data analyst strictly dedicated to the StartUpSphere platform. " +
+        "You have direct, real-time read-only access to StartUpSphere's live database of approved startups, stakeholders, and ecosystem analytics.\n\n" +
+        "**CRITICAL DOMAIN GUARDRAILS & DATABASE GROUNDING RULES:**\n" +
+        "1. **STRICT DOMAIN BOUNDARY**: You are ONLY allowed to discuss StartUpSphere, its registered startups, stakeholders, ecosystem metrics (TRL, IDI, SI, EBS, EGS), Philippine startup compliance (BIR, SEC, DTI), and venture scaling. " +
+        "If the user asks about ANYTHING unrelated to StartUpSphere, startups, or entrepreneurship (such as cooking recipes, celebrities, gaming, sports, general coding trivia, movies, weather, jokes, or random general knowledge), you MUST POLITELY AND FIRMLY REFUSE to answer. State clearly: \"I am specifically dedicated to the StartUpSphere ecosystem and its database. I can only assist with inquiries regarding our registered startups, stakeholders, ecosystem metrics, and venture development.\"\n" +
+        "2. **GROUND ALL FACTUAL ANSWERS IN DATABASE**: When answering questions about startups, stakeholders, founders, industries, or locations, use ONLY the verified database records provided below. NEVER invent, fabricate, or hallucinate startups, figures, or partnerships not present in this database.\n" +
+        "3. **IF NOT IN DATABASE**: If the user asks about a company, startup, or stakeholder that does not appear in the StartUpSphere database, clearly state that it is not registered in the StartUpSphere directory.\n" +
+        "4. **COMMUNICATION STYLE**: Keep your tone professional, concise, and direct. Eliminate conversational filler or preambles (do NOT say 'Sure!', 'I would be happy to help', or 'Here is the data'). Start directly with the core summary or answer.\n" +
+        "5. **METRICS DEFINITIONS**:\n" +
+        "   - **TRL (Technology Readiness Level)**: 1-3 Concept, 4-6 Prototype/Validation, 7-9 Commercial/Market-Ready.\n" +
+        "   - **IDI (Innovation Density Index)**: Concentration of active startups in a geographic or industry hub.\n" +
+        "   - **SI (Support Index)**: Depth of incubation, accelerator, and academic lab backing.\n" +
+        "   - **EBS (Ecosystem Balance Score)**: Health between startup demand and support resources (0-10 scale).\n" +
+        "   - **EGS (Ecosystem Gap Score)**: Deficits in capital, mentorship, or regulatory backing (lower is better).\n" +
+        "   - **Government Compliance**: State of BIR, SEC, and DTI registration.\n" +
+        "- Format tables and bullet lists cleanly for readability on all devices.";
 
       // Security & Privacy: Limit AI context strictly to name and platform role.
       if (currentUser) {
         const sanitizedName = `${currentUser.firstname || ""} ${currentUser.lastname || ""}`.trim();
         const sanitizedRole = currentUser.role || "USER";
         
-        systemInstruction += ` The user you are talking to is logged in. Their profile details are: Name: ${sanitizedName}, Platform Role: ${sanitizedRole}. Refer to them by name if appropriate to make the conversation personalized and premium!`;
+        systemInstruction += `\nThe user you are talking to is logged in. Profile: Name: ${sanitizedName}, Platform Role: ${sanitizedRole}.`;
       }
 
       // Inject Live System Database Context into the prompt
@@ -311,18 +339,43 @@ export default function GroqAiChat({ currentUser, onClose }) {
           dbContext += `\n${i + 1}. "${startup.companyName}" (Industry: ${startup.industry || "N/A"}, Location: ${startup.locationName || "N/A"})` +
             `\n   - Views: ${startup.views || 0} | Likes: ${startup.likes || 0} | Bookmarks: ${startup.bookmarks || 0}`;
         });
-      } else {
-        dbContext += `\n\nUser does not have any registered startups yet. Encourage them to add one to see live metrics!`;
+      }
+
+      // Inject Verified Database Directory of Approved Startups
+      if (allStartups && allStartups.length > 0) {
+        dbContext += `\n\n**Approved Startups in StartUpSphere Database (${allStartups.length} Total):**`;
+        allStartups.forEach((s, i) => {
+          dbContext += `\n${i + 1}. **${s.companyName || "Unnamed"}** (ID: ${s.id})`;
+          if (s.industry) dbContext += ` | Industry: ${s.industry}`;
+          if (s.locationName || s.city) dbContext += ` | Location: ${s.locationName || s.city}`;
+          if (s.trlLevel) dbContext += ` | TRL: ${s.trlLevel}`;
+          if (s.businessActivity) dbContext += ` | Focus: ${s.businessActivity}`;
+          if (s.fundingStage) dbContext += ` | Stage: ${s.fundingStage}`;
+          if (s.companyDescription) {
+            const cleanDesc = s.companyDescription.replace(/\s+/g, ' ').slice(0, 150);
+            dbContext += ` | Description: ${cleanDesc}${s.companyDescription.length > 150 ? '...' : ''}`;
+          }
+        });
+      }
+
+      // Inject Verified Database Directory of Stakeholders
+      if (allStakeholders && allStakeholders.length > 0) {
+        dbContext += `\n\n**Registered Stakeholders in StartUpSphere Database (${allStakeholders.length} Total):**`;
+        allStakeholders.forEach((st, i) => {
+          dbContext += `\n${i + 1}. **${st.name || "Unnamed"}** (ID: ${st.id})`;
+          if (st.locationName || st.city) dbContext += ` | Location: ${st.locationName || st.city}`;
+          if (st.email) dbContext += ` | Contact: ${st.email}`;
+        });
       }
 
       systemInstruction += dbContext;
 
-      // Send chat history and prompt to Groq
+      // Send chat history and prompt to Groq with low temperature for factual accuracy
       const historyToSend = messages.slice(-10); // Keep last 10 messages for rich conversational context
       const aiText = await sendGroqChat({
         systemInstruction,
         messages: [...historyToSend, { role: "user", content: userMessage }],
-        temperature: 0.7,
+        temperature: 0.2,
       });
 
       setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);

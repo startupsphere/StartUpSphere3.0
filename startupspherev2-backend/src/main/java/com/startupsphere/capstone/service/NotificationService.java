@@ -106,6 +106,7 @@ public class NotificationService {
         }
     }
 
+    @CacheEvict(value = "notifications", allEntries = true)
     public Notifications markAsViewed(int id) {
         try {
             Notifications notifications = nrepo.findById(id)
@@ -135,6 +136,7 @@ public class NotificationService {
         }
     }
 
+    @CacheEvict(value = "notifications", allEntries = true)
     public List<Notifications> markAllAsViewed(Integer userId) {
         try {
             List<Notifications> unviewedNotifications = nrepo.findByUserIdAndIsViewedFalseOrderByIdDesc(userId);

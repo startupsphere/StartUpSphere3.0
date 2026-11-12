@@ -86,6 +86,10 @@ public class Notifications {
         return isViewed;
     }
 
+    public boolean getViewed(){
+        return isViewed;
+    }
+
     public void setViewed(boolean isViewed){
         this.isViewed = isViewed;
         if(isViewed){

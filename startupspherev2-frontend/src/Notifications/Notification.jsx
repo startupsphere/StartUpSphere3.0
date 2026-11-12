@@ -136,7 +136,7 @@ function NotificationComponent() {
       id: item.id,
       type: determineNotificationType(item),
       content: item.remarks,
-      isRead: item.viewed,
+      isRead: Boolean(item.viewed ?? item.isViewed ?? item.read ?? item.isRead),
       action: determineAction(item),
       entityId: item.startup?.id, // Keep this consistent
       timestamp: item.createdAt || new Date().toISOString(),
@@ -475,7 +475,35 @@ function NotificationComponent() {
     setSortOrder((prevOrder) => (prevOrder === "newest" ? "oldest" : "newest"));
   };
 
-  // Handle marking a notification as read/unread
+  // Helper to mark a notification as read/viewed locally and on the server
+  const markNotificationAsRead = async (id) => {
+    if (id == null) return false;
+    try {
+      // 1. Immediately update local state using a functional update so all lists and counts update instantly
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notif) =>
+          String(notif.id) === String(id)
+            ? { ...notif, isRead: true, viewed: true, isViewed: true }
+            : notif
+        )
+      );
+
+      // 2. Persist read status to the backend
+      const endpoint = `${getBackendUrl()}/notifications/${id}/view`;
+      const response = await fetch(endpoint, {
+        method: "PUT",
+        credentials: "include",
+        headers: getAuthHeaders({
+          "Content-Type": "application/json",
+        }),
+      });
+      return response.ok;
+    } catch (err) {
+      console.warn("Failed to mark notification as read:", err);
+      return false;
+    }
+  };
+
   // Handle marking a notification as read only (no unread functionality)
   const handleToggleRead = async (id, currentReadStatus) => {
     try {
@@ -485,46 +513,12 @@ function NotificationComponent() {
         return true;
       }
 
-      // For marking as viewed - only available for unread notifications
-      const endpoint = `${getBackendUrl()
-        }/notifications/${id}/view`;
-
-      const response = await fetch(endpoint, {
-        method: "PUT",
-        credentials: "include",
-        headers: getAuthHeaders({
-          "Content-Type": "application/json",
-        }),
-      });
-
-      if (!response.ok) {
-        // Log specific error details for debugging
-        const errorText = await response.text().catch(() => "No error details");
-        console.warn(`Server responded with ${response.status}: ${errorText}`);
-
-        // Continue execution with local update only instead of throwing error
-        console.log("Server update failed, applying local update only");
-      }
-
-      // Update local state regardless of server response
-      // This ensures UI remains responsive even if the API fails
-      const updatedNotifications = notifications.map((notif) =>
-        notif.id === id ? { ...notif, isRead: true } : notif
-      );
-
-      setNotifications(updatedNotifications);
+      await markNotificationAsRead(id);
       toast.success("Notification marked as read");
-      return true; // Return success for callers
+      return true;
     } catch (error) {
       console.error("Failed to update notification:", error);
-
-      // Fallback to just updating UI for demo/resilience
-      const updatedNotifications = notifications.map((notif) =>
-        notif.id === id ? { ...notif, isRead: true } : notif
-      );
-      setNotifications(updatedNotifications);
-      toast.success("Notification marked as read");
-      return true; // Return success since we updated the UI
+      return false;
     }
   };
 
@@ -768,42 +762,8 @@ function NotificationComponent() {
       setShowActionModal(true);
       setLoadingDetails(true);
 
-      // Mark notification as read if it's not already
-      if (!notification.isRead) {
-        try {
-          // Always mark as viewed when opening the notification
-          const viewEndpoint = `${getBackendUrl()
-            }/notifications/${notification.id}/view`;
-
-          console.log(`Marking notification ${notification.id} as viewed`);
-          const viewResponse = await fetch(viewEndpoint, {
-            method: "PUT",
-            credentials: "include",
-            headers: getAuthHeaders({
-              "Content-Type": "application/json",
-            }),
-          });
-
-          if (!viewResponse.ok) {
-            console.warn(
-              `Failed to mark notification as viewed: ${viewResponse.status}`
-            );
-          } else {
-            console.log(
-              `Successfully marked notification ${notification.id} as viewed`
-            );
-          }
-
-          // Update local state regardless of server response to maintain UI consistency
-          const updatedNotifications = notifications.map((notif) =>
-            notif.id === notification.id ? { ...notif, isRead: true } : notif
-          );
-          setNotifications(updatedNotifications);
-        } catch (err) {
-          console.warn("Failed to mark notification as read:", err);
-          // Continue execution despite this error to allow viewing the notification
-        }
-      }
+      // Immediately mark notification as read both locally and in backend
+      markNotificationAsRead(notification.id);
 
       // Use the correct startup ID - first try entityId, then check notification.rawData
       let startupId = notification.entityId;
@@ -998,12 +958,17 @@ function NotificationComponent() {
     }
   };
 
-  // Close the action modal
+  // Close the action modal and ensure read status is saved
   const closeActionModal = () => {
+    const notif = selectedNotification;
     setShowActionModal(false);
     setSelectedNotification(null);
     setStartupDetails(null);
     setActionType(null);
+
+    if (notif && notif.id != null) {
+      markNotificationAsRead(notif.id);
+    }
   };
 
   // Navigate to startup profile (for "View" actions)
@@ -1018,24 +983,6 @@ function NotificationComponent() {
     // Close the modal - no actual submission needed since users can only view
     closeActionModal();
   };
-
-  // Update the modal footer section
-  <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-    {!loadingDetails && startupDetails && (
-      <button
-        onClick={() => navigateToStartupProfile(startupDetails.id)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-      >
-        View Full Profile
-      </button>
-    )}
-    <button
-      onClick={closeActionModal}
-      className="px-4 py-2 ml-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-    >
-      Close
-    </button>
-  </div>;
 
   // Function to determine notification action type based on content
   const getActionType = (notification) => {
@@ -1695,10 +1642,10 @@ function NotificationComponent() {
                   View Full Profile
                 </button>
               )}
-              {!loadingDetails && actionType !== "review" && (
+              {!loadingDetails && (
                 <button
                   onClick={closeActionModal}
-                  className="px-4 py-2 ml-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 ml-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors cursor-pointer"
                 >
                   Close
                 </button>

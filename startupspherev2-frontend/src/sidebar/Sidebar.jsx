@@ -289,8 +289,10 @@ export default function Sidebar({
   const hasLeftPanel420 = (stakeholder && !viewingStartup) || (startup && !viewingStartup);
   const hasLeftPanel384 = isBrowseActive || isRecentsActive || isBookmarksActive;
 
+  const isMapRoute = location.pathname === "/";
+
   let marginLeft = "0px";
-  if (!isMobile) {
+  if (!isMobile && !isMapRoute) {
     if (hasLeftPanel420) {
       marginLeft = "420px";
     } else if (hasLeftPanel384) {
@@ -299,47 +301,40 @@ export default function Sidebar({
   }
 
   let marginRight = "0px";
-  if (!isMobile && showGeminiAi) {
+  if (!isMobile && !isMapRoute && showGeminiAi) {
     marginRight = "420px";
   }
 
-  // Trigger Mapbox resize on sidebar state shifts so map redraws to exact container bounds
+  // Smoothly animate map camera padding when side panels open/close on the map route.
+  // Using Mapbox's built-in padding pans the camera smoothly without resizing the WebGL canvas,
+  // completely eliminating any white background exposure or canvas re-initialization flickering.
   useEffect(() => {
-    if (mapInstanceRef && mapInstanceRef.current) {
+    if (isMapRoute && mapInstanceRef && mapInstanceRef.current) {
       try {
-        // Immediate resize
-        mapInstanceRef.current.resize();
-
-        // Periodic resize to smooth out the slide-in/out transitions
-        const interval = setInterval(() => {
-          try {
-            if (mapInstanceRef.current) {
-              mapInstanceRef.current.resize();
-            }
-          } catch (e) {
-            clearInterval(interval);
-          }
-        }, 50);
-
-        // Clean up interval and fire one final resize at transition completion (300ms)
-        const timer = setTimeout(() => {
-          clearInterval(interval);
-          try {
-            if (mapInstanceRef.current) {
-              mapInstanceRef.current.resize();
-            }
-          } catch (e) { }
-        }, 350);
-
-        return () => {
-          clearInterval(interval);
-          clearTimeout(timer);
-        };
-      } catch (error) {
-        console.warn("Mapbox resize deferred or failed:", error);
+        const map = mapInstanceRef.current;
+        if (typeof map.easeTo === "function" && (!map.isStyleLoaded || map.isStyleLoaded())) {
+          const leftPad = !isMobile ? (hasLeftPanel420 ? 420 : hasLeftPanel384 ? 384 : 0) : 0;
+          const rightPad = !isMobile && showGeminiAi ? 420 : 0;
+          map.easeTo({
+            padding: { left: leftPad, right: rightPad, top: 0, bottom: 0 },
+            duration: 300,
+            essential: true,
+          });
+        }
+      } catch (err) {
+        console.warn("Map padding transition deferred or failed:", err);
       }
     }
-  }, [marginLeft, marginRight, mapInstanceRef]);
+  }, [isMapRoute, hasLeftPanel420, hasLeftPanel384, showGeminiAi, isMobile, mapInstanceRef]);
+
+  // Trigger Mapbox resize only when non-map layout margins shift
+  useEffect(() => {
+    if (!isMapRoute && mapInstanceRef && mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.resize();
+      } catch (e) {}
+    }
+  }, [isMapRoute, marginLeft, marginRight, mapInstanceRef]);
 
   const markAsViewed = async (id) => {
     try {

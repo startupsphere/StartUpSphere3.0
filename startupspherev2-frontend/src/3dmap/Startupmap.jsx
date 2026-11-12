@@ -172,8 +172,9 @@ export default function Startupmap({
 
     const topPad = 58;
     const bottomPad = showControlsRef.current ? 116 : 68;
-    const leftPad = 14;
-    const rightPad = 56;
+    const isExpanded = !isMobileMap && (context?.isSidebarExpanded || context?.isBrowseDirectoryOpen);
+    const leftPad = isExpanded ? 400 : 14;
+    const rightPad = !isMobileMap && context?.isAiOpen ? 434 : 56;
 
     const safeWidth = Math.max(250, mapRect.width - leftPad - rightPad);
     const safeHeight = Math.max(200, mapRect.height - topPad - bottomPad);
