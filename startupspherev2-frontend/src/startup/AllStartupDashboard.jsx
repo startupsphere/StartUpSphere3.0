@@ -257,7 +257,8 @@ export default function AllStartupDashboard() {
       try {
         const params = new URLSearchParams({
           page: "0",
-          size: "5",
+          size: "1000",
+          limit: "1000",
           metric: rankingMetric
         });
         
@@ -271,14 +272,24 @@ export default function AllStartupDashboard() {
           params.append("trl", selectedTrlStage);
         }
         
-        const response = await fetch(
-          `${getBackendUrl()}/api/rankings/top?${params.toString()}`,
+        // Use /api/rankings to fetch all startups matching the selected filters
+        let response = await fetch(
+          `${getBackendUrl()}/api/rankings?${params.toString()}`,
           {
             credentials: "include",
           }
         );
         if (!response.ok) {
-          throw new Error("Failed to fetch top startups");
+          // Fallback to /api/rankings/top if needed
+          response = await fetch(
+            `${getBackendUrl()}/api/rankings/top?${params.toString()}`,
+            {
+              credentials: "include",
+            }
+          );
+        }
+        if (!response.ok) {
+          throw new Error("Failed to fetch startups");
         }
         const data = await response.json();
         const startups = Array.isArray(data) ? data : (data.content || []);
@@ -440,17 +451,16 @@ export default function AllStartupDashboard() {
             setIndustryData(industryBreakdown);
             setIndustriesCache(true); // Mark as cached
             
-            // Also cache top startups from this data to avoid separate API call
-            const topStartupsFromRankings = allRankings
-              .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0))
-              .slice(0, 5);
-            setTopStartups(topStartupsFromRankings);
+            // Also cache all startups from this data to avoid separate API call
+            const allRankedStartups = allRankings
+              .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
+            setTopStartups(allRankedStartups);
             setTopStartupsCache({
               industry: "All",
               govReg: "All",
               trl: "All",
               metric: rankingMetric,
-              data: topStartupsFromRankings
+              data: allRankedStartups
             });
           }
         } else if (industriesCache && industries.length === 0) {
@@ -1669,7 +1679,11 @@ export default function AllStartupDashboard() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                       Top Performing Startups
                     </h2>
-                    <p className="text-sm text-gray-600 mt-1">Leading startups by overall performance metrics</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {selectedIndustry === "All"
+                        ? `Displaying all startups (${topStartups.length} total) ranked by overall performance`
+                        : `Displaying all startups in ${selectedIndustry} (${topStartups.length} found)`}
+                    </p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <label htmlFor="industry-select" className="text-sm font-medium text-gray-700">Filter by Industry:</label>
@@ -1734,8 +1748,10 @@ export default function AllStartupDashboard() {
                         {topStartups.map((startup, index) => (
                           <tr key={startup.id} className="hover:bg-indigo-50 transition-colors duration-150">
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">{index + 1}</span>
+                              <div className="flex items-center">
+                                <span className="inline-flex items-center justify-center h-8 w-8 min-w-[32px] rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-sm shadow-xs shrink-0">
+                                  {index + 1}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">

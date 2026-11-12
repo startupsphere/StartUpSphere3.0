@@ -222,7 +222,9 @@ public class StartupRankingController {
         List<Startup> rankedStartups = filterAndRankStartups(allStartups, industry, govReg, trl, metric);
 
         // Apply limit first, then pagination
-        rankedStartups = rankedStartups.stream().limit(limit).collect(Collectors.toList());
+        if (limit != null && limit > 0) {
+            rankedStartups = rankedStartups.stream().limit(limit).collect(Collectors.toList());
+        }
         
         int start = page * size;
         int end = Math.min(start + size, rankedStartups.size());
