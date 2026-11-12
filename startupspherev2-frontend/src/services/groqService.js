@@ -32,8 +32,13 @@ export const getGroqModel = () => {
   if (envModel && envModel.trim() !== "") {
     return envModel.trim();
   }
-  return "openai/gpt-oss-120b";
+  return "llama-3.3-70b-versatile";
 };
+
+const FALLBACK_MODELS = [
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant"
+];
 
 export const getGroqEndpoint = () => {
   // If custom API URL provided in env
@@ -140,7 +145,29 @@ export async function sendGroqChat({
     }
   }
 
-  const data = await response.json().catch(() => null);
+  let data = await response.json().catch(() => null);
+
+  // If rate limited (HTTP 429) or error message indicates rate limit, retry with fast high-capacity fallback model
+  if (!response.ok && (response.status === 429 || (data?.error?.message && String(data.error.message).toLowerCase().includes("rate limit")))) {
+    console.warn(`Groq model ${payload.model} hit rate limit, falling back to llama-3.1-8b-instant...`);
+    const fallbackPayload = {
+      ...payload,
+      model: "llama-3.1-8b-instant",
+    };
+    try {
+      const fallbackRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(fallbackPayload),
+      });
+      if (fallbackRes.ok) {
+        data = await fallbackRes.json();
+        response = fallbackRes;
+      }
+    } catch (fbErr) {
+      console.error("Groq fallback attempt failed:", fbErr);
+    }
+  }
 
   if (!response.ok) {
     const errorMsg =

@@ -341,20 +341,11 @@ export default function GroqAiChat({ currentUser, onClose }) {
         });
       }
 
-      // Inject Verified Database Directory of Approved Startups
+      // Inject Verified Database Directory of Approved Startups (compact summary for token efficiency)
       if (allStartups && allStartups.length > 0) {
         dbContext += `\n\n**Approved Startups in StartUpSphere Database (${allStartups.length} Total):**`;
         allStartups.forEach((s, i) => {
-          dbContext += `\n${i + 1}. **${s.companyName || "Unnamed"}** (ID: ${s.id})`;
-          if (s.industry) dbContext += ` | Industry: ${s.industry}`;
-          if (s.locationName || s.city) dbContext += ` | Location: ${s.locationName || s.city}`;
-          if (s.trlLevel) dbContext += ` | TRL: ${s.trlLevel}`;
-          if (s.businessActivity) dbContext += ` | Focus: ${s.businessActivity}`;
-          if (s.fundingStage) dbContext += ` | Stage: ${s.fundingStage}`;
-          if (s.companyDescription) {
-            const cleanDesc = s.companyDescription.replace(/\s+/g, ' ').slice(0, 150);
-            dbContext += ` | Description: ${cleanDesc}${s.companyDescription.length > 150 ? '...' : ''}`;
-          }
+          dbContext += `\n${i + 1}. **${s.companyName || "Unnamed"}** (Industry: ${s.industry || "General"}, Location: ${s.locationName || s.city || "Cebu"}, TRL: ${s.trlLevel || "N/A"}${s.fundingStage ? `, Stage: ${s.fundingStage}` : ""})`;
         });
       }
 
@@ -362,16 +353,14 @@ export default function GroqAiChat({ currentUser, onClose }) {
       if (allStakeholders && allStakeholders.length > 0) {
         dbContext += `\n\n**Registered Stakeholders in StartUpSphere Database (${allStakeholders.length} Total):**`;
         allStakeholders.forEach((st, i) => {
-          dbContext += `\n${i + 1}. **${st.name || "Unnamed"}** (ID: ${st.id})`;
-          if (st.locationName || st.city) dbContext += ` | Location: ${st.locationName || st.city}`;
-          if (st.email) dbContext += ` | Contact: ${st.email}`;
+          dbContext += `\n${i + 1}. **${st.name || "Unnamed"}** (${st.locationName || st.city || "Cebu"}${st.email ? `, Email: ${st.email}` : ""})`;
         });
       }
 
       systemInstruction += dbContext;
 
       // Send chat history and prompt to Groq with low temperature for factual accuracy
-      const historyToSend = messages.slice(-10); // Keep last 10 messages for rich conversational context
+      const historyToSend = messages.slice(-6); // Keep last 6 messages to stay well within TPM limits
       const aiText = await sendGroqChat({
         systemInstruction,
         messages: [...historyToSend, { role: "user", content: userMessage }],
