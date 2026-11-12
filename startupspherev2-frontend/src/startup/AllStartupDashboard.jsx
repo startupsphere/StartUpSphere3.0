@@ -2132,20 +2132,20 @@ export default function AllStartupDashboard() {
         {activeTab === "rankings" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
-              {/* High-Contrast Header Section */}
-              <div className="border-b border-indigo-500/20 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-6 text-white shadow-inner">
+              {/* Minimal Uniform Header Section */}
+              <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h2 className="text-xl font-bold text-white flex items-center">
-                      <Award className="h-6 w-6 text-indigo-400 mr-3" />
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                      <Award className="h-5 w-5 text-indigo-600 mr-2.5" />
                       Startup Rankings Leaderboard
                     </h2>
-                    <p className="text-sm text-indigo-200 mt-1">
+                    <p className="text-sm text-gray-600 mt-1">
                       Comprehensive rankings by verified performance metrics and readiness levels
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+                    <span className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-indigo-700 border border-indigo-200 shadow-xs">
                       Ranked by: {rankingMetric.charAt(0).toUpperCase() + rankingMetric.slice(1)} Score
                     </span>
                   </div>
