@@ -1690,7 +1690,11 @@ export default function Sidebar({
               setShowTooltip((prev) => !prev);
               setNotificationTooltip(false);
             }}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 text-white text-xs font-bold shadow-md cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+            style={{
+              background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+              color: "#ffffff"
+            }}
             aria-label="Profile Menu"
           >
             {isAuthenticated && currentUser
@@ -1707,12 +1711,23 @@ export default function Sidebar({
             className="fixed inset-0 z-[99990] bg-black/10 backdrop-blur-[1px]"
             onClick={() => setShowTooltip(false)}
           />
-          <div className="fixed top-14 right-3 w-60 bg-white border border-gray-200/90 rounded-xl shadow-2xl z-[99999] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed top-14 right-3 w-64 bg-white border border-gray-200/90 rounded-xl shadow-2xl z-[99999] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {isAuthenticated ? (
               <>
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50/80 to-white">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50/80 to-white">
+                  <div
+                    className="h-9 w-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
+                    style={{
+                      background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                      color: "#ffffff"
+                    }}
+                  >
+                    {currentUser
+                      ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+                      : "U"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-gray-900 truncate">
                       {currentUser?.firstname} {currentUser?.lastname}
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[150px]">
@@ -2171,7 +2186,13 @@ export default function Sidebar({
                   }}
                   aria-label="Profile"
                 >
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-sm flex items-center justify-center shadow-md">
+                  <div
+                    className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md ring-2 ring-blue-500/20"
+                    style={{
+                      background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                      color: "#ffffff"
+                    }}
+                  >
                     {currentUser
                       ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
                       : "U"}
@@ -2212,9 +2233,20 @@ export default function Sidebar({
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setShowTooltip(false)}
                 />
-                <div className="absolute bottom-2 left-full ml-3.5 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] overflow-hidden animate-fade-in">
-                  <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white">
-                    <div className="min-w-0 pr-2">
+                <div className="absolute bottom-2 left-full ml-3.5 w-72 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] overflow-hidden animate-fade-in">
+                  <div className="flex items-center gap-3 p-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white">
+                    <div
+                      className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm"
+                      style={{
+                        background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                        color: "#ffffff"
+                      }}
+                    >
+                      {currentUser
+                        ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+                        : "U"}
+                    </div>
+                    <div className="min-w-0 flex-1 pr-1">
                       <div className="text-sm font-bold text-slate-900 truncate">
                         {currentUser?.firstname} {currentUser?.lastname}
                       </div>
