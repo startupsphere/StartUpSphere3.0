@@ -357,119 +357,65 @@ export default function TooltipInfo({
             >
               <div
                 ref={modalRef}
-                className="relative w-full bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col max-h-[88vh] overflow-hidden my-auto animate-fadeIn"
+                className="relative w-full bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-[85vh] overflow-hidden my-auto animate-fadeIn"
                 style={{
-                  width: "min(672px, calc(100vw - 24px))",
-                  maxWidth: "672px",
+                  width: "min(620px, calc(100vw - 24px))",
+                  maxWidth: "620px",
                 }}
                 onClick={(e) => e.stopPropagation()} // Prevent backdrop click from inner card
               >
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-800 bg-slate-900/90 sticky top-0 z-10">
-                  <div className="min-w-0 flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex-shrink-0">
-                      <Layers className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3
-                          id={`${dialogId}-title`}
-                          className="font-bold text-white text-base sm:text-lg tracking-tight"
-                        >
-                          {resolvedTitle}
-                        </h3>
-                        {preset?.badge && (
-                          <span className="px-2.5 py-0.5 text-xs font-semibold bg-indigo-500/25 text-indigo-300 border border-indigo-400/30 rounded-full whitespace-nowrap">
-                            {preset.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-                        Simple guide to determine your startup's technology maturity (Levels 1 to 9).
-                      </p>
-                    </div>
+                {/* Minimal Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900 sticky top-0 z-10">
+                  <div>
+                    <h3
+                      id={`${dialogId}-title`}
+                      className="font-semibold text-white text-base"
+                    >
+                      {resolvedTitle}
+                    </h3>
+                    <p className="text-slate-400 text-xs mt-0.5">
+                      Technology maturity scale from basic principles (TRL 1) to market deployment (TRL 9).
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer flex-shrink-0"
+                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
                     aria-label="Close guide"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                {/* Sub-header / Summary */}
-                <div className="px-5 py-3 bg-slate-800/40 border-b border-slate-800/80 text-xs text-slate-300 leading-relaxed">
-                  <p>{resolvedSummary}</p>
-                  {preset?.guidance && (
-                    <p className="mt-1.5 text-indigo-300 font-medium flex items-start sm:items-center gap-1.5">
-                      <span className="flex-shrink-0">💡</span>
-                      <span>{preset.guidance}</span>
-                    </p>
-                  )}
+                {/* Minimal Text Tabs */}
+                <div className="px-5 py-2 flex items-center gap-1 border-b border-slate-800 bg-slate-900 text-xs overflow-x-auto">
+                  {[
+                    { id: "all", label: "All (1–9)" },
+                    { id: "1-3", label: "1–3 Concept" },
+                    { id: "4-6", label: "4–6 Prototype" },
+                    { id: "7-9", label: "7–9 Market" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-3 py-1 rounded-md text-xs transition-colors cursor-pointer whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? "bg-slate-800 text-white font-medium"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Filter Tabs for Easy Browsing on Desktop & Mobile */}
-                <div className="px-5 py-2.5 bg-slate-900 flex items-center gap-1.5 flex-wrap border-b border-slate-800">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1 flex-shrink-0">
-                    Filter:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("all")}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex-shrink-0 cursor-pointer ${
-                      activeTab === "all"
-                        ? "bg-indigo-600 text-white font-semibold"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    }`}
-                  >
-                    All Levels (1–9)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("1-3")}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex-shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === "1-3"
-                        ? "bg-emerald-600 text-white font-semibold"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                    TRL 1–3 Concept
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("4-6")}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex-shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === "4-6"
-                        ? "bg-amber-600 text-white font-semibold"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full bg-amber-400" />
-                    TRL 4–6 Prototype
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("7-9")}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex-shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === "7-9"
-                        ? "bg-blue-600 text-white font-semibold"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full bg-blue-400" />
-                    TRL 7–9 Market
-                  </button>
-                </div>
-
-                {/* Scrollable Levels List */}
+                {/* Minimal Scrollable Levels List */}
                 <div
-                  className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 divide-y divide-slate-800/60 max-h-[55vh] dark-scrollbar"
+                  className="flex-1 overflow-y-auto px-5 py-2 divide-y divide-slate-800/60 max-h-[58vh]"
                   style={{
                     scrollbarWidth: "thin",
-                    scrollbarColor: "#475569 #0f172a",
+                    scrollbarColor: "#334155 transparent",
                   }}
                 >
                   {filteredLevels.map((lvl) => {
@@ -482,35 +428,25 @@ export default function TooltipInfo({
                     return (
                       <div
                         key={lvl.level}
-                        className={`pt-3.5 first:pt-0 rounded-xl p-3 sm:p-4 transition-all duration-150 ${
-                          isCurrent
-                            ? "bg-indigo-950/40 border-2 border-indigo-500/60"
-                            : "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50"
+                        className={`py-3 transition-colors ${
+                          isCurrent ? "bg-indigo-950/20 px-3 -mx-3 rounded-lg" : ""
                         }`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2.5">
-                          {/* Title & Stage */}
-                          <div className="flex items-start gap-2.5">
-                            <span
-                              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex-shrink-0 flex items-center gap-1.5 ${lvl.badgeBg}`}
-                            >
-                              <span className={`h-2 w-2 rounded-full ${lvl.pillBg}`} />
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-mono text-xs font-semibold text-indigo-400">
                               {lvl.code}
                             </span>
-                            <div>
-                              <h4 className="font-semibold text-white text-sm sm:text-base leading-snug">
-                                {lvl.name}
-                              </h4>
-                              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">
-                                {lvl.stage}
-                              </span>
-                            </div>
+                            <span className="text-slate-600 text-xs">·</span>
+                            <h4 className="font-medium text-white text-sm">
+                              {lvl.name}
+                            </h4>
                           </div>
 
                           {/* Action button if onSelect provided */}
-                          <div className="flex items-center gap-2 self-start sm:self-center flex-shrink-0 mt-1 sm:mt-0">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             {isCurrent && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded-md flex items-center gap-1">
+                              <span className="text-[11px] font-medium text-indigo-400 flex items-center gap-1">
                                 <Check className="h-3 w-3" />
                                 Selected
                               </span>
@@ -519,45 +455,40 @@ export default function TooltipInfo({
                               <button
                                 type="button"
                                 onClick={() => handleSelectLevel(lvl.code)}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
+                                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                                   isCurrent
                                     ? "bg-indigo-600 text-white"
-                                    : "bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white"
+                                    : "text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700/60"
                                 }`}
                               >
-                                <span>{isCurrent ? "Keep Selected" : `Select ${lvl.code}`}</span>
-                                <ChevronRight className="h-3.5 w-3.5" />
+                                {isCurrent ? "Keep" : "Select"}
                               </button>
                             )}
                           </div>
                         </div>
 
-                        {/* Plain Language Explanation */}
-                        <div className="mt-2.5 space-y-1.5 text-xs sm:text-sm">
-                          <p className="text-slate-200 leading-relaxed font-normal">
-                            {lvl.plainExplanation}
-                          </p>
-                          <div className="bg-slate-900/60 p-2 sm:p-2.5 rounded-lg border border-slate-700/40 text-[11px] sm:text-xs text-slate-400">
-                            <span className="font-semibold text-slate-300">Real-world indicator: </span>
+                        <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                          {lvl.plainExplanation}
+                        </p>
+                        {lvl.example && (
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            <span className="text-slate-400 font-medium">Indicator: </span>
                             {lvl.example}
-                          </div>
-                        </div>
+                          </p>
+                        )}
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Footer with Clear Dismiss / Got It Button */}
-                <div className="px-5 py-3.5 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-[11px] text-slate-400 hidden sm:inline">
-                    Press <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">Esc</kbd> or click anywhere outside to close.
-                  </span>
+                {/* Minimal Footer */}
+                <div className="px-5 py-3 border-t border-slate-800 flex justify-end bg-slate-900">
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="w-full sm:w-auto px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors cursor-pointer shadow-sm text-center"
+                    className="px-4 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg transition-colors cursor-pointer"
                   >
-                    Got It, Close Guide
+                    Close
                   </button>
                 </div>
               </div>
