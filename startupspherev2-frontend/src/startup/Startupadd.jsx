@@ -2694,13 +2694,13 @@ const handleSubmit = async () => {
           }
         `}
       </style>
-      <div className="bg-gray-100 min-h-screen text-gray-800 relative">
-      <div className="bg-white border-b border-gray-200 px-10 py-5">  
-        <div className="flex items-center text-sm font-medium">
+      <div className="bg-gray-100 min-h-screen text-gray-800 relative pb-20 md:pb-10 overflow-x-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-10 py-3 sm:py-5 overflow-x-auto">  
+        <div className="flex items-center text-xs sm:text-sm font-medium">
         {/*Back Arrow*/}
         <button
           onClick={() => navigate("/startup-dashboard")}
-          className="mr-3 text-gray-500 hover:text-gray-700 transition-colors"
+          className="mr-2 sm:mr-3 text-gray-500 hover:text-gray-700 transition-colors shrink-0"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
@@ -2708,7 +2708,7 @@ const handleSubmit = async () => {
         </button>
 
           {/* Breadcrumb Links */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 whitespace-nowrap overflow-x-auto no-scrollbar">
             <button
               onClick={() => navigate("/")}
               className="text-gray-500 hover:text-[#1D3557] transition-colors"
@@ -2732,11 +2732,11 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-md p-8 w-4/5 mx-auto mt-8">
+      <div className="bg-white shadow-md rounded-xl p-4 sm:p-8 w-[calc(100%-1.5rem)] sm:w-11/12 lg:w-4/5 mx-auto my-4 sm:my-8">
         {/* Professional Steps Progress Bar */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           {/* Progress Percentage Header */}
-          <div className="flex justify-between items-center mb-4 px-4">
+          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-3 mb-4 px-1 sm:px-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2867,11 +2867,11 @@ const handleSubmit = async () => {
                     </div>
                     
                     {/* Step Label */}
-                    <div className="text-center">
+                    <div className="text-center w-full px-0.5">
                       <p className={`
-                        text-xs font-medium transition-colors duration-200
+                        text-[10px] sm:text-xs font-medium transition-colors duration-200 truncate
                         ${isActive 
-                          ? 'text-blue-600' 
+                          ? 'text-blue-600 font-semibold' 
                           : isCompleted 
                           ? 'text-gray-700' 
                           : isAccessible
@@ -4362,7 +4362,7 @@ const handleSubmit = async () => {
           </form>
         )}
         {selectedTab === "Contact Information" && (
-          <form className="grid grid-cols-2 gap-6">
+          <form className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
                 Phone Number <span className="text-red-500">*</span>

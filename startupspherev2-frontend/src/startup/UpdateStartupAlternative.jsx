@@ -2292,28 +2292,28 @@ export default function UpdateStartup() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+          <div className="flex items-center min-w-0">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center text-gray-500 hover:text-gray-700 mr-6"
+              className="flex items-center text-gray-500 hover:text-gray-700 mr-3 sm:mr-6 shrink-0 cursor-pointer"
             >
-              <ArrowLeft size={20} className="mr-2" />
-              <span className="font-medium">Back</span>
+              <ArrowLeft size={18} className="mr-1.5" />
+              <span className="font-medium text-xs sm:text-sm">Back</span>
             </button>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
               {formData.companyName ? `Edit: ${formData.companyName}` : "Update Startup"}
             </h1>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={() => navigate("/startup-dashboard")}
-              className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="py-1.5 sm:py-2 px-3 sm:px-4 border border-gray-300 rounded-md shadow-xs text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
             >
               Cancel
             </button>
@@ -2321,7 +2321,7 @@ export default function UpdateStartup() {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center"
+              className="py-1.5 sm:py-2 px-3 sm:px-4 border border-transparent rounded-md shadow-xs text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center cursor-pointer"
             >
               {submitting ? (
                 <>
@@ -2339,7 +2339,7 @@ export default function UpdateStartup() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Notifications */}
         {error && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
@@ -2384,10 +2384,10 @@ export default function UpdateStartup() {
           {/* Sidebar navigation */}
           <div className="md:w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <h2 className="text-sm font-medium text-gray-700 uppercase tracking-wide">Form Sections</h2>
+              <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wide">Form Sections</h2>
               </div>
-              <nav className="flex flex-col">
+              <nav className="flex md:flex-col overflow-x-auto no-scrollbar divide-x md:divide-x-0 divide-gray-100">
                 {[
                   { id: "basic", label: "Basic Information", icon: <Building size={18} /> },
                   { id: "contact", label: "Contact Information", icon: <Mail size={18} /> },
@@ -2400,14 +2400,14 @@ export default function UpdateStartup() {
                     key={section.id}
                     type="button"
                     onClick={() => setActiveSection(section.id)}
-                    className={`flex items-center px-4 py-3 text-left border-l-2 ${
+                    className={`flex items-center px-3.5 sm:px-4 py-2.5 sm:py-3 text-left whitespace-nowrap shrink-0 border-b-2 md:border-b-0 md:border-l-2 cursor-pointer transition-colors ${
                       activeSection === section.id
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        ? "border-blue-600 bg-blue-50 text-blue-700 font-semibold"
                         : "border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    <span className="mr-3 text-gray-500">{section.icon}</span>
-                    <span className="font-medium">{section.label}</span>
+                    <span className="mr-2 sm:mr-3 text-gray-500 shrink-0">{section.icon}</span>
+                    <span className="text-xs sm:text-sm">{section.label}</span>
                   </button>
                 ))}
               </nav>

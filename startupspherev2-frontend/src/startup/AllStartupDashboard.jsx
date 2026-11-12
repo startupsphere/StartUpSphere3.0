@@ -1290,41 +1290,41 @@ export default function AllStartupDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <main className="flex-grow p-6">
+    <div className="flex flex-col min-h-screen bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
+      <main className="flex-grow p-3 sm:p-6">
         {/* Back Button */}
         <button
           onClick={() => navigate("/")}
-          className="cursor-pointer flex items-center text-black mb-6 transition-colors hover:text-white hover:bg-indigo-500 rounded-md p-2"
+          className="cursor-pointer flex items-center text-gray-800 mb-4 sm:mb-6 transition-colors hover:text-white hover:bg-indigo-500 rounded-md px-3 py-1.5 text-sm font-medium w-fit"
         >
-          <ArrowLeft className="h-5 w-5 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           <span>Back to Home</span>
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
           {/* Total Startups Card */}
-          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 border border-indigo-200">
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-indigo-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-indigo-700 text-sm font-medium mb-1">Total Startups</p>
-                <p className="text-3xl font-bold text-indigo-900 mb-2">{totalStartups}</p>
+                <p className="text-indigo-700 text-xs sm:text-sm font-medium mb-1">Total Startups</p>
+                <p className="text-2xl sm:text-3xl font-bold text-indigo-900 mb-2">{totalStartups}</p>
                 <p className="text-xs text-indigo-600 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                   Active in ecosystem
                 </p>
               </div>
-              <div className="p-3 bg-indigo-200 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-indigo-700" />
+              <div className="p-2.5 sm:p-3 bg-indigo-200 rounded-lg">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-700" />
               </div>
             </div>
           </div>
 
           {/* Total Funding Card */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 border border-green-200">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-green-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-green-700 text-sm font-medium mb-1">Total Funding</p>
-                <p className="text-3xl font-bold text-green-900 mb-2">
+                <p className="text-green-700 text-xs sm:text-sm font-medium mb-1">Total Funding</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">
                   ₱{(
                     rankedStartups.reduce((sum, startup) => {
                       const funding =
@@ -1343,35 +1343,35 @@ export default function AllStartupDashboard() {
                   Total invested
                 </p>
               </div>
-              <div className="p-3 bg-green-200 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-700" />
+              <div className="p-2.5 sm:p-3 bg-green-200 rounded-lg">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-700" />
               </div>
             </div>
           </div>
 
           {/* Industries Card */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 border border-blue-200">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-blue-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-blue-700 text-sm font-medium mb-1">Industries</p>
-                <p className="text-3xl font-bold text-blue-900 mb-2">{industries.length}</p>
+                <p className="text-blue-700 text-xs sm:text-sm font-medium mb-1">Industries</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-900 mb-2">{industries.length}</p>
                 <p className="text-xs text-blue-600 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
                   Diversified sectors
                 </p>
               </div>
-              <div className="p-3 bg-blue-200 rounded-lg">
-                <MapPin className="h-6 w-6 text-blue-700" />
+              <div className="p-2.5 sm:p-3 bg-blue-200 rounded-lg">
+                <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700" />
               </div>
             </div>
           </div>
 
           {/* Average Score Card */}
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 border border-amber-200">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-amber-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-amber-700 text-sm font-medium mb-1">Avg. Score</p>
-                <p className="text-3xl font-bold text-amber-900 mb-2">
+                <p className="text-amber-700 text-xs sm:text-sm font-medium mb-1">Avg. Score</p>
+                <p className="text-2xl sm:text-3xl font-bold text-amber-900 mb-2">
                   {rankedStartups.length > 0
                     ? Math.round(
                         rankedStartups.reduce(

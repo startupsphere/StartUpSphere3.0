@@ -1387,34 +1387,35 @@ export default function StartupDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       {/* Top navigation bar */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center min-w-0">
             <button
               onClick={() => navigate(-1)}
-              className="text-gray-500 hover:text-gray-700 mr-4 flex items-center"
+              className="text-gray-500 hover:text-gray-700 mr-2 sm:mr-4 flex items-center shrink-0 cursor-pointer"
             >
               <ArrowLeft size={18} className="mr-1" />
-              <span>Back</span>
+              <span className="hidden sm:inline">Back</span>
             </button>
-            <h1 className="text-xl font-semibold text-gray-800 truncate">
+            <h1 className="text-base sm:text-xl font-semibold text-gray-800 truncate">
               {startup.companyName}
             </h1>
-            <span className="ml-3 px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+            <span className="hidden sm:inline-block ml-3 px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full shrink-0">
               Public Profile
             </span>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex space-x-2 sm:space-x-3 shrink-0">
             <button
               onClick={() =>
                 navigate(`/update-startup/${id}`, { state: { startup } })
               }
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
             >
-              <Edit size={16} className="mr-2" />
-              Edit Startup
+              <Edit size={16} className="mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Edit Startup</span>
+              <span className="sm:hidden">Edit</span>
             </button>
           </div>
         </div>
@@ -1462,10 +1463,10 @@ export default function StartupDetail() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Tabs navigation */}
         <div className="mb-6 border-b border-gray-200">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto no-scrollbar">
             <button
               className={`px-1 py-4 border-b-2 font-medium text-sm ${
                 activeTab === "details"

@@ -167,16 +167,16 @@ export default function Signup({ closeModal, openLogin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity p-3 sm:p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-5xl max-h-[90vh] my-auto bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
+        className="w-full max-w-5xl max-h-[92dvh] my-auto bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Side - Brand Section */}
-        <div className="w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-12 flex flex-col justify-between relative overflow-hidden">
+        <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-8 lg:p-12 flex-col justify-between relative overflow-hidden">
           {/* Decorative shapes */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40"></div>
           <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full -ml-30 -mb-30"></div>
@@ -276,7 +276,13 @@ export default function Signup({ closeModal, openLogin }) {
         </div>
 
         {/* Right Side - Form Section */}
-        <div className="w-3/5 px-8 py-8 bg-white overflow-y-auto flex flex-col relative">
+        <div className="w-full md:w-3/5 px-4 sm:px-8 py-6 sm:py-8 bg-white overflow-y-auto flex flex-col relative">
+          {/* Mobile Header Brand */}
+          <div className="md:hidden flex items-center gap-2 mb-3">
+            <img src="/StartUpSphere_logo.png" alt="StartUpSphere" className="h-6 w-6 object-contain" />
+            <span className="font-bold text-gray-900 text-base">StartUp<span className="text-blue-600">Sphere</span></span>
+          </div>
+
           {/* Close button - Desktop positioned */}
           <button
             className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors border-0 bg-transparent z-50"

@@ -342,12 +342,12 @@ export default function TooltipInfo({
       {isOpen && hasLevels && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
+              className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-5 overflow-y-auto animate-fadeIn"
               style={{
                 position: "fixed",
                 inset: 0,
                 width: "100vw",
-                height: "100vh",
+                height: "100dvh",
                 zIndex: 99999,
               }}
               role="dialog"
@@ -357,30 +357,30 @@ export default function TooltipInfo({
             >
               <div
                 ref={modalRef}
-                className="relative w-full bg-white text-gray-900 rounded-2xl shadow-2xl border border-gray-200/90 flex flex-col max-h-[85vh] overflow-hidden my-auto animate-fadeIn"
+                className="relative w-full bg-white text-gray-900 rounded-2xl shadow-2xl border border-gray-200/90 flex flex-col max-h-[92dvh] sm:max-h-[85vh] overflow-hidden my-auto animate-fadeIn"
                 style={{
-                  width: "min(620px, calc(100vw - 24px))",
+                  width: "min(620px, calc(100vw - 16px))",
                   maxWidth: "620px",
                 }}
                 onClick={(e) => e.stopPropagation()} // Prevent backdrop click from inner card
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-100 bg-white sticky top-0 z-10">
-                  <div>
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4.5 border-b border-gray-100 bg-white sticky top-0 z-10">
+                  <div className="min-w-0 pr-2">
                     <h3
                       id={`${dialogId}-title`}
-                      className="font-bold text-gray-900 text-base sm:text-lg tracking-tight"
+                      className="font-bold text-gray-900 text-base sm:text-lg tracking-tight truncate"
                     >
                       {resolvedTitle}
                     </h3>
-                    <p className="text-gray-500 text-xs mt-0.5">
+                    <p className="text-gray-500 text-xs mt-0.5 line-clamp-1 sm:line-clamp-none">
                       Technology maturity scale from basic principles (TRL 1) to market deployment (TRL 9).
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer flex-shrink-0"
                     aria-label="Close guide"
                   >
                     <X className="h-5 w-5" />
@@ -388,7 +388,7 @@ export default function TooltipInfo({
                 </div>
 
                 {/* Minimal Segmented Tabs */}
-                <div className="px-6 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto text-xs">
+                <div className="px-4 sm:px-6 py-2 bg-gray-50/70 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto text-xs no-scrollbar">
                   {[
                     { id: "all", label: "All (1–9)" },
                     { id: "1-3", label: "1–3 Concept" },
@@ -399,7 +399,7 @@ export default function TooltipInfo({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
                         activeTab === tab.id
                           ? "bg-white text-blue-600 shadow-xs border border-gray-200/80"
                           : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
@@ -412,7 +412,7 @@ export default function TooltipInfo({
 
                 {/* Scrollable Levels List */}
                 <div
-                  className="flex-1 overflow-y-auto px-6 py-3 divide-y divide-gray-100 max-h-[58vh]"
+                  className="flex-1 overflow-y-auto px-4 sm:px-6 py-2.5 sm:py-3 divide-y divide-gray-100 max-h-[62dvh] sm:max-h-[58vh]"
                   style={{
                     scrollbarWidth: "thin",
                     scrollbarColor: "#cbd5e1 transparent",
@@ -428,15 +428,15 @@ export default function TooltipInfo({
                     return (
                       <div
                         key={lvl.level}
-                        className={`py-3.5 transition-colors ${
+                        className={`py-3 transition-colors ${
                           isCurrent
                             ? "bg-blue-50/60 px-3 -mx-3 rounded-xl border border-blue-200/60"
                             : "hover:bg-gray-50/60 px-3 -mx-3 rounded-xl"
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-mono text-xs font-bold text-blue-600">
+                        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-mono text-xs font-bold text-blue-600 flex-shrink-0">
                               {lvl.code}
                             </span>
                             <span className="text-gray-300 text-xs">·</span>
@@ -446,7 +446,7 @@ export default function TooltipInfo({
                           </div>
 
                           {/* Action button if onSelect provided */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                             {isCurrent && (
                               <span className="text-[11px] font-semibold text-blue-600 flex items-center gap-1">
                                 <Check className="h-3.5 w-3.5" />
@@ -484,11 +484,11 @@ export default function TooltipInfo({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-3.5 bg-gray-50/80 border-t border-gray-100 flex justify-end">
+                <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-gray-50/80 border-t border-gray-100 flex justify-end">
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="px-4 py-1.5 text-xs font-semibold bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2 text-xs font-semibold bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 rounded-lg shadow-2xs transition-colors cursor-pointer text-center"
                   >
                     Close
                   </button>
@@ -503,10 +503,10 @@ export default function TooltipInfo({
       {isOpen && !hasLevels && (
         <div
           role="tooltip"
-          className={`absolute z-[9999] w-72 sm:w-80 p-4 bg-white/95 backdrop-blur-md text-gray-800 text-xs rounded-2xl shadow-xl border border-gray-200/90 pointer-events-auto transition-all animate-fadeIn ${
+          className={`fixed sm:absolute z-[99999] sm:z-[9999] inset-x-3 sm:inset-x-auto sm:w-80 p-4 bg-white/95 backdrop-blur-md text-gray-800 text-xs rounded-2xl shadow-xl border border-gray-200/90 pointer-events-auto transition-all animate-fadeIn ${
             positionClasses[position] || positionClasses.top
           }`}
-          style={{ maxWidth: "calc(100vw - 32px)" }}
+          style={{ maxWidth: "min(340px, calc(100vw - 24px))" }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

@@ -76,8 +76,8 @@ const AddMethodModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn"> 
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[90vh]"> 
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-fadeIn"> 
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-4 sm:p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[92dvh] my-auto"> 
         
         {/* Header decoration */}
         <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(90deg, #2563eb, #4f46e5)' }}></div>
@@ -85,39 +85,39 @@ const AddMethodModal = ({ isOpen, onClose }) => {
         {/* Modal Close */}
         <button
           onClick={handleClose}
-          className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all border-0 bg-transparent cursor-pointer z-10"
+          className="absolute top-4 sm:top-5 right-4 sm:right-5 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all border-0 bg-transparent cursor-pointer z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
         {step === 1 ? (
           <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+            <div className="text-center mb-4 sm:mb-6 pr-6 pl-2 sm:px-0">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
                 Choose Ecosystem Actor Type
               </h2>
-              <p className="text-sm md:text-base text-gray-600 mt-2 font-medium">
+              <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1.5 sm:mt-2 font-medium">
                 Select your stakeholder category to load the customized registration path.
               </p>
             </div>
 
             {/* Actors Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-2 overflow-y-auto max-h-[55vh] flex-1 max-w-4xl mx-auto w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 p-1 sm:p-2 overflow-y-auto max-h-[60dvh] flex-1 max-w-4xl mx-auto w-full">
               {ECOSYSTEM_ACTORS.map((actor) => {
                 const IconComponent = actor.icon;
                 return (
                   <button
                     key={actor.id}
                     onClick={() => selectActor(actor)}
-                    className={`flex flex-col items-start text-left p-5 rounded-xl border-2 border-transparent transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
+                    className={`flex flex-col items-start text-left p-3.5 sm:p-5 rounded-xl border-2 border-transparent transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
                   >
                     <div 
-                      className="p-3 rounded-lg text-white mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200"
+                      className="p-2.5 sm:p-3 rounded-lg text-white mb-2.5 sm:mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200"
                       style={{ background: `linear-gradient(135deg, ${actor.gradStart}, ${actor.gradEnd})` }}
                     >
-                      <IconComponent className="w-6 h-6" />
+                      <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-0.5 sm:mb-1 group-hover:text-blue-600 transition-colors">
                       {actor.name}
                     </h3>
                     <p className="text-xs text-gray-600 font-medium leading-relaxed">
@@ -129,61 +129,61 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center py-6">
+          <div className="flex flex-col items-center py-2 sm:py-6 overflow-y-auto max-h-[80dvh]">
             {/* Back Button */}
             <button
               onClick={() => setStep(1)}
-              className="absolute top-5 left-5 flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg border-0 bg-transparent cursor-pointer transition-colors"
+              className="absolute top-4 sm:top-5 left-4 sm:left-5 flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg border-0 bg-transparent cursor-pointer transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
 
-            <div className="text-center mb-8 max-w-lg mt-4">
+            <div className="text-center mb-4 sm:mb-8 max-w-lg mt-6 sm:mt-4 px-2">
               <div 
-                className="inline-flex p-4 rounded-full text-white mb-4 shadow-md"
+                className="inline-flex p-3 sm:p-4 rounded-full text-white mb-2 sm:mb-4 shadow-md"
                 style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
               >
-                {React.createElement(selectedActor?.icon || Rocket, { className: "w-8 h-8" })}
+                {React.createElement(selectedActor?.icon || Rocket, { className: "w-6 h-6 sm:w-8 sm:h-8" })}
               </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
                 Add New {selectedActor?.name}
               </h2>
-              <p className="text-sm md:text-base text-gray-600 mt-2 font-medium">
+              <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 sm:mt-2 font-medium">
                 Choose your preferred input method for registering this {selectedActor?.name.toLowerCase()}.
               </p>
             </div>
 
             {/* Methods Row */}
-            <div className="flex flex-col md:flex-row gap-6 w-full px-6 flex-1 mb-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 w-full px-1 sm:px-6 flex-1 mb-2 sm:mb-4">
               <button
                 onClick={handleManualInput}
-                className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"
+                className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"
               >
                 <div 
-                  className="p-5 rounded-full text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
+                  className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
                   style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
                 >
-                  <Edit className="w-8 h-8" />
+                  <Edit className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <span className="text-2xl font-bold mb-3">Manual Input</span>
-                <span className="text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
+                <span className="text-lg sm:text-2xl font-bold mb-1 sm:mb-3">Manual Input</span>
+                <span className="text-xs sm:text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
                   Step-by-step interactive form tailored for {selectedActor?.name.toLowerCase()} listings
                 </span>
               </button>
 
               <button
                 onClick={handleCsvFile}
-                className="flex-1 flex flex-col items-center justify-center p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[280px]"   
+                className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"   
               >
                 <div 
-                  className="p-5 rounded-full text-white mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
+                  className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
                   style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
                 >
-                  <FileText className="w-8 h-8" />
+                  <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <span className="text-2xl font-bold mb-3">CSV File Upload</span>
-                <span className="text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
+                <span className="text-lg sm:text-2xl font-bold mb-1 sm:mb-3">CSV File Upload</span>
+                <span className="text-xs sm:text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
                   Bulk import many records at once using our Excel or CSV spreadsheet templates
                 </span>
               </button>

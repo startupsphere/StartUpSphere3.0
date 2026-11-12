@@ -4635,14 +4635,14 @@ export default function Sidebar({
             setContainerMode(null);
             setShowGeminiAi(false);
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
             location.pathname === "/" && !showSearchContainer && !showRecents && !showBookmarks && !showGeminiAi
               ? "text-blue-600 font-semibold"
               : "text-slate-500 hover:text-slate-900"
           }`}
         >
-          <FaGlobe className="h-5 w-5" />
-          <span className="text-[10px] mt-1 font-medium">Map</span>
+          <FaGlobe className="h-5 w-5 shrink-0" />
+          <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">Map</span>
         </button>
 
         {/* Browse / Search */}
@@ -4665,14 +4665,14 @@ export default function Sidebar({
               setShowSearchContainer(true);
             }
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
             isBrowseActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
           }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span className="text-[10px] mt-1 font-medium">Browse</span>
+          <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">Browse</span>
         </button>
 
         {/* Recents (If Authenticated) */}
@@ -4693,14 +4693,14 @@ export default function Sidebar({
                 setShowRecents(true);
               }
             }}
-            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+            className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
               isRecentsActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-[10px] mt-1 font-medium">Recents</span>
+            <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">Recents</span>
           </button>
         )}
 
@@ -4722,14 +4722,14 @@ export default function Sidebar({
                 setShowBookmarks(true);
               }
             }}
-            className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+            className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
               isBookmarksActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l7-5 7 5V3H5z" />
             </svg>
-            <span className="text-[10px] mt-1 font-medium">Bookmarks</span>
+            <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">Bookmarks</span>
           </button>
         )}
 
@@ -4748,12 +4748,12 @@ export default function Sidebar({
               navigate("/startup-dashboard");
             }
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
             location.pathname.includes("dashboard") ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
           }`}
         >
-          <LuLayoutDashboard className="h-5 w-5" />
-          <span className="text-[10px] mt-1 font-medium">Dashboard</span>
+          <LuLayoutDashboard className="h-5 w-5 shrink-0" />
+          <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">Dashboard</span>
         </button>
 
         {/* AI Chat */}
@@ -4768,12 +4768,12 @@ export default function Sidebar({
             setStakeholder(null);
             setShowGeminiAi((prev) => !prev);
           }}
-          className={`flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-0.5 cursor-pointer transition-colors ${
             showGeminiAi ? "text-indigo-600 font-semibold" : "text-slate-500 hover:text-indigo-600"
           }`}
         >
-          <Sparkles className="h-5 w-5" />
-          <span className="text-[10px] mt-1 font-medium">AI Chat</span>
+          <Sparkles className="h-5 w-5 shrink-0" />
+          <span className="text-[10px] mt-0.5 font-medium truncate max-w-full text-center">AI Chat</span>
         </button>
       </nav>
 

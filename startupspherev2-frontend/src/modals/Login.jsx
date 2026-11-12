@@ -96,17 +96,17 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity p-3 sm:p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-[95%] max-w-4xl mx-auto overflow-hidden bg-white rounded-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.3)]"
+        className="w-full max-w-4xl mx-auto overflow-hidden bg-white rounded-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.3)] my-auto max-h-[92dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-[500px]">
+        <div className="flex flex-col md:flex-row h-auto md:h-[500px]">
           {/* Left Side - Brand Section */}
-          <div className="w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-12 flex flex-col justify-between relative overflow-hidden">
+          <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-8 lg:p-12 flex-col justify-between relative overflow-hidden">
             {/* Decorative shapes */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40"></div>
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full -ml-30 -mb-30"></div>
@@ -195,10 +195,10 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
           </div>
 
           {/* Right Side - Form Section */}
-          <div className="w-3/5 bg-white p-12 flex flex-col justify-center relative">
+          <div className="w-full md:w-3/5 bg-white p-6 sm:p-10 lg:p-12 flex flex-col justify-center relative overflow-y-auto">
             {/* Close button */}
             <button
-              className="absolute top-6 right-6 p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors border-0 bg-transparent"
+              className="absolute top-4 sm:top-6 right-4 sm:right-6 p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer"
               onClick={closeModal}
               aria-label="Close login modal"
             >
@@ -217,6 +217,12 @@ export default function Login({ closeModal, openRegister, onLoginSuccess, initia
                 />
               </svg>
             </button>
+
+            {/* Mobile Header Brand */}
+            <div className="md:hidden flex items-center gap-2 mb-3">
+              <img src="/StartUpSphere_logo.png" alt="StartUpSphere" className="h-6 w-6 object-contain" />
+              <span className="font-bold text-gray-900 text-base">StartUp<span className="text-blue-600">Sphere</span></span>
+            </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div>

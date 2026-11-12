@@ -270,13 +270,13 @@ export default function CsvUploadPage() {
 
 
     return (
-        <div className="min-h-screen bg-gray-100 text-gray-800 relative">
-            <div className="bg-white border-b border-gray-200 px-10 py-5">  
-                <div className="flex items-center text-sm font-medium">
+        <div className="min-h-screen bg-gray-100 text-gray-800 relative pb-20 md:pb-10 overflow-x-hidden">
+            <div className="bg-white border-b border-gray-200 px-4 sm:px-10 py-3 sm:py-5 overflow-x-auto">  
+                <div className="flex items-center text-xs sm:text-sm font-medium">
                     {/*Back Arrow*/}
                     <button
                         onClick={() => navigate("/startup-dashboard")}
-                        className="mr-3 text-gray-500 hover:text-gray-700 transition-colors"
+                        className="mr-2 sm:mr-3 text-gray-500 hover:text-gray-700 transition-colors shrink-0"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
@@ -284,7 +284,7 @@ export default function CsvUploadPage() {
                     </button>
 
                     {/* Breadcrumb Links */}
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3 whitespace-nowrap overflow-x-auto no-scrollbar">
                         <button
                             onClick={() => navigate("/")}
                             className="text-gray-500 hover:text-[#1D3557] transition-colors"
@@ -306,18 +306,18 @@ export default function CsvUploadPage() {
                 </div>
             </div>
 
-            <div className="bg-[#1D3557] px-10 py-6 text-white">
-                <h1 className="text-3xl font-semibold">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h1>
+            <div className="bg-[#1D3557] px-4 sm:px-10 py-4 sm:py-6 text-white">
+                <h1 className="text-xl sm:text-3xl font-semibold">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h1>
             </div>
 
-            <div className="bg-white shadow-md rounded-md p-8 w-4/5 mx-auto mt-8">
+            <div className="bg-white shadow-md rounded-xl p-4 sm:p-8 w-[calc(100%-1.5rem)] sm:w-11/12 lg:w-4/5 mx-auto my-4 sm:my-8">
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h2>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h2>
                             <button
                                 type="button"
-                                className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                                className="flex items-center justify-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm w-full sm:w-auto shrink-0"
                                 onClick={downloadCsvTemplate}
                             >
                                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

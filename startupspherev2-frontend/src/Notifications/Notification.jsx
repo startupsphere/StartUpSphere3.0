@@ -1035,17 +1035,17 @@ function NotificationComponent() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 pb-10 w-screen">
+    <div className="min-h-screen w-full bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <FaBell className="h-8 w-8 mr-3 text-white" />
-              <h1 className="text-2xl font-bold text-black">Notifications</h1>
+              <h1 className="text-2xl font-bold text-white">Notifications</h1>
               {!loading &&
                 filteredNotifications &&
                 filteredNotifications.length > 0 && (
-                  <span className="ml-3 px-2.5 py-0.5 bg-white bg-opacity-20 text-black rounded-full text-sm">
+                  <span className="ml-3 px-2.5 py-0.5 bg-white/20 text-white rounded-full text-sm font-semibold">
                     {countByType.unread} unread
                   </span>
                 )}
@@ -1447,25 +1447,24 @@ function NotificationComponent() {
 
       {/* Add new Action Modals */}
       {showActionModal && selectedNotification && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-30 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <div
-            className="bg-white rounded-lg w-full max-w-3xl overflow-hidden shadow-xl"
+            className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">
                 {actionType === "review"
                   ? "Your Startup Application"
                   : "Startup Details"}
               </h3>
               <button
                 onClick={closeActionModal}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 cursor-pointer"
               >
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1481,16 +1480,16 @@ function NotificationComponent() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 max-h-[70dvh] overflow-y-auto flex-1">
               {loadingDetails ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <CgSpinner className="h-10 w-10 text-blue-500 animate-spin" />
-                  <p className="mt-4 text-gray-500">Loading details...</p>
+                  <p className="mt-4 text-gray-500 text-sm">Loading details...</p>
                 </div>
               ) : startupDetails ? (
                 <div>
                   {/* Startup Details */}
-                  <div className="flex items-start">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     {startupDetails.photo ? (
                       <img
                         src={
@@ -1633,21 +1632,21 @@ function NotificationComponent() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-              {!loadingDetails && startupDetails && actionType === "view" && (
-                <button
-                  onClick={() => navigateToStartupProfile(startupDetails.id)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  View Full Profile
-                </button>
-              )}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-end gap-2 bg-gray-50/80">
               {!loadingDetails && (
                 <button
                   onClick={closeActionModal}
-                  className="px-4 py-2 ml-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-lg text-sm font-semibold transition-colors cursor-pointer text-center"
                 >
                   Close
+                </button>
+              )}
+              {!loadingDetails && startupDetails && actionType === "view" && (
+                <button
+                  onClick={() => navigateToStartupProfile(startupDetails.id)}
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center"
+                >
+                  View Full Profile
                 </button>
               )}
             </div>

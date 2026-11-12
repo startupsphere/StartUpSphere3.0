@@ -412,7 +412,7 @@ export default function GroqAiChat({ currentUser, onClose }) {
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-[120] h-[calc(100vh-120px)] md:h-screen sidebar-drawer-420 border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.12)] flex flex-col"
+      className="fixed inset-x-0 top-14 bottom-16 md:top-0 md:bottom-0 md:right-0 md:left-auto z-[120] md:h-screen sidebar-drawer-420 border-l border-gray-200 bg-white text-gray-800 shadow-[-10px_0_30px_rgba(0,0,0,0.12)] flex flex-col"
       style={{
         width: isMobile ? "100%" : "420px",
         maxWidth: isMobile ? "100vw" : "420px",
