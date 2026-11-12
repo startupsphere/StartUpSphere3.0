@@ -158,6 +158,42 @@ export default function Sidebar({
   const [showRecents, setShowRecents] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [notificationActiveIndex, setNotificationActiveIndex] = useState("All");
+
+  const [startups, setStartups] = useState([]);
+  const [notificationsCount, setNotificationsCount] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchInputLoading, setSearchInputLoading] = useState(false);
+  const [startup, setStartup] = useState(null);
+  const [stakeholders, setStakeholders] = useState([]);
+  const [newNotifications, setNewNotifications] = useState([]);
+  const [stakeholder, setStakeholder] = useState(null); // For viewing a stakeholder
+  const [viewingType, setViewingType] = useState("startups"); // Toggle between startups and stakeholders
+  const [viewingStartup, setViewingStartup] = useState(null); // New state for viewing mode
+  const [viewingStakeholder, setViewingStakeholder] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(""); // New state for search query
+  const [containerMode, setContainerMode] = useState(null); // "search" or "recents"
+  const [bookmarkedStartups, setBookmarkedStartups] = useState([]); // For bookmarked startups
+  const [bookmarkedStakeholders, setBookmarkedStakeholders] = useState([]);
+  const [likedStakeholders, setLikedStakeholders] = useState([]);
+  const [likedStartups, setLikedStartups] = useState([]); // For liked startups
+  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loadingImage, setLoadingImage] = useState(false); // New state for image loading
+  const [isCurrentItemBookmarked, setIsCurrentItemBookmarked] = useState(false);
+  const [notificationTooltip, setNotificationTooltip] = useState(false);
+  const notificationTabs = ["All", "New"];
+  const [loadingNotification, setLoadingNotification] = useState(false);
+  const [adminSubmissions, setAdminSubmissions] = useState([]);
+  const [adminSubmissionsCount, setAdminSubmissionsCount] = useState(0);
+  const [notificationAdminTab, setNotificationAdminTab] = useState(false);
+  const [showGeminiAi, setShowGeminiAi] = useState(false);
+
+  // Screen resize detection for responsive mobile layout
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
   const initialFilters = {
     startups: {
       query: "",
@@ -227,35 +263,6 @@ export default function Sidebar({
       setContainerMode(null);
     }
   };
-  const [startups, setStartups] = useState([]);
-  const [notificationsCount, setNotificationsCount] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchInputLoading, setSearchInputLoading] = useState(false);
-  const [startup, setStartup] = useState(null);
-  const [stakeholders, setStakeholders] = useState([]);
-  const [newNotifications, setNewNotifications] = useState([]);
-  const [stakeholder, setStakeholder] = useState(null); // For viewing a stakeholder
-  const [viewingType, setViewingType] = useState("startups"); // Toggle between startups and stakeholders
-  const [viewingStartup, setViewingStartup] = useState(null); // New state for viewing mode
-  const [viewingStakeholder, setViewingStakeholder] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(""); // New state for search query
-  const [containerMode, setContainerMode] = useState(null); // "search" or "recents"
-  const [bookmarkedStartups, setBookmarkedStartups] = useState([]); // For bookmarked startups
-  const [bookmarkedStakeholders, setBookmarkedStakeholders] = useState([]);
-  const [likedStakeholders, setLikedStakeholders] = useState([]);
-  const [likedStartups, setLikedStartups] = useState([]); // For liked startups
-  const [user, setUser] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loadingImage, setLoadingImage] = useState(false); // New state for image loading
-  const [isCurrentItemBookmarked, setIsCurrentItemBookmarked] = useState(false);
-  const [notificationTooltip, setNotificationTooltip] = useState(false);
-  const notificationTabs = ["All", "New"];
-  const [loadingNotification, setLoadingNotification] = useState(false);
-  const [adminSubmissions, setAdminSubmissions] = useState([]);
-  const [adminSubmissionsCount, setAdminSubmissionsCount] = useState(0);
-  const [notificationAdminTab, setNotificationAdminTab] = useState(false);
-  const [showGeminiAi, setShowGeminiAi] = useState(false);
 
   // Listen to custom window events to open the Gemini AI Chat panel automatically
   useEffect(() => {
@@ -269,10 +276,6 @@ export default function Sidebar({
   }, []);
 
   // Screen resize detection for responsive mobile layout
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
-
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);

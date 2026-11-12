@@ -217,7 +217,7 @@ export default function Startupmap({
         contentEl.style.transform = `translate3d(${Math.round(dx)}px, ${Math.round(dy)}px, 0px)`;
       }
     });
-  }, []);
+  }, [isMobileMap, context?.isSidebarExpanded, context?.isBrowseDirectoryOpen, context?.isAiOpen]);
 
   useEffect(() => {
     const handleResize = () => {
