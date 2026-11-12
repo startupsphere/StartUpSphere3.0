@@ -220,7 +220,11 @@ export default function Sidebar({
       try {
         const map = mapInstanceRef.current;
         if (map.isStyleLoaded() && map.getLayer("startups-layer")) {
-          map.setFilter("startups-layer", ["==", "id", ""]);
+          if (showSearchContainer) {
+            map.setFilter("startups-layer", null);
+          } else {
+            map.setFilter("startups-layer", ["==", "id", ""]);
+          }
         }
       } catch (e) {}
     }

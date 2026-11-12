@@ -3883,8 +3883,14 @@ export default function Startupmap({
         }
 
         let filterExpr;
-        if (isBrowseDirectoryOpen && conditions.length > 0) {
-          filterExpr = conditions.length === 1 ? conditions[0] : ["all", ...conditions];
+        if (isBrowseDirectoryOpen) {
+          if (conditions.length > 0) {
+            filterExpr = conditions.length === 1 ? conditions[0] : ["all", ...conditions];
+          } else {
+            // When browse directory is open and "All Industries" (or no specific filter) is selected,
+            // display all startups pinned
+            filterExpr = null;
+          }
         } else if (selectedStartupId) {
           filterExpr = ["==", "id", selectedStartupId];
         } else {
