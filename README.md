@@ -1,4 +1,4 @@
-# StartUpSphere 3.0 🌐🚀
+# StartUpSphere 3.0 
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-17%20LTS-orange?logo=openjdk)](https://openjdk.org/)
@@ -13,7 +13,7 @@
 
 ---
 
-## 📌 Table of Contents
+##  Table of Contents
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Architecture & Tech Stack](#-architecture--tech-stack)
@@ -29,7 +29,7 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
 Regional startup ecosystems (such as in Cebu and the wider Philippine innovation corridor) often struggle with **fragmented databases**, **low visibility for early-stage ventures**, and **ambiguous metrics** that confuse social popularity with technological readiness.
 
@@ -37,7 +37,7 @@ Regional startup ecosystems (such as in Cebu and the wider Philippine innovation
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### 🗺️ 1. Interactive 3D Geospatial Engine
 - **3D Building Extrusion**: Realistic polygon heights, terrain shadows, and smooth pitch/bearing camera controls.
@@ -45,12 +45,12 @@ Regional startup ecosystems (such as in Cebu and the wider Philippine innovation
 - **Dynamic Startup Popups**: Instant business intelligence card with live metrics, TRL stage indicator, AI summary, and verified links.
 - **Incubator Connection Arcs**: Visualizes relationships connecting startups to their supporting incubation hubs and mentors.
 
-### 🔥 2. Dual-Mode Analytical Heatmap Engine
+### 2. Dual-Mode Analytical Heatmap Engine
 *Complete decoupling of technological maturity and community engagement:*
 - **Technology Readiness Level (TRL 1–9) Heatmap**:
-  - 🟢 **Green (TRL 1–3)**: Research & Concept Feasibility
-  - 🟡 **Yellow (TRL 4–6)**: Prototype & Relevant Environment Validation
-  - 🔴 **Red (TRL 7–9)**: Market-Ready & Commercially Deployed Systems
+  - **Green (TRL 1–3)**: Research & Concept Feasibility
+  - **Yellow (TRL 4–6)**: Prototype & Relevant Environment Validation
+  - **Red (TRL 7–9)**: Market-Ready & Commercially Deployed Systems
 - **Business Engagement Heatmap**:
   - Independent individual markers (`cluster: false`) pinned directly to registered coordinates.
   - **Constant Screen-Space Pixel Size**: Markers maintain an exact `18px` circle radius across all zoom levels without ballooning into blobs or disappearing.
@@ -67,23 +67,23 @@ $$\text{Engagement Summary Score} = \text{Total Likes} + \text{Total Views} + \t
 $$\text{Total Likes} = \text{Facebook Likes} + \text{StartUpSphere Platform Likes}$$
 - **Conditional Social Metrics**: If a business registers a verified Facebook link, verified Facebook likes are displayed alongside a direct link to the page; businesses without a Facebook link hide the card cleanly to prevent misleading zeroes.
 
-### 🤖 4. AI Ecosystem Intelligence (Groq & Gemini)
+### 4. AI Ecosystem Intelligence (Groq & Gemini)
 - **Real-Time Executive Summarizer**: Powered by Groq AI (Llama 3) to summarize extensive startup business models into concise, investor-ready executive briefs inside map cards.
 - **Conversational Ecosystem Advisor**: Embedded floating chat assistant answering questions about startups, industries, and regional capabilities.
 
-### 🏢 5. Complete Startup & Enabler Lifecycle
+### . Complete Startup & Enabler Lifecycle
 - **Multi-Step Onboarding Wizard**: Guided registration for profiles, geocoding coordinates, TRL levels, financials, compliance (SEC, DTI, BIR, TIN), and enabler affiliations.
 - **Draft Autosaving**: Save and resume draft submissions at any time before final review.
 - **Bulk CSV Ingestion**: Fast bulk-onboarding tool for government enablers and event organizers.
 - **Automated 6-Month Reminder Scheduler**: Background cron job dispatching update reminders to keep ecosystem data current.
 
-### 🔐 6. Security & 3-Step Password Recovery
+### 6. Security & 3-Step Password Recovery
 - Stateless JWT authentication with Role-Based Access Control (`ROLE_USER`, `ROLE_ADMIN`).
 - Resilient Brevo (Sendinblue) 6-digit OTP verification email pipeline for account confirmation and forgot password flows.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -120,7 +120,7 @@ $$\text{Total Likes} = \text{Facebook Likes} + \text{StartUpSphere Platform Like
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 StartUpSphere3.0/
@@ -151,7 +151,7 @@ StartUpSphere3.0/
 
 ---
 
-## ⚙️ Prerequisites
+## Prerequisites
 
 Ensure you have the following installed locally:
 - **Java Development Kit (JDK)**: Version 17 or higher
@@ -162,7 +162,7 @@ Ensure you have the following installed locally:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Backend Setup
 
@@ -222,7 +222,7 @@ Ensure you have the following installed locally:
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Backend (`startupspherev2-backend/.env`)
 | Variable | Description |
@@ -243,16 +243,16 @@ Ensure you have the following installed locally:
 
 ---
 
-## 📡 Core API Endpoints
+## Core API Endpoints
 
-### 🔐 Authentication (`/api/v1/auth`)
+### Authentication (`/api/v1/auth`)
 - `POST /api/v1/auth/signup` — Register a new account
 - `POST /api/v1/auth/login` — Sign in and obtain JWT token
 - `POST /api/v1/auth/forgot-password` — Request a 6-digit Brevo OTP verification code
 - `POST /api/v1/auth/verify-reset-code` — Verify submitted 6-digit reset code
 - `POST /api/v1/auth/reset-password` — Set a new password upon code confirmation
 
-### 🚀 Startups & Geospatial Analytics (`/startups`)
+### Startups & Geospatial Analytics (`/startups`)
 - `GET /startups/approved` — Paginated list of approved startups
 - `GET /startups/engagement-heatmap` — Coordinates, scores, and solid colors for all approved businesses
 - `GET /startups/{id}/engagement` — Complete engagement breakdown for a specific startup
@@ -261,7 +261,7 @@ Ensure you have the following installed locally:
 - `PUT /startups/{id}/increment-views` — Increment verified profile impressions
 - `GET /startups/{id}/photo` — Stream startup logo / profile image
 
-### 💬 Social Interactions & Bookmarks
+### Social Interactions & Bookmarks
 - `POST /api/likes/toggle` — Like or unlike a startup
 - `GET /api/likes/count/startup/{id}` — Total platform likes count
 - `POST /api/bookmarks` — Add startup to user bookmarks
@@ -270,7 +270,7 @@ Ensure you have the following installed locally:
 
 ---
 
-## 🎯 Dual-Mode Heatmap Engine
+## Dual-Mode Heatmap Engine
 
 ```text
                   +-----------------------------------+
@@ -292,7 +292,7 @@ Ensure you have the following installed locally:
 
 ---
 
-## 👥 Authors & Acknowledgments
+## Authors & Acknowledgments
 
 - **Development Team**: StartUpSphere Capstone Development Team
 - **Academic Program**: Bachelor of Science in Information Technology / Computer Science
