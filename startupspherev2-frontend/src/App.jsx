@@ -14,8 +14,10 @@ import AddMethodModal from "./startup/AddMethodModal";
 import CsvUploadPage from "./startup/CsvUploadPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import SplashScreen from "./components/SplashScreen";
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const mapInstanceRef = useRef(null);
   const highlightStakeholderRef = useRef(null);
   const handleStartupClickRef = useRef(null);
@@ -40,6 +42,9 @@ function App() {
 
   return (
     <SidebarProvider>
+      {showSplash && (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      )}
       <Routes>
         <Route
           path="/"
