@@ -31,19 +31,9 @@ export default function SplashScreen({ onFinish, minDuration = 1500 }) {
     };
   }, [minDuration, onFinish]);
 
-  const handleSkip = () => {
-    if (!fading) {
-      setFading(true);
-      setTimeout(() => {
-        if (onFinish) onFinish();
-      }, 500);
-    }
-  };
-
   return (
     <div
-      onClick={handleSkip}
-      className={`fixed inset-0 z-[999999] flex items-center justify-center bg-white select-none transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-pointer overflow-hidden ${
+      className={`fixed inset-0 z-[999999] flex items-center justify-center bg-white select-none transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-default overflow-hidden ${
         fading
           ? "opacity-0 pointer-events-none scale-105"
           : "opacity-100 pointer-events-auto scale-100"
