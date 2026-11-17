@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  Edit, 
-  Rocket, 
-  GraduationCap, 
-  FlaskConical, 
+import {
+  FileText,
+  Edit,
+  Rocket,
+  GraduationCap,
+  FlaskConical,
   ArrowLeft,
   X
 } from 'lucide-react';
@@ -15,7 +15,7 @@ const TAILWIND_SAFELIST = "from-emerald-600 to-teal-600 bg-emerald-50/70 hover:b
 const ECOSYSTEM_ACTORS = [
   {
     id: "ROLE_STARTUP",
-    name: "Startup",
+    name: "Startup / Business",
     desc: "Innovative ventures seeking scalability and growth",
     icon: Rocket,
     color: "from-blue-600 to-indigo-600",
@@ -65,20 +65,20 @@ const AddMethodModal = ({ isOpen, onClose }) => {
 
   const handleManualInput = () => {
     const actorId = selectedActor?.id;
-    handleClose(); 
+    handleClose();
     navigate(`/add-startup?actor=${actorId}`);
   };
 
   const handleCsvFile = () => {
     const actorId = selectedActor?.id;
     handleClose();
-    navigate(`/add-startup-csv?actor=${actorId}`); 
+    navigate(`/add-startup-csv?actor=${actorId}`);
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-fadeIn"> 
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-4 sm:p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[92dvh] my-auto"> 
-        
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-4 sm:p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[92dvh] my-auto">
+
         {/* Header decoration */}
         <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(90deg, #2563eb, #4f46e5)' }}></div>
 
@@ -111,7 +111,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                     onClick={() => selectActor(actor)}
                     className={`flex flex-col items-start text-left p-3.5 sm:p-5 rounded-xl border-2 border-transparent transition-all shadow-sm hover:shadow-md hover:border-blue-500 hover:-translate-y-0.5 group cursor-pointer duration-200 ${actor.bgLight}`}
                   >
-                    <div 
+                    <div
                       className="p-2.5 sm:p-3 rounded-lg text-white mb-2.5 sm:mb-4 shadow-sm group-hover:scale-105 transition-transform duration-200"
                       style={{ background: `linear-gradient(135deg, ${actor.gradStart}, ${actor.gradEnd})` }}
                     >
@@ -140,7 +140,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </button>
 
             <div className="text-center mb-4 sm:mb-8 max-w-lg mt-6 sm:mt-4 px-2">
-              <div 
+              <div
                 className="inline-flex p-3 sm:p-4 rounded-full text-white mb-2 sm:mb-4 shadow-md"
                 style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
               >
@@ -160,7 +160,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                 onClick={handleManualInput}
                 className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"
               >
-                <div 
+                <div
                   className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
                   style={{ background: `linear-gradient(135deg, ${selectedActor?.gradStart || '#2563eb'}, ${selectedActor?.gradEnd || '#4f46e5'})` }}
                 >
@@ -174,9 +174,9 @@ const AddMethodModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={handleCsvFile}
-                className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"   
+                className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"
               >
-                <div 
+                <div
                   className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
                   style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
                 >
