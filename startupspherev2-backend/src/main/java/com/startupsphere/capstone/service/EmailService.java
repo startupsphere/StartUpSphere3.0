@@ -615,6 +615,222 @@ public class EmailService {
                 + "</html>";
     }
 
+    public boolean sendInvestmentInterestEmail(String toEmail, String companyName, String investorName,
+                                              String investorEmail, String investorPhone, String investorType,
+                                              String amountRange, String processType, String messageContent) {
+        if (toEmail == null || toEmail.isBlank()) return false;
+        String subject = "New Investment Interest Received for " + (companyName != null ? companyName : "Your Business") + " - StartupSphere";
+        String htmlBody = buildInvestmentInterestHtml(companyName, investorName, investorEmail, investorPhone, investorType, amountRange, processType, messageContent);
+        String textBody = "New Investment Interest from " + investorName + " (" + investorType + ")\n\n"
+                + "Investor Email: " + investorEmail + "\n"
+                + "Investor Phone: " + (investorPhone != null ? investorPhone : "N/A") + "\n"
+                + "Proposed Amount: " + (amountRange != null ? amountRange : "To be discussed") + "\n"
+                + "Discussion Process: " + (processType != null ? processType : "General Investment Discussion") + "\n\n"
+                + "Message:\n" + messageContent + "\n\n"
+                + "StartupSphere Team";
+
+        // Try Brevo HTTPS API
+        String brevoKey = getEffectiveBrevoKey();
+        if (brevoKey != null && !brevoKey.isBlank()) {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+                Map<String, Object> map = new HashMap<>();
+                map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+                map.put("to", List.of(Map.of("email", toEmail, "name", companyName != null ? companyName : "Founder")));
+                map.put("subject", subject);
+                map.put("htmlContent", htmlBody);
+                String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                        .header("api-key", brevoKey)
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(10))
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    logger.info("Investment interest email delivered via Brevo to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to send investment interest email via Brevo: {}", e.getMessage());
+            }
+        }
+
+        // Try Gmail SMTP
+        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+            try {
+                MimeMessage msg = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
+                helper.setFrom(senderAddress, "StartupSphere");
+                helper.setTo(toEmail);
+                helper.setSubject(subject);
+                helper.setText(textBody, htmlBody);
+                mailSender.send(msg);
+                logger.info("Investment interest email delivered via Gmail SMTP to {}", toEmail);
+                return true;
+            } catch (Exception e) {
+                logger.warn("Failed to send investment interest email via SMTP: {}", e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private String buildInvestmentInterestHtml(String companyName, String investorName, String investorEmail,
+                                              String investorPhone, String investorType, String amountRange,
+                                              String processType, String messageContent) {
+        String greeting = (companyName != null && !companyName.isBlank()) ? companyName : "Founder";
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset=\"UTF-8\"><title>New Investment Interest</title></head>"
+                + "<body style=\"margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">"
+                + "<table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;\">"
+                + "  <tr>"
+                + "    <td style=\"background: linear-gradient(135deg, #1D3557 0%, #2563eb 100%); padding: 32px 30px; text-align: center;\">"
+                + "      <h1 style=\"color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;\">StartupSphere</h1>"
+                + "      <p style=\"color: #93c5fd; margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;\">New Investment Interest Proposal</p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"padding: 32px 30px;\">"
+                + "      <h2 style=\"color: #0f172a; margin: 0 0 14px 0; font-size: 20px;\">Great news, " + escapeHtml(greeting) + "!</h2>"
+                + "      <p style=\"color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;\">"
+                + "        An investor/backer has expressed interest in funding and discussing an investment with your business:"
+                + "      </p>"
+                + "      <div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;\">"
+                + "        <table width=\"100%\" style=\"font-size: 14px; color: #334155;\">"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600; width: 140px;\">Investor Name:</td><td style=\"color: #0f172a;\">" + escapeHtml(investorName) + "</td></tr>"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600;\">Investor Type:</td><td style=\"color: #0f172a;\">" + escapeHtml(investorType) + "</td></tr>"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600;\">Email Address:</td><td style=\"color: #2563eb;\"><a href=\"mailto:" + escapeHtml(investorEmail) + "\">" + escapeHtml(investorEmail) + "</a></td></tr>"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600;\">Contact Number:</td><td style=\"color: #0f172a;\">" + escapeHtml(investorPhone != null && !investorPhone.isBlank() ? investorPhone : "N/A") + "</td></tr>"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600;\">Proposed Amount:</td><td style=\"color: #059669; font-weight: 700;\">" + escapeHtml(amountRange != null ? amountRange : "To be discussed") + "</td></tr>"
+                + "          <tr><td style=\"padding: 6px 0; font-weight: 600;\">Discussion Focus:</td><td style=\"color: #0f172a;\">" + escapeHtml(processType != null ? processType : "General") + "</td></tr>"
+                + "        </table>"
+                + "      </div>"
+                + "      <h3 style=\"color: #0f172a; font-size: 15px; margin: 0 0 8px 0;\">Investor Proposal / Discussion Note:</h3>"
+                + "      <div style=\"background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 14px; border-radius: 4px; font-size: 14px; color: #1e3a8a; font-style: italic; margin-bottom: 24px; line-height: 1.5;\">"
+                + "        " + escapeHtml(messageContent)
+                + "      </div>"
+                + "      <p style=\"color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;\">"
+                + "        You can reach out directly to the investor using the email or phone number above to schedule your initial pitch or due diligence discussion."
+                + "      </p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"background-color: #f8fafc; padding: 20px 32px; border-top: 1px solid #e2e8f0; text-align: center;\">"
+                + "      <p style=\"color: #94a3b8; font-size: 12px; margin: 0;\">&copy; StartupSphere Philippines. All rights reserved.</p>"
+                + "    </td>"
+                + "  </tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+    }
+
+    public boolean sendInvestmentDecisionEmail(String toEmail, String recipientName, String companyName,
+                                              String status, String investorName, String messageNotes) {
+        if (toEmail == null || toEmail.isBlank()) return false;
+        boolean isAccepted = "ACCEPTED".equalsIgnoreCase(status);
+        String subject = isAccepted
+                ? "Investment Interest Accepted for " + (companyName != null ? companyName : "Startup") + " - StartupSphere"
+                : "Update on Your Investment Interest for " + (companyName != null ? companyName : "Startup") + " - StartupSphere";
+
+        String htmlBody = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head>"
+                + "<body style=\"margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">"
+                + "<table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;\">"
+                + "  <tr>"
+                + "    <td style=\"background: linear-gradient(135deg, " + (isAccepted ? "#1e3a8a 0%, #2563eb 100%" : "#334155 0%, #475569 100%") + "); padding: 32px 30px; text-align: center;\">"
+                + "      <h1 style=\"color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;\">StartupSphere</h1>"
+                + "      <p style=\"color: #93c5fd; margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;\">"
+                + (isAccepted ? "Investment Proposal Accepted" : "Investment Proposal Update")
+                + "      </p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"padding: 32px 30px;\">"
+                + "      <h2 style=\"color: #0f172a; margin: 0 0 14px 0; font-size: 20px;\">Hello " + escapeHtml(recipientName != null ? recipientName : "there") + "!</h2>"
+                + "      <p style=\"color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;\">"
+                + (isAccepted
+                    ? "Great news! The business owner of <strong>" + escapeHtml(companyName) + "</strong> has officially <strong>accepted</strong> your investment interest discussion proposal."
+                    : "The business owner of <strong>" + escapeHtml(companyName) + "</strong> has reviewed your investment proposal and decided to decline it at this current stage.")
+                + "      </p>"
+                + (isAccepted
+                    ? "<div style=\"background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 18px; margin-bottom: 24px;\">"
+                      + "<p style=\"color: #1e40af; font-weight: 600; font-size: 14px; margin: 0 0 8px 0;\">Next Steps for Contact & Due Diligence:</p>"
+                      + "<p style=\"color: #1e3a8a; font-size: 13px; line-height: 1.5; margin: 0;\">"
+                      + "You may now reach out to the founders directly to begin the discussion process and formal term reviews."
+                      + "</p>"
+                      + "</div>"
+                    : "")
+                + (messageNotes != null && !messageNotes.isBlank()
+                    ? "<h3 style=\"color: #0f172a; font-size: 14px; margin: 0 0 8px 0;\">Message / Note from the Founder:</h3>"
+                      + "<div style=\"background-color: #f8fafc; border-left: 4px solid #94a3b8; padding: 14px; border-radius: 4px; font-size: 14px; color: #334155; margin-bottom: 24px; line-height: 1.5;\">"
+                      + escapeHtml(messageNotes)
+                      + "</div>"
+                    : "")
+                + "      <p style=\"color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;\">"
+                + "        Thank you for being part of the StartupSphere ecosystem."
+                + "      </p>"
+                + "    </td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"background-color: #f8fafc; padding: 20px 32px; border-top: 1px solid #e2e8f0; text-align: center;\">"
+                + "      <p style=\"color: #94a3b8; font-size: 12px; margin: 0;\">&copy; StartupSphere Philippines. All rights reserved.</p>"
+                + "    </td>"
+                + "  </tr>"
+                + "</table></body></html>";
+
+        // Dispatch via Brevo or SMTP
+        String brevoKey = getEffectiveBrevoKey();
+        if (brevoKey != null && !brevoKey.isBlank()) {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+                Map<String, Object> map = new HashMap<>();
+                map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+                map.put("to", List.of(Map.of("email", toEmail, "name", recipientName != null ? recipientName : "User")));
+                map.put("subject", subject);
+                map.put("htmlContent", htmlBody);
+                String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                        .header("api-key", brevoKey)
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(10))
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    logger.info("Investment decision email delivered via Brevo to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to send investment decision email via Brevo: {}", e.getMessage());
+            }
+        }
+
+        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+            try {
+                MimeMessage msg = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
+                helper.setFrom(senderAddress, "StartupSphere");
+                helper.setTo(toEmail);
+                helper.setSubject(subject);
+                helper.setText(htmlBody, true);
+                mailSender.send(msg);
+                logger.info("Investment decision email delivered via SMTP to {}", toEmail);
+                return true;
+            } catch (Exception e) {
+                logger.warn("Failed to send investment decision email via SMTP: {}", e.getMessage());
+            }
+        }
+        return false;
+    }
+
     private String escapeHtml(String input) {
         if (input == null) return "";
         return input.replace("&", "&amp;")

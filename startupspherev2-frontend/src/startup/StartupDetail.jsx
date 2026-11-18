@@ -31,9 +31,11 @@ import {
   FileCheck,
   Layers,
   BadgeCheck,
+  DollarSign,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
 import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
+import InvestmentInterestModal from "../modals/InvestmentInterestModal";
 
 export default function StartupDetail() {
   const { id } = useParams();
@@ -53,12 +55,17 @@ export default function StartupDetail() {
     isDeleting: false,
     error: null,
   });
+  const [isInvestmentModalOpen, setIsInvestmentModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userOwnedStartupIds, setUserOwnedStartupIds] = useState([]);
 
   useEffect(() => {
-    const checkRole = async () => {
+    const fetchUserData = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
+
+        // Fetch role
         const res = await fetch(`${getBackendUrl()}/users/me/role`, {
           headers: getAuthHeaders(),
           credentials: "include",
@@ -69,12 +76,41 @@ export default function StartupDetail() {
             setIsAdmin(true);
           }
         }
+
+        // Fetch user details
+        const meRes = await fetch(`${getBackendUrl()}/users/me`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setCurrentUser(meData);
+        }
+
+        // Fetch owned startup IDs
+        const myStartupsRes = await fetch(`${getBackendUrl()}/startups/my-startups`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (myStartupsRes.ok) {
+          const ids = await myStartupsRes.json();
+          setUserOwnedStartupIds(Array.isArray(ids) ? ids.map(mid => Number(mid)) : []);
+        }
       } catch (err) {
-        console.error("Error checking role:", err);
+        console.error("Error checking user details and ownership:", err);
       }
     };
-    checkRole();
+    fetchUserData();
   }, []);
+
+  // Helper to determine if current user owns this startup
+  const isOwner = Boolean(
+    (startup?.id && userOwnedStartupIds.includes(Number(startup.id))) ||
+    (startup?.id && id && userOwnedStartupIds.includes(Number(id))) ||
+    (startup?.user?.id && currentUser?.id && Number(startup.user.id) === Number(currentUser.id)) ||
+    (startup?.user?.email && currentUser?.email && startup.user.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (startup?.contactEmail && currentUser?.email && startup.contactEmail.toLowerCase() === currentUser.email.toLowerCase())
+  );
 
   const handleDeleteStartup = async () => {
     setDeleteStartupModal(prev => ({ ...prev, isDeleting: true, error: null }));
@@ -1460,7 +1496,18 @@ export default function StartupDetail() {
               Public Profile
             </span>
           </div>
-          <div className="flex space-x-2 sm:space-x-3 shrink-0">
+          <div className="flex flex-wrap items-center space-x-2 sm:space-x-3 shrink-0">
+            {!isOwner && (
+              <button
+                onClick={() => setIsInvestmentModalOpen(true)}
+                className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border-0 rounded-lg text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all shrink-0 cursor-pointer shadow-md shadow-blue-500/25 active:scale-[0.99]"
+                style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+              >
+                <DollarSign size={16} className="mr-1 sm:mr-1.5 text-blue-100" />
+                <span className="text-white font-semibold">Express Investment Interest</span>
+              </button>
+            )}
+
             <button
               onClick={() =>
                 navigate(`/update-startup/${id}`, { state: { startup } })
@@ -1880,6 +1927,17 @@ export default function StartupDetail() {
                   </div>
                   <div className="px-6 py-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                      {startup.totalStartupFundingReceived != null && startup.totalStartupFundingReceived > 0 && (
+                        <div className="p-4 bg-emerald-50 rounded-lg">
+                          <p className="text-sm font-medium text-emerald-700 mb-1">
+                            Total Funding Received
+                          </p>
+                          <p className="text-xl font-bold text-emerald-900">
+                            ₱{Number(startup.totalStartupFundingReceived).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+
                       {startup.fundingStage && (
                         <div className="p-4 bg-purple-50 rounded-lg">
                           <p className="text-sm font-medium text-gray-500 mb-1">
@@ -1921,6 +1979,34 @@ export default function StartupDetail() {
                           No business metrics available.
                         </p>
                       )}
+
+                    {/* Investment Interest CTA Banner (Visible if user does not own this business) */}
+                    {!isOwner ? (
+                      <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100/60 p-4 rounded-xl border border-blue-200">
+                        <div>
+                          <h4 className="text-sm font-bold text-blue-950 flex items-center gap-1.5">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
+                            Interested in funding or partnering with {startup.companyName}?
+                          </h4>
+                          <p className="text-xs text-blue-800 mt-0.5">
+                            Both individual investors and business owners are welcome to discuss equity, convertible notes, or capital support.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setIsInvestmentModalOpen(true)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-500/25 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 active:scale-[0.99] border-0"
+                          style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                        >
+                          <DollarSign size={14} className="text-blue-100" />
+                          <span className="text-white font-semibold">Express Investment Interest</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-5 pt-4 border-t border-gray-100 p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/70 flex items-center gap-2.5 text-xs text-blue-900 font-medium">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
+                        <span>This is your business profile. You can review investment inquiries received from other investors and businesses in your dashboard.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -3714,6 +3800,14 @@ export default function StartupDetail() {
         onSelectStakeholder={handleSelectExistingStakeholder}
         onCreateNew={handleCreateNewStakeholder}
         startupId={id}
+      />
+
+      {/* Express Investment Interest Modal */}
+      <InvestmentInterestModal
+        isOpen={isInvestmentModalOpen}
+        onClose={() => setIsInvestmentModalOpen(false)}
+        startup={startup}
+        currentUser={currentUser}
       />
     </div>
   );

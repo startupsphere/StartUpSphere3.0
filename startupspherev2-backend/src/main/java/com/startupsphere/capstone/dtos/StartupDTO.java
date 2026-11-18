@@ -38,6 +38,8 @@ public class StartupDTO {
     private Double annualRevenue;
     private Double paidUpCapital;
     private String fundingStage;
+    private Double totalStartupFundingReceived;
+    private Integer numberOfFundingRounds;
     private Integer viewsCount;
     private Boolean emailVerified;
     private Boolean isDraft;
@@ -92,6 +94,8 @@ public class StartupDTO {
         this.annualRevenue = startup.getAnnualRevenue();
         this.paidUpCapital = startup.getPaidUpCapital();
         this.fundingStage = startup.getFundingStage();
+        this.totalStartupFundingReceived = startup.getTotalStartupFundingReceived();
+        this.numberOfFundingRounds = startup.getNumberOfFundingRounds();
         this.viewsCount = startup.getViewsCount();
         this.emailVerified = startup.getEmailVerified();
         this.isDraft = startup.getIsDraft();
@@ -358,6 +362,22 @@ public class StartupDTO {
 
     public void setFundingStage(String fundingStage) {
         this.fundingStage = fundingStage;
+    }
+
+    public Double getTotalStartupFundingReceived() {
+        return totalStartupFundingReceived;
+    }
+
+    public void setTotalStartupFundingReceived(Double totalStartupFundingReceived) {
+        this.totalStartupFundingReceived = totalStartupFundingReceived;
+    }
+
+    public Integer getNumberOfFundingRounds() {
+        return numberOfFundingRounds;
+    }
+
+    public void setNumberOfFundingRounds(Integer numberOfFundingRounds) {
+        this.numberOfFundingRounds = numberOfFundingRounds;
     }
 
     public Integer getViewsCount() {

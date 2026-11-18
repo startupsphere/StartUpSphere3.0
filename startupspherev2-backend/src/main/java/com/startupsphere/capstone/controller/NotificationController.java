@@ -26,6 +26,7 @@ import com.startupsphere.capstone.configs.SecurityUtils;
 import com.startupsphere.capstone.dtos.NotificationRequest;
 import com.startupsphere.capstone.entity.Notifications;
 import com.startupsphere.capstone.entity.Startup;
+import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.repository.StartupRepository;
 import com.startupsphere.capstone.responses.ApiResponse;
 import com.startupsphere.capstone.service.NotificationService;
@@ -307,6 +308,24 @@ public class NotificationController {
             logger.error("Error rejecting startup: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(new ApiResponse(false,"Error rejecting startup: {}", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/investment-decision")
+    public ResponseEntity<ApiResponse> handleInvestmentDecision(
+            @PathVariable int id,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            String decision = body.getOrDefault("decision", "REJECT");
+            String notes = body.getOrDefault("notes", "");
+            User currentUser = SecurityUtils.getCurrentUser();
+
+            Notifications updated = notificationService.processInvestmentDecision(id, decision, notes, currentUser);
+            return ResponseEntity.ok(new ApiResponse(true, "Investment proposal " + decision.toLowerCase() + "ed successfully.", updated));
+        } catch (Exception e) {
+            logger.error("Error processing investment decision for notification {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Failed to process decision: " + e.getMessage(), null));
         }
     }
 

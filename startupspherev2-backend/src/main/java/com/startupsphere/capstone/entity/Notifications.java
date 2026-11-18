@@ -26,10 +26,13 @@ public class Notifications {
     @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
+    @Column(name = "remarks", columnDefinition = "TEXT")
     private String remarks;
 
     private boolean isViewed = false;
     private LocalDateTime viewedAt;
+
+    @Column(name = "comments", columnDefinition = "TEXT")
     private String comments;
 
 

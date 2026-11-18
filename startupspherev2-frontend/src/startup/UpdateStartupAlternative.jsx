@@ -70,6 +70,7 @@ export default function UpdateStartup() {
     locationLng: null,
     locationName: "",
     fundingStage: "",
+    totalStartupFundingReceived: "",
     operatingHours: "",
     businessActivity: "",
     isGovernmentRegistered: "",
@@ -489,6 +490,13 @@ export default function UpdateStartup() {
 
     try {
       let payload = { ...formData };
+
+      // Convert funding amount to number for backend
+      if (payload.totalStartupFundingReceived) {
+        payload.totalStartupFundingReceived = parseFloat(payload.totalStartupFundingReceived);
+      } else {
+        payload.totalStartupFundingReceived = 0;
+      }
 
       // Validate Facebook Page existence if provided
       if (formData.facebook && formData.facebook.trim()) {
@@ -1715,6 +1723,35 @@ export default function UpdateStartup() {
                   <option value="Series D+">Series D+</option>
                   <option value="Venture Capital">Venture Capital</option>
                 </select>
+              </div>
+
+              {/* Total Funding Received */}
+              <div>
+                <label htmlFor="totalStartupFundingReceived" className="block text-sm font-medium text-gray-700 mb-1">
+                  Total Funding Received (₱)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <span className="text-gray-500 font-medium">₱</span>
+                  </div>
+                  <input
+                    type="number"
+                    id="totalStartupFundingReceived"
+                    name="totalStartupFundingReceived"
+                    min="0"
+                    step="1000"
+                    placeholder="e.g., 5000000"
+                    value={formData.totalStartupFundingReceived || ""}
+                    onChange={handleInputChange}
+                    className="text-gray-800 w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Enter the total amount of funding received (optional)</p>
+                {formData.totalStartupFundingReceived > 0 && (
+                  <p className="text-xs text-green-600 mt-1 font-medium">
+                    Total Funding: ₱{Number(formData.totalStartupFundingReceived).toLocaleString()}
+                  </p>
+                )}
               </div>
 
               {/* Business Activity */}

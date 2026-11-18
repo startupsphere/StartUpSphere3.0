@@ -301,6 +301,7 @@ export default function Startupadd() {
     locationLng: null,
     locationName: "",
     fundingStage: "",
+    totalStartupFundingReceived: "",
     operatingHours: "Monday, Tuesday, Wednesday, Thursday, Friday: 09:00 - 17:00",
     businessActivity: "",
     isGovernmentRegistered: "",
@@ -382,6 +383,7 @@ export default function Startupadd() {
     facebook: "",
     linkedIn: "",
     fundingStage: "",
+    totalStartupFundingReceived: "",
     operatingHours: "",
     businessActivity: "",
     locationLat: "",
@@ -511,6 +513,7 @@ export default function Startupadd() {
       locationLng: null,
       locationName: "",
       fundingStage: "",
+      totalStartupFundingReceived: "",
       operatingHours: "Monday, Tuesday, Wednesday, Thursday, Friday: 09:00 - 17:00",
       businessActivity: "",
       isGovernmentRegistered: "",
@@ -572,6 +575,7 @@ export default function Startupadd() {
       facebook: "",
       linkedIn: "",
       fundingStage: "",
+      totalStartupFundingReceived: "",
       operatingHours: "",
       businessActivity: "",
       locationLat: "",
@@ -973,6 +977,7 @@ const fetchDraftData = async (id) => {
       locationLng: data.locationLng || null,
       locationName: data.locationName || "",
       fundingStage: data.fundingStage || "",
+      totalStartupFundingReceived: data.totalStartupFundingReceived || "",
       operatingHours: data.operatingHours || "",
       businessActivity: data.businessActivity || "",
       isGovernmentRegistered: data.isGovernmentRegistered || "",
@@ -1695,6 +1700,7 @@ const fetchDraftData = async (id) => {
         locationLng: formData.locationLng,
         locationName: formData.locationName,
         fundingStage: formData.fundingStage,
+        totalStartupFundingReceived: formData.totalStartupFundingReceived ? parseFloat(formData.totalStartupFundingReceived) : 0,
         businessActivity: formData.businessActivity,
         operatingHours: formData.operatingHours,
         isGovernmentRegistered: formData.isGovernmentRegistered,
@@ -1937,6 +1943,7 @@ const handleSubmit = async () => {
         locationLng: formData.locationLng,
         locationName: formData.locationName,
         fundingStage: formData.fundingStage,
+        totalStartupFundingReceived: formData.totalStartupFundingReceived ? parseFloat(formData.totalStartupFundingReceived) : 0,
         businessActivity: formData.businessActivity,
         operatingHours: formData.operatingHours,
         isGovernmentRegistered: formData.isGovernmentRegistered,
@@ -2038,13 +2045,20 @@ const handleSubmit = async () => {
       
       const { registrationCertificate, ...startupData } = formData;
 
+      const submissionPayload = {
+        ...startupData,
+        totalStartupFundingReceived: formData.totalStartupFundingReceived
+          ? parseFloat(formData.totalStartupFundingReceived)
+          : 0,
+      };
+
       response = await fetch(`${getBackendUrl()}/startups`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(startupData),
+        body: JSON.stringify(submissionPayload),
         credentials: "include",
       });
       
@@ -5341,6 +5355,54 @@ const handleSubmit = async () => {
                 )}
               </div>
 
+              {/* Total Funding Received */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Total Funding Received (₱)
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <span className="text-gray-500 font-medium">₱</span>
+                  </div>
+                  <input
+                    type="number"
+                    name="totalStartupFundingReceived"
+                    min="0"
+                    step="1000"
+                    placeholder="e.g., 5000000"
+                    className="w-full border-2 rounded-lg pl-8 pr-4 py-3 focus:ring-2 outline-none transition-all duration-200 hover:border-gray-400 border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.totalStartupFundingReceived}
+                    onChange={handleChange}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    {formData.totalStartupFundingReceived && (
+                      <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Enter the total amount of funding your business has received (optional)</p>
+              </div>
+            </div>
+
+            {/* Total Funding Received - Full Width Display */}
+            {formData.totalStartupFundingReceived && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm text-green-800">
+                  Total Funding: <strong>₱{Number(formData.totalStartupFundingReceived).toLocaleString()}</strong>
+                </span>
+              </div>
+            )}
+
+            {/* Business Activity and more */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Business Activity */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">

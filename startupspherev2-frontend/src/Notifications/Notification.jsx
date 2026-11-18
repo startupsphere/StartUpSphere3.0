@@ -56,6 +56,83 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Helper to parse investment proposal key-values from notification comments
+const parseInvestmentDetails = (comments) => {
+  if (!comments || typeof comments !== "string") return null;
+
+  const extract = (label) => {
+    const regex = new RegExp(`(?:^|\\n)\\s*${label}\\s*:\\s*(.+)`, "i");
+    const match = comments.match(regex);
+    return match ? match[1].trim() : null;
+  };
+
+  const investorLine = extract("Investor / Proposer") || extract("Investor");
+  let investorName = investorLine || "";
+  let investorType = "";
+  if (investorLine && investorLine.includes("(") && investorLine.includes(")")) {
+    const match = investorLine.match(/^(.*?)\s*\((.*?)\)$/);
+    if (match) {
+      investorName = match[1].trim();
+      investorType = match[2].trim();
+    }
+  }
+
+  const email = extract("Email");
+  const phone = extract("Phone");
+  const amount =
+    extract("Proposed Investment Amount") ||
+    extract("Proposed Amount") ||
+    extract("Amount");
+  const process = extract("Discussion Process") || extract("Process");
+
+  let message = "";
+  const msgMatch = comments.match(
+    /(?:Proposal \/ Agenda|Proposal|Message|Notes)\s*:\s*([\s\S]*?)(?:--- Status:|$)/i
+  );
+  if (msgMatch) {
+    message = msgMatch[1].trim();
+  }
+
+  // Detect decision status
+  let status = "PENDING";
+  if (
+    comments.includes("--- Status: ACCEPTED ---") ||
+    comments.toUpperCase().includes("STATUS: ACCEPTED")
+  ) {
+    status = "ACCEPTED";
+  } else if (
+    comments.includes("--- Status: REJECTED ---") ||
+    comments.toUpperCase().includes("STATUS: REJECTED")
+  ) {
+    status = "REJECTED";
+  }
+
+  let decisionDate = "";
+  const dateMatch = comments.match(/Decision Date\s*:\s*(.+)/i);
+  if (dateMatch) decisionDate = dateMatch[1].trim();
+
+  let founderNote = "";
+  const noteMatch = comments.match(/Founder Note\s*:\s*(.+)/i);
+  if (noteMatch) founderNote = noteMatch[1].trim();
+
+  if (!investorLine && !amount && !process) {
+    return null;
+  }
+
+  return {
+    investorName,
+    investorType,
+    email,
+    phone,
+    amount,
+    process,
+    message,
+    status,
+    decisionDate,
+    founderNote,
+  };
+};
+
 function NotificationComponent() {
   const [notifications, setNotifications] = useState([]);
   const [filteredNotifications, setFilteredNotifications] = useState([]);
@@ -73,6 +150,8 @@ function NotificationComponent() {
   const [actionType, setActionType] = useState(null); // 'view' or 'review'
   const [startupDetails, setStartupDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [decisionNotes, setDecisionNotes] = useState("");
+  const [isProcessingDecision, setIsProcessingDecision] = useState(false);
 
   const initiateDelete = (id) => {
     setConfirmingDelete(id);
@@ -159,6 +238,12 @@ function NotificationComponent() {
     const message = item.remarks?.toLowerCase() || "";
 
     if (
+      message.includes("investment interest") ||
+      message.includes("investment proposal") ||
+      (item.comments && item.comments.includes("Investor / Proposer:"))
+    ) {
+      return "Review Proposal";
+    } else if (
       message.includes("application") ||
       message.includes("submitted") ||
       message.includes("approved") ||
@@ -178,7 +263,9 @@ function NotificationComponent() {
   const determineNotificationType = (item) => {
     const message = item.remarks?.toLowerCase() || "";
 
-    if (message.includes("application") || message.includes("submitted")) {
+    if (message.includes("investment")) {
+      return "investment";
+    } else if (message.includes("application") || message.includes("submitted")) {
       return "update";
     } else if (message.includes("liked") || message.includes("like")) {
       return "like";
@@ -356,10 +443,22 @@ function NotificationComponent() {
   const getNotificationContentClass = (notification) => {
     const content = notification.content?.toLowerCase() || "";
 
-    if (content.includes("rejected") || content.includes("wasn't approved")) {
+    if (
+      content.includes("rejected") ||
+      content.includes("wasn't approved") ||
+      content.includes("declined")
+    ) {
       return "px-3 py-2 border-l-4 border-red-500 bg-red-50 text-gray-900 rounded-r-md";
-    } else if (content.includes("approved")) {
+    } else if (
+      content.includes("approved") ||
+      content.includes("accepted")
+    ) {
       return "px-3 py-2 border-l-4 border-green-500 bg-green-50 text-gray-900 rounded-r-md";
+    } else if (
+      content.includes("investment interest") ||
+      content.includes("investment proposal")
+    ) {
+      return "px-3 py-2 border-l-4 border-blue-500 bg-blue-50 text-gray-900 rounded-r-md";
     } else if (
       content.includes("pending") ||
       content.includes("being reviewed")
@@ -637,6 +736,24 @@ function NotificationComponent() {
   const getNotificationIcon = (type) => {
     try {
       switch (type) {
+        case "investment":
+          return (
+            <div className="bg-blue-100 p-2 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-blue-600"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                <path
+                  fillRule="evenodd"
+                  d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          );
         case "like":
           return (
             <div className="bg-rose-100 p-2 rounded-full">
@@ -965,9 +1082,64 @@ function NotificationComponent() {
     setSelectedNotification(null);
     setStartupDetails(null);
     setActionType(null);
+    setDecisionNotes("");
+    setIsProcessingDecision(false);
 
     if (notif && notif.id != null) {
       markNotificationAsRead(notif.id);
+    }
+  };
+
+  // Handle business owner Accept or Reject of investment proposal
+  const handleInvestmentDecision = async (notificationId, decision, notes = "") => {
+    try {
+      setIsProcessingDecision(true);
+      const response = await fetch(
+        `${getBackendUrl()}/notifications/${notificationId}/investment-decision`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers: getAuthHeaders({
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({
+            decision: decision, // "ACCEPT" or "REJECT"
+            notes: (notes || "").trim(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ||
+          `Failed to ${decision === "ACCEPT" ? "accept" : "decline"} investment proposal`
+        );
+      }
+
+      toast.success(
+        decision === "ACCEPT"
+          ? "Investment proposal accepted! The investor has been notified and will reach out soon."
+          : "Investment proposal declined. The investor has been notified."
+      );
+
+      const updatedNotif = result.data;
+      if (updatedNotif) {
+        const transformed = transformNotificationData(updatedNotif);
+        setSelectedNotification(transformed);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notificationId ? transformed : n))
+        );
+      } else {
+        await fetchNotifications();
+      }
+    } catch (err) {
+      console.error("Error processing investment decision:", err);
+      toast.error(
+        err.message || "Failed to process decision. Please try again."
+      );
+    } finally {
+      setIsProcessingDecision(false);
     }
   };
 
@@ -988,13 +1160,20 @@ function NotificationComponent() {
   const getActionType = (notification) => {
     // Always return the action type regardless of read status
     // If there's no action defined, default to "View"
-    return (
-      notification.action ||
-      // Determine action based on content for notifications without explicit action
-      (notification.content?.toLowerCase().includes("application")
-        ? "Review"
-        : "View")
-    );
+    if (notification.action) return notification.action;
+    const content = notification.content?.toLowerCase() || "";
+    if (
+      content.includes("investment interest") ||
+      content.includes("investment proposal") ||
+      (notification.rawData?.comments &&
+        notification.rawData.comments.includes("Investor / Proposer:"))
+    ) {
+      return "Review Proposal";
+    }
+    if (content.includes("application")) {
+      return "Review";
+    }
+    return "View";
   };
 
   // Action button renderer with proper click handlers
@@ -1004,10 +1183,11 @@ function NotificationComponent() {
 
     return (
       <button
-        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        onClick={() =>
-          handleNotificationAction(notification, actionType.toLowerCase())
-        }
+        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-semibold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleNotificationAction(notification, actionType.toLowerCase());
+        }}
       >
         {actionType}
       </button>
@@ -1093,8 +1273,8 @@ function NotificationComponent() {
                               setShowFilterMenu(false);
                             }}
                             className={`block text-black w-full text-left px-2 py-1 rounded flex justify-between items-center ${activeFilter === filter.id
-                                ? "bg-blue-50 text-blue-700"
-                                : "hover:bg-gray-50"
+                              ? "bg-blue-50 text-blue-700"
+                              : "hover:bg-gray-50"
                               }`}
                           >
                             <span>{filter.name}</span>
@@ -1119,8 +1299,8 @@ function NotificationComponent() {
                               setShowFilterMenu(false);
                             }}
                             className={`text-black block w-full text-left px-2 py-1 rounded flex justify-between items-center ${activeTypeFilter === filter.id
-                                ? "bg-blue-50 text-blue-700"
-                                : "hover:bg-gray-50"
+                              ? "bg-blue-50 text-blue-700"
+                              : "hover:bg-gray-50"
                               }`}
                           >
                             <span>{filter.name}</span>
@@ -1186,15 +1366,15 @@ function NotificationComponent() {
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${activeFilter === filter.id
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
               >
                 <span>{filter.name}</span>
                 <span
                   className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${activeFilter === filter.id
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-600"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-600"
                     }`}
                 >
                   {countByType[filter.id] || 0}
@@ -1212,15 +1392,15 @@ function NotificationComponent() {
                 key={filter.id}
                 onClick={() => setActiveTypeFilter(filter.id)}
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-colors flex items-center ${activeTypeFilter === filter.id
-                    ? "bg-blue-100 text-blue-800 border border-blue-200"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-100 text-blue-800 border border-blue-200"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
               >
                 <span>{filter.name}</span>
                 <span
                   className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${activeTypeFilter === filter.id
-                      ? "bg-blue-200 text-blue-800"
-                      : "bg-gray-100 text-gray-600"
+                    ? "bg-blue-200 text-blue-800"
+                    : "bg-gray-100 text-gray-600"
                     }`}
                 >
                   {countByType[filter.id] || 0}
@@ -1292,7 +1472,16 @@ function NotificationComponent() {
                         </div>
 
                         {/* Content */}
-                        <div className="min-w-0 flex-1">
+                        <div
+                          className="min-w-0 flex-1 cursor-pointer"
+                          onClick={() => {
+                            const act = getActionType(notification);
+                            handleNotificationAction(
+                              notification,
+                              act ? act.toLowerCase() : "view"
+                            );
+                          }}
+                        >
                           {notification.sender && (
                             <div className="text-sm font-semibold text-gray-900 mb-1">
                               {notification.sender.name}
@@ -1362,8 +1551,8 @@ function NotificationComponent() {
                             onClick={() => initiateDelete(notification.id)}
                             disabled={deletingIds.includes(notification.id)}
                             className={`p-2 ${deletingIds.includes(notification.id)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                               } rounded-full`}
                             title="Delete notification"
                             aria-label="Delete notification"
@@ -1445,214 +1634,453 @@ function NotificationComponent() {
         </div>
       )}
 
-      {/* Add new Action Modals */}
-      {showActionModal && selectedNotification && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-          <div
-            className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">
-                {actionType === "review"
-                  ? "Your Startup Application"
-                  : "Startup Details"}
-              </h3>
-              <button
-                onClick={closeActionModal}
-                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 cursor-pointer"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
-              </button>
-            </div>
+      {/* Action / Detail Modal */}
+      {showActionModal && selectedNotification && (() => {
+        const rawComments = selectedNotification?.rawData?.comments || "";
+        const investmentDetails = parseInvestmentDetails(rawComments);
+        const isInvestment = Boolean(
+          investmentDetails ||
+          selectedNotification?.content?.toLowerCase().includes("investment interest") ||
+          selectedNotification?.content?.toLowerCase().includes("investment proposal") ||
+          selectedNotification?.type === "investment"
+        );
 
-            {/* Modal Content */}
-            <div className="p-4 sm:p-6 max-h-[70dvh] overflow-y-auto flex-1">
-              {loadingDetails ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <CgSpinner className="h-10 w-10 text-blue-500 animate-spin" />
-                  <p className="mt-4 text-gray-500 text-sm">Loading details...</p>
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div
+              className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-2.5 truncate pr-2">
+                  {isInvestment && (
+                    <div className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  )}
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                    {isInvestment
+                      ? "Investment Interest Proposal"
+                      : actionType === "review"
+                        ? "Your Startup Application"
+                        : "Startup Details"}
+                  </h3>
                 </div>
-              ) : startupDetails ? (
-                <div>
-                  {/* Startup Details */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    {startupDetails.photo ? (
-                      <img
-                        src={
-                          typeof startupDetails.photo === "string" &&
-                            startupDetails.photo.startsWith("/9j")
-                            ? `data:image/jpeg;base64,${startupDetails.photo}`
-                            : `${getBackendUrl()}/startups/${startupDetails.id
-                            }/photo`
-                        }
-                        alt={startupDetails.companyName}
-                        className="h-24 w-24 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src =
-                            "https://via.placeholder.com/150?text=No+Image";
-                        }}
-                      />
+                <button
+                  onClick={closeActionModal}
+                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 cursor-pointer"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4 sm:p-6 max-h-[70dvh] overflow-y-auto flex-1 space-y-6">
+                {/* Investment Proposal Information (if investment notification) */}
+                {isInvestment && investmentDetails && (
+                  <div className="space-y-4">
+                    {/* Status Banner */}
+                    {investmentDetails.status === "ACCEPTED" ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 text-emerald-700 rounded-full flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-emerald-900">Proposal Accepted</h4>
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-full uppercase tracking-wider">
+                              Accepted
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-700 mt-1">
+                            You accepted this investment proposal{investmentDetails.decisionDate ? ` on ${investmentDetails.decisionDate}` : ""}. The investor has been notified and will reach out soon.
+                          </p>
+                          {investmentDetails.founderNote && (
+                            <div className="text-xs text-emerald-900 mt-2.5 bg-emerald-100/70 p-2.5 rounded-lg border border-emerald-200">
+                              <span className="font-semibold text-emerald-950">Your response note: </span>
+                              <span>"{investmentDetails.founderNote}"</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : investmentDetails.status === "REJECTED" ? (
+                      <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
+                        <div className="p-2 bg-rose-100 text-rose-700 rounded-full flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-rose-900">Proposal Declined</h4>
+                            <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[11px] font-semibold rounded-full uppercase tracking-wider">
+                              Declined
+                            </span>
+                          </div>
+                          <p className="text-xs text-rose-700 mt-1">
+                            You declined this investment proposal{investmentDetails.decisionDate ? ` on ${investmentDetails.decisionDate}` : ""}. The investor was notified.
+                          </p>
+                          {investmentDetails.founderNote && (
+                            <div className="text-xs text-rose-900 mt-2.5 bg-rose-100/70 p-2.5 rounded-lg border border-rose-200">
+                              <span className="font-semibold text-rose-950">Your response note: </span>
+                              <span>"{investmentDetails.founderNote}"</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="h-24 w-24 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-12 w-12"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-700 rounded-full flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-blue-900">Investment Inquiry Awaiting Your Review</h4>
+                          <p className="text-xs text-blue-700 mt-0.5">
+                            An investor has submitted an expression of interest to fund your business. Review their proposal details below and select whether to accept or decline.
+                          </p>
+                        </div>
                       </div>
                     )}
 
-                    <div className="ml-6">
-                      <h4 className="text-xl font-bold text-gray-900">
-                        {startupDetails.companyName}
-                      </h4>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {startupDetails.industry &&
-                          startupDetails.industry.charAt(0).toUpperCase() +
-                          startupDetails.industry.slice(1).replace("_", " ")}
-                      </p>
-                      <div className="mt-2 flex items-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${startupDetails.status === "Approved"
-                              ? "bg-green-100 text-green-800"
-                              : startupDetails.status === "Pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                        >
-                          {startupDetails.status}
-                        </span>
-                        <span className="mx-2 text-gray-300">|</span>
-                        <span className="text-sm text-gray-500">
-                          {startupDetails.city}, {startupDetails.province}
-                        </span>
+                    {/* Proposed Amount Card */}
+                    <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-2xl p-5 text-white shadow-md">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div>
+                          <span className="text-xs font-semibold text-blue-200 tracking-wider uppercase">Proposed Funding Capital</span>
+                          <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+                            {investmentDetails.amount || "Undisclosed"}
+                          </div>
+                        </div>
+                        <div className="sm:text-right">
+                          <span className="text-xs font-semibold text-blue-200 tracking-wider uppercase">Target Business</span>
+                          <div className="text-base sm:text-lg font-bold text-white mt-0.5">
+                            {startupDetails?.companyName || selectedNotification?.sender?.name || "Your Business"}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Startup Description */}
-                  <div className="mt-6">
-                    <h5 className="font-medium text-gray-900">About</h5>
-                    <p className="mt-2 text-gray-600">
-                      {startupDetails.companyDescription ||
-                        "No description provided."}
+                    {/* Investor Details Card */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Investor / Proposer Information
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-xs text-gray-500 block">Name / Entity</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm font-semibold text-gray-900">{investmentDetails.investorName || "N/A"}</span>
+                            {investmentDetails.investorType && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {investmentDetails.investorType}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">Preferred Discussion Process</span>
+                          <span className="text-sm font-semibold text-gray-900 block mt-0.5">
+                            {investmentDetails.process || "General Investment Discussion"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">Contact Email</span>
+                          {investmentDetails.email ? (
+                            <a
+                              href={`mailto:${investmentDetails.email}`}
+                              className="text-sm font-medium text-blue-600 hover:underline block mt-0.5"
+                            >
+                              {investmentDetails.email}
+                            </a>
+                          ) : (
+                            <span className="text-sm text-gray-700 block mt-0.5">N/A</span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">Contact Phone</span>
+                          {investmentDetails.phone ? (
+                            <a
+                              href={`tel:${investmentDetails.phone}`}
+                              className="text-sm font-medium text-blue-600 hover:underline block mt-0.5"
+                            >
+                              {investmentDetails.phone}
+                            </a>
+                          ) : (
+                            <span className="text-sm text-gray-500 italic block mt-0.5">Not provided</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Proposal / Agenda Notes */}
+                    {investmentDetails.message && (
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5">
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Proposal Notes & Agenda
+                        </h5>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed bg-gray-50 p-3.5 rounded-lg border border-gray-100">
+                          {investmentDetails.message}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Optional Note to Investor (Only when pending) */}
+                    {investmentDetails.status === "PENDING" && (
+                      <div className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          Add an Optional Note to the Investor
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={decisionNotes}
+                          onChange={(e) => setDecisionNotes(e.target.value)}
+                          placeholder="e.g., We'd love to connect! Please email our CEO directly or join our office call on..."
+                          className="w-full px-3 py-2 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all placeholder:text-gray-400"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Startup Profile Details */}
+                {loadingDetails ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <CgSpinner className="h-8 w-8 text-blue-500 animate-spin" />
+                    <p className="mt-3 text-gray-500 text-xs">Loading business details...</p>
+                  </div>
+                ) : startupDetails ? (
+                  <div className={isInvestment ? "pt-5 border-t border-gray-200" : ""}>
+                    {isInvestment && (
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+                        Target Business Profile
+                      </h5>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      {startupDetails.photo ? (
+                        <img
+                          src={
+                            typeof startupDetails.photo === "string" &&
+                              startupDetails.photo.startsWith("/9j")
+                              ? `data:image/jpeg;base64,${startupDetails.photo}`
+                              : `${getBackendUrl()}/startups/${startupDetails.id}/photo`
+                          }
+                          alt={startupDetails.companyName}
+                          className="h-20 w-20 object-cover rounded-xl border border-gray-200"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/150?text=No+Image";
+                          }}
+                        />
+                      ) : (
+                        <div className="h-20 w-20 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 border border-gray-200">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-10 w-10"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            />
+                          </svg>
+                        </div>
+                      )}
+
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-gray-900">
+                          {startupDetails.companyName}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {startupDetails.industry &&
+                            startupDetails.industry.charAt(0).toUpperCase() +
+                            startupDetails.industry.slice(1).replace("_", " ")}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${startupDetails.status === "Approved"
+                                ? "bg-green-100 text-green-800"
+                                : startupDetails.status === "Pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                          >
+                            {startupDetails.status}
+                          </span>
+                          <span className="text-gray-300">|</span>
+                          <span className="text-xs text-gray-500">
+                            {startupDetails.city}, {startupDetails.province}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Startup Description */}
+                    <div className="mt-4">
+                      <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500">About</h5>
+                      <p className="mt-1 text-sm text-gray-600 leading-relaxed">
+                        {startupDetails.companyDescription ||
+                          "No description provided."}
+                      </p>
+                    </div>
+
+                    {/* Basic Details Grid */}
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50/60 p-3.5 rounded-xl border border-gray-100">
+                      <div>
+                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">Founded</span>
+                        <p className="mt-0.5 text-xs font-semibold text-gray-800">
+                          {startupDetails.foundedDate || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">Employees</span>
+                        <p className="mt-0.5 text-xs font-semibold text-gray-800">
+                          {startupDetails.numberOfEmployees || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">Funding Stage</span>
+                        <p className="mt-0.5 text-xs font-semibold text-gray-800">
+                          {startupDetails.fundingStage
+                            ? startupDetails.fundingStage
+                              .charAt(0)
+                              .toUpperCase() +
+                            startupDetails.fundingStage
+                              .slice(1)
+                              .replace("_", " ")
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">Contact Email</span>
+                        <p className="mt-0.5 text-xs font-semibold text-gray-800 truncate" title={startupDetails.contactEmail}>
+                          {startupDetails.contactEmail || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Review Form - Only for admin review action */}
+                    {actionType === "review" && (
+                      <ReviewForm
+                        startupId={startupDetails.id}
+                        onSubmit={submitReview}
+                        currentStatus={startupDetails.status}
+                        rejectionComment={
+                          startupDetails.comments ||
+                          selectedNotification?.rawData?.comments
+                        }
+                      />
+                    )}
+                  </div>
+                ) : !isInvestment ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-600 mb-4">
+                      No additional details are available for this notification.
                     </p>
-                  </div>
-
-                  {/* Basic Details */}
-                  <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                    <div>
-                      <h5 className="font-medium text-gray-900">Founded</h5>
-                      <p className="mt-1 text-gray-600">
-                        {startupDetails.foundedDate || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-gray-900">Employees</h5>
-                      <p className="mt-1 text-gray-600">
-                        {startupDetails.numberOfEmployees || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-gray-900">
-                        Funding Stage
-                      </h5>
-                      <p className="mt-1 text-gray-600">
-                        {startupDetails.fundingStage
-                          ? startupDetails.fundingStage
-                            .charAt(0)
-                            .toUpperCase() +
-                          startupDetails.fundingStage
-                            .slice(1)
-                            .replace("_", " ")
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-gray-900">
-                        Contact Email
-                      </h5>
-                      <p className="mt-1 text-gray-600">
-                        {startupDetails.contactEmail || "N/A"}
-                      </p>
+                    <div
+                      className={`inline-block text-sm ${getNotificationContentClass(
+                        selectedNotification
+                      )}`}
+                    >
+                      {selectedNotification.content}
                     </div>
                   </div>
+                ) : null}
+              </div>
 
-                  {/* Review Form - Only for review action */}
-                  {actionType === "review" && (
-                    <ReviewForm
-                      startupId={startupDetails.id}
-                      onSubmit={submitReview}
-                      currentStatus={startupDetails.status}
-                      rejectionComment={
-                        startupDetails.comments ||
-                        selectedNotification?.rawData?.comments
-                      }
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 mb-4">
-                    No additional details are available for this notification.
-                  </p>
-                  <div
-                    className={`inline-block text-sm ${getNotificationContentClass(
-                      selectedNotification
-                    )}`}
-                  >
-                    {selectedNotification.content}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-end gap-2 bg-gray-50/80">
-              {!loadingDetails && (
+              {/* Modal Footer */}
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-between items-center gap-2 bg-gray-50/80">
                 <button
                   onClick={closeActionModal}
+                  disabled={isProcessingDecision}
                   className="w-full sm:w-auto px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 rounded-lg text-sm font-semibold transition-colors cursor-pointer text-center"
                 >
                   Close
                 </button>
-              )}
-              {!loadingDetails && startupDetails && actionType === "view" && (
-                <button
-                  onClick={() => navigateToStartupProfile(startupDetails.id)}
-                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center"
-                >
-                  View Full Profile
-                </button>
-              )}
+
+                {/* Investment Decisions: Accept & Decline */}
+                {isInvestment && investmentDetails && investmentDetails.status === "PENDING" ? (
+                  <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-2">
+                    <button
+                      onClick={() =>
+                        handleInvestmentDecision(
+                          selectedNotification.id,
+                          "REJECT",
+                          decisionNotes
+                        )
+                      }
+                      disabled={isProcessingDecision}
+                      className="w-full sm:w-auto px-4 py-2 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 rounded-lg text-sm font-semibold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isProcessingDecision && (
+                        <CgSpinner className="animate-spin h-4 w-4" />
+                      )}
+                      Decline Proposal
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleInvestmentDecision(
+                          selectedNotification.id,
+                          "ACCEPT",
+                          decisionNotes
+                        )
+                      }
+                      disabled={isProcessingDecision}
+                      className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      {isProcessingDecision && (
+                        <CgSpinner className="animate-spin h-4 w-4" />
+                      )}
+                      Accept Proposal
+                    </button>
+                  </div>
+                ) : (
+                  !loadingDetails &&
+                  startupDetails &&
+                  actionType === "view" && (
+                    <button
+                      onClick={() => navigateToStartupProfile(startupDetails.id)}
+                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center"
+                    >
+                      View Full Profile
+                    </button>
+                  )
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 
+import com.startupsphere.capstone.dtos.InvestmentInterestRequest;
 import com.startupsphere.capstone.dtos.NotificationRequest;
 import com.startupsphere.capstone.entity.Notifications;
 import com.startupsphere.capstone.entity.Startup;
@@ -19,6 +20,7 @@ import com.startupsphere.capstone.repository.NotificationsRepository;
 import com.startupsphere.capstone.repository.StartupRepository;
 import com.startupsphere.capstone.repository.UserRepository;
 import com.startupsphere.capstone.responses.NotificationRemarks;
+import com.startupsphere.capstone.service.EmailService;
 
 @Service
 public class NotificationService {
@@ -33,6 +35,9 @@ public class NotificationService {
 
     @Autowired
     private UserRepository urepo;
+
+    @Autowired
+    private EmailService emailService;
 
     @CacheEvict(value = "notifications", allEntries = true)
     public Notifications createNotifications(NotificationRequest request) {
@@ -228,6 +233,175 @@ public class NotificationService {
         request.setUserId(startup.getUser().getId());
 
         return createNotifications(request);
+    }
+
+    public Notifications createInvestmentInterestNotification(Startup startup, InvestmentInterestRequest request, User senderUser) {
+        if (startup == null || startup.getUser() == null) {
+            return null;
+        }
+
+        NotificationRequest notifReq = new NotificationRequest();
+        String investorName = request.getInvestorName() != null && !request.getInvestorName().isBlank()
+                ? request.getInvestorName().trim()
+                : (senderUser != null ? ((senderUser.getFirstname() != null ? senderUser.getFirstname() : "") + " " +
+                                         (senderUser.getLastname() != null ? senderUser.getLastname() : "")).trim() : "An investor");
+        if (investorName.isBlank()) {
+            investorName = "An investor";
+        }
+        String investorType = request.getInvestorType() != null && !request.getInvestorType().isBlank()
+                ? request.getInvestorType()
+                : "Investor / Backer";
+
+        String formattedRemarks = String.format(NotificationRemarks.INVESTMENT_INTEREST, investorName, startup.getCompanyName());
+        if (formattedRemarks.length() > 250) {
+            formattedRemarks = formattedRemarks.substring(0, 247) + "...";
+        }
+        notifReq.setRemarks(formattedRemarks);
+
+        StringBuilder comments = new StringBuilder();
+        comments.append("Investor / Proposer: ").append(investorName).append(" (").append(investorType).append(")\n");
+        if (request.getInvestorEmail() != null && !request.getInvestorEmail().isBlank()) {
+            comments.append("Email: ").append(request.getInvestorEmail().trim()).append("\n");
+        }
+        if (request.getInvestorPhone() != null && !request.getInvestorPhone().isBlank()) {
+            comments.append("Phone: ").append(request.getInvestorPhone().trim()).append("\n");
+        }
+        if (request.getAmountRange() != null && !request.getAmountRange().isBlank()) {
+            comments.append("Proposed Investment Amount: ").append(request.getAmountRange()).append("\n");
+        }
+        if (request.getProcessType() != null && !request.getProcessType().isBlank()) {
+            comments.append("Discussion Process: ").append(request.getProcessType()).append("\n");
+        }
+        if (request.getMessage() != null && !request.getMessage().isBlank()) {
+            comments.append("Proposal / Agenda: ").append(request.getMessage().trim());
+        }
+
+        notifReq.setComments(comments.toString());
+        notifReq.setStartupId(startup.getId());
+        notifReq.setUserId(startup.getUser().getId());
+
+        return createNotifications(notifReq);
+    }
+
+    public Notifications processInvestmentDecision(int notificationId, String decision, String notes, User businessOwner) {
+        Notifications notif = nrepo.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found with ID: " + notificationId));
+
+        Startup startup = notif.getStartup();
+        boolean isAccepted = "ACCEPT".equalsIgnoreCase(decision) || "ACCEPTED".equalsIgnoreCase(decision);
+
+        // Parse investor info from notif.getComments()
+        String investorName = "Investor";
+        String investorEmail = null;
+        String commentsStr = notif.getComments() != null ? notif.getComments() : "";
+        for (String line : commentsStr.split("\n")) {
+            if (line.startsWith("Investor / Proposer: ")) {
+                String sub = line.substring("Investor / Proposer: ".length());
+                int paren = sub.indexOf("(");
+                if (paren != -1) {
+                    investorName = sub.substring(0, paren).trim();
+                } else {
+                    investorName = sub.trim();
+                }
+            } else if (line.startsWith("Email: ")) {
+                investorEmail = line.substring("Email: ".length()).trim();
+            }
+        }
+
+        // If amount was specified, extract it
+        Double parsedAmount = null;
+        for (String line : commentsStr.split("\n")) {
+            if (line.startsWith("Proposed Investment Amount: ")) {
+                String amtStr = line.substring("Proposed Investment Amount: ".length()).replaceAll("[^0-9.]", "").trim();
+                if (!amtStr.isEmpty()) {
+                    try {
+                        parsedAmount = Double.parseDouble(amtStr);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        // If accepted and amount found, update startup total funding and rounds
+        if (isAccepted && startup != null && parsedAmount != null && parsedAmount > 0) {
+            double currentFund = startup.getTotalStartupFundingReceived();
+            startup.setTotalStartupFundingReceived(currentFund + parsedAmount);
+            int rounds = startup.getNumberOfFundingRounds();
+            startup.setNumberOfFundingRounds(rounds + 1);
+            srepo.save(startup);
+        }
+
+        // Update the original notification comments to append decision record
+        String decisionStatus = isAccepted ? "ACCEPTED" : "REJECTED";
+        String updatedComments = commentsStr + "\n\n--- Status: " + decisionStatus + " ---\nDecision Date: "
+                + java.time.LocalDateTime.now()
+                + (notes != null && !notes.isBlank() ? "\nFounder Note: " + notes.trim() : "");
+        notif.setComments(updatedComments);
+        notif.setViewed(true);
+        nrepo.save(notif);
+
+        // Look up investor user account by email to deliver in-app notification
+        User investorUser = null;
+        if (investorEmail != null && !investorEmail.isBlank()) {
+            final String finalEmail = investorEmail;
+            investorUser = urepo.findFirstByEmailIgnoreCase(finalEmail)
+                    .or(() -> urepo.findFirstByEmail(finalEmail))
+                    .orElse(null);
+        }
+
+        String companyName = startup != null ? startup.getCompanyName() : "The business";
+
+        // 1. Notify the investor if they have an account in the system
+        if (investorUser != null && startup != null) {
+            NotificationRequest investorNotifReq = new NotificationRequest();
+            if (isAccepted) {
+                investorNotifReq.setRemarks(String.format(NotificationRemarks.INVESTMENT_ACCEPTED_INVESTOR, companyName, companyName));
+                investorNotifReq.setComments("Congratulations! " + companyName + " has accepted your investment proposal.\n"
+                        + "Contact: " + (businessOwner != null ? businessOwner.getEmail() : startup.getContactEmail()) + "\n"
+                        + (notes != null && !notes.isBlank() ? "Message from Founder: " + notes.trim() : ""));
+            } else {
+                investorNotifReq.setRemarks(String.format(NotificationRemarks.INVESTMENT_REJECTED_INVESTOR, companyName, companyName));
+                investorNotifReq.setComments("Your investment inquiry for " + companyName + " was declined at this time."
+                        + (notes != null && !notes.isBlank() ? "\nReason/Note: " + notes.trim() : ""));
+            }
+            investorNotifReq.setStartupId(startup.getId());
+            investorNotifReq.setUserId(investorUser.getId());
+            createNotifications(investorNotifReq);
+        }
+
+        // 2. Notify the business owner (in-app confirmation)
+        if (businessOwner != null && startup != null) {
+            NotificationRequest ownerNotifReq = new NotificationRequest();
+            if (isAccepted) {
+                ownerNotifReq.setRemarks(String.format(NotificationRemarks.INVESTMENT_ACCEPTED_OWNER, investorName, companyName));
+                ownerNotifReq.setComments("You accepted the investment proposal from " + investorName + " for " + companyName + ".\n"
+                        + "Investor Email: " + (investorEmail != null ? investorEmail : "Check original inquiry") + "\n"
+                        + "The investor has been notified and will reach out to you soon.");
+            } else {
+                ownerNotifReq.setRemarks(String.format(NotificationRemarks.INVESTMENT_REJECTED_OWNER, investorName, companyName));
+                ownerNotifReq.setComments("You declined the investment proposal from " + investorName + " for " + companyName + ".");
+            }
+            ownerNotifReq.setStartupId(startup.getId());
+            ownerNotifReq.setUserId(businessOwner.getId());
+            createNotifications(ownerNotifReq);
+        }
+
+        // 3. Send email to investor asynchronously
+        if (investorEmail != null && !investorEmail.isBlank()) {
+            final String targetEmail = investorEmail;
+            final String targetName = investorName;
+            final String cName = companyName;
+            final String dStatus = decisionStatus;
+            final String mNotes = notes;
+            new Thread(() -> {
+                try {
+                    emailService.sendInvestmentDecisionEmail(targetEmail, targetName, cName, dStatus, targetName, mNotes);
+                } catch (Exception ex) {
+                    logger.warn("Failed to dispatch investment decision email to {}: {}", targetEmail, ex.getMessage());
+                }
+            }).start();
+        }
+
+        return notif;
     }
 
 }
