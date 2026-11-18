@@ -1,8 +1,11 @@
 package com.startupsphere.capstone;
 
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.github.cdimascio.dotenv.Dotenv;
@@ -10,7 +13,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 @SpringBootApplication
 @EnableScheduling
 @EnableCaching
-public class    CapstoneApplication {
+public class CapstoneApplication {
 
     public static void main(String[] args) {
         // Load environment variables from .env or system environment
@@ -31,6 +34,20 @@ public class    CapstoneApplication {
 
         SpringApplication.run(CapstoneApplication.class, args);
         System.out.println("Running");
+    }
+
+    @Bean
+    public CommandLineRunner alterNotificationsColumnsRunner(JdbcTemplate jdbcTemplate) {
+        return args -> {
+            try {
+                // Ensure comments and remarks columns can hold full investment messages
+                jdbcTemplate.execute("ALTER TABLE notifications ALTER COLUMN comments TYPE TEXT");
+                jdbcTemplate.execute("ALTER TABLE notifications ALTER COLUMN remarks TYPE TEXT");
+                System.out.println("Successfully migrated notifications comments and remarks columns to TEXT");
+            } catch (Exception e) {
+                System.out.println("Notice on alterNotificationsColumnsRunner: " + e.getMessage());
+            }
+        };
     }
 
     private static void setSystemProperty(Dotenv dotenv, String dotenvKey, String systemPropertyKey) {

@@ -159,6 +159,18 @@ public class StartupRankingController {
         response.put("first", page == 0);
         response.put("last", end >= rankedStartups.size());
         response.put("empty", startupData.isEmpty());
+
+        double totalFundingSum = allStartups.stream()
+                .filter(s -> !Boolean.TRUE.equals(s.getIsDraft()))
+                .filter(s -> {
+                    if (industry != null && !industry.trim().isEmpty() && !"All".equalsIgnoreCase(industry.trim())) {
+                        return industry.equalsIgnoreCase(s.getIndustry());
+                    }
+                    return true;
+                })
+                .mapToDouble(Startup::getTotalStartupFundingReceived)
+                .sum();
+        response.put("totalFunding", totalFundingSum);
         
         return ResponseEntity.ok(response);
     }
@@ -264,6 +276,18 @@ public class StartupRankingController {
         response.put("growthData", generateGrowthData(dataSet));
         response.put("fundingData", generateFundingData(dataSet));
         response.put("locationData", generateLocationData(dataSet));
+
+        double totalFunding = allStartups.stream()
+                .filter(s -> !Boolean.TRUE.equals(s.getIsDraft()))
+                .filter(s -> {
+                    if (industry != null && !industry.trim().isEmpty() && !"All".equalsIgnoreCase(industry.trim())) {
+                        return industry.equalsIgnoreCase(s.getIndustry());
+                    }
+                    return true;
+                })
+                .mapToDouble(Startup::getTotalStartupFundingReceived)
+                .sum();
+        response.put("totalFunding", totalFunding);
 
         return ResponseEntity.ok(response);
     }

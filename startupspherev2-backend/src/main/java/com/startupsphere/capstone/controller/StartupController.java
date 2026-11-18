@@ -1,13 +1,18 @@
 package com.startupsphere.capstone.controller;
 
+import com.startupsphere.capstone.entity.Notifications;
 import com.startupsphere.capstone.entity.Startup;
 import com.startupsphere.capstone.entity.User;
+import com.startupsphere.capstone.dtos.InvestmentInterestRequest;
 import com.startupsphere.capstone.dtos.StartupEngagementDTO;
 import com.startupsphere.capstone.repository.StartupRepository;
+import com.startupsphere.capstone.responses.ApiResponse;
 import com.startupsphere.capstone.responses.ErrorResponse;
 import com.startupsphere.capstone.responses.SuccessResponse;
+import com.startupsphere.capstone.service.EmailService;
 import com.startupsphere.capstone.service.NotificationService;
 import com.startupsphere.capstone.service.StartupService;
+import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 
@@ -48,6 +53,9 @@ public class StartupController {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping
     @Transactional
@@ -526,6 +534,78 @@ public class StartupController {
             return ResponseEntity.ok(Map.of("message", "Email verified successfully."));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id:[0-9]+}/express-investment-interest")
+    public ResponseEntity<ApiResponse> expressInvestmentInterest(
+            @PathVariable Long id,
+            @RequestBody InvestmentInterestRequest request) {
+        try {
+            logger.info("Received express investment interest for startup id: {}", id);
+            Optional<Startup> optionalStartup = startupRepository.findById(id);
+            if (optionalStartup.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse(false, "Startup not found", null));
+            }
+
+            Startup startup = optionalStartup.get();
+
+            User currentUser = null;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User) {
+                currentUser = (User) auth.getPrincipal();
+            }
+
+            // Check if current user is the owner of the business
+            if (currentUser != null && startup.getUser() != null) {
+                if (currentUser.getId() != null && currentUser.getId().equals(startup.getUser().getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
+                }
+                if (currentUser.getEmail() != null && currentUser.getEmail().equalsIgnoreCase(startup.getUser().getEmail())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
+                }
+            }
+
+            // Create notification for the startup owner
+            Notifications notification = notificationService.createInvestmentInterestNotification(startup, request, currentUser);
+
+            // Send email notification to the startup's contact email or founder's email asynchronously
+            String targetEmail = startup.getContactEmail();
+            if (targetEmail == null || targetEmail.isBlank()) {
+                if (startup.getUser() != null) {
+                    targetEmail = startup.getUser().getEmail();
+                }
+            }
+
+            if (targetEmail != null && !targetEmail.isBlank()) {
+                final String recipientEmail = targetEmail;
+                new Thread(() -> {
+                    try {
+                        emailService.sendInvestmentInterestEmail(
+                                recipientEmail,
+                                startup.getCompanyName(),
+                                request.getInvestorName(),
+                                request.getInvestorEmail(),
+                                request.getInvestorPhone(),
+                                request.getInvestorType(),
+                                request.getAmountRange(),
+                                request.getProcessType(),
+                                request.getMessage()
+                        );
+                    } catch (Exception ex) {
+                        logger.warn("Failed to dispatch investment interest email: {}", ex.getMessage());
+                    }
+                }).start();
+            }
+
+            return ResponseEntity.ok(new ApiResponse(true, "Investment interest submitted successfully! The business owner has been notified.", notification));
+        } catch (Exception e) {
+            logger.error("Error processing investment interest for startup {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Failed to submit investment interest: " + e.getMessage(), null));
         }
     }
 

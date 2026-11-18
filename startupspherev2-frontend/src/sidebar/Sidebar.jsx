@@ -15,7 +15,8 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award, Sparkles, User, RotateCcw } from "lucide-react";
+import { Award, Sparkles, User, RotateCcw, DollarSign } from "lucide-react";
+import InvestmentInterestModal from "../modals/InvestmentInterestModal";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone, FaFacebook } from "react-icons/fa";
@@ -188,6 +189,62 @@ export default function Sidebar({
   const [adminSubmissionsCount, setAdminSubmissionsCount] = useState(0);
   const [notificationAdminTab, setNotificationAdminTab] = useState(false);
   const [showGeminiAi, setShowGeminiAi] = useState(false);
+  const [isInvestmentModalOpen, setIsInvestmentModalOpen] = useState(false);
+  const [investmentTargetStartup, setInvestmentTargetStartup] = useState(null);
+  const [userOwnedStartupIds, setUserOwnedStartupIds] = useState([]);
+
+  // Fetch logged-in user's owned startup IDs to prevent self-investment
+  useEffect(() => {
+    const fetchMyStartupIds = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUserOwnedStartupIds([]);
+        return;
+      }
+      try {
+        const res = await fetch(`${getBackendUrl()}/startups/my-startups`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const ids = await res.json();
+          setUserOwnedStartupIds(Array.isArray(ids) ? ids.map(id => Number(id)) : []);
+        } else {
+          setUserOwnedStartupIds([]);
+        }
+      } catch (err) {
+        console.error("Error fetching user owned startup IDs:", err);
+        setUserOwnedStartupIds([]);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchMyStartupIds();
+    } else {
+      setUserOwnedStartupIds([]);
+    }
+  }, [isAuthenticated, currentUser?.id]);
+
+  // Helper to determine if the active user owns a given startup
+  const isBusinessOwnerOfStartup = (targetStartup) => {
+    if (!targetStartup) return false;
+    const targetId = Number(targetStartup.id);
+    if (userOwnedStartupIds.includes(targetId)) return true;
+
+    const activeUser = currentUser || user;
+    if (!activeUser) return false;
+
+    if (targetStartup.user?.id && activeUser.id && Number(targetStartup.user.id) === Number(activeUser.id)) {
+      return true;
+    }
+    if (targetStartup.user?.email && activeUser.email && targetStartup.user.email.toLowerCase() === activeUser.email.toLowerCase()) {
+      return true;
+    }
+    if (targetStartup.contactEmail && activeUser.email && targetStartup.contactEmail.toLowerCase() === activeUser.email.toLowerCase()) {
+      return true;
+    }
+    return false;
+  };
 
   // Screen resize detection for responsive mobile layout
   const [isMobile, setIsMobile] = useState(() =>
@@ -4287,6 +4344,29 @@ export default function Sidebar({
               )}
             </div>
 
+            {/* Express Investment Interest CTA Button - Hidden or disabled if user owns the business */}
+            {!isBusinessOwnerOfStartup(startup) ? (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvestmentTargetStartup(startup);
+                    setIsInvestmentModalOpen(true);
+                  }}
+                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group active:scale-[0.99] border-0"
+                  style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                >
+                  <DollarSign className="w-4 h-4 text-blue-100 group-hover:scale-110 transition-transform" />
+                  <span className="text-white font-semibold">Express Investment Interest</span>
+                </button>
+              </div>
+            ) : (
+              <div className="mb-4 p-2.5 bg-blue-50/60 rounded-xl border border-blue-200/60 flex items-center gap-2 text-xs text-blue-800">
+                <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                <span>You own this business. Investment inquiries are available for other businesses.</span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
               {startup.locationName && (
                 <div className="flex items-center">
@@ -4545,7 +4625,7 @@ export default function Sidebar({
             </div>
 
             {/* Funding & Financials */}
-            {(startup.fundingStage || startup.revenue || startup.numberOfFundingRounds) && (
+            {(startup.fundingStage || startup.revenue || startup.numberOfFundingRounds || startup.totalStartupFundingReceived) && (
               <div className="space-y-2 mb-6 border-t border-gray-100 pt-4">
                 <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <svg
@@ -4561,6 +4641,12 @@ export default function Sidebar({
                   Funding & Financials
                 </h2>
                 <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-3 text-sm">
+                  {startup.totalStartupFundingReceived != null && startup.totalStartupFundingReceived > 0 && (
+                    <div className="flex justify-between items-center pb-2 border-b border-amber-100/50">
+                      <span className="text-xs text-amber-800 font-semibold">Total Funding</span>
+                      <span className="font-bold text-emerald-700">₱{Number(startup.totalStartupFundingReceived).toLocaleString()}</span>
+                    </div>
+                  )}
                   {startup.fundingStage && (
                     <div className="flex justify-between">
                       <span className="text-xs text-amber-800 font-semibold">Funding Stage</span>
@@ -4577,6 +4663,23 @@ export default function Sidebar({
                     <div className="border-t border-amber-100/50 pt-2 flex justify-between">
                       <span className="text-xs text-amber-800 font-semibold">Funding Rounds</span>
                       <span className="font-medium text-gray-800">{startup.numberOfFundingRounds} rounds</span>
+                    </div>
+                  )}
+
+                  {/* Express Interest Button inside Funding section (only if not owner) */}
+                  {!isBusinessOwnerOfStartup(startup) && (
+                    <div className="border-t border-amber-200/70 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInvestmentTargetStartup(startup);
+                          setIsInvestmentModalOpen(true);
+                        }}
+                        className="w-full py-2 px-3 bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 border border-blue-300 hover:border-blue-400 font-semibold text-xs rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <DollarSign className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Invest / Discuss Capital</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -4993,6 +5096,14 @@ export default function Sidebar({
           <GroqAiChat currentUser={currentUser} onClose={() => setShowGeminiAi(false)} />
         )}
       </AnimatePresence>
+
+      {/* Investment Interest Modal */}
+      <InvestmentInterestModal
+        isOpen={isInvestmentModalOpen}
+        onClose={() => setIsInvestmentModalOpen(false)}
+        startup={investmentTargetStartup || startup}
+        currentUser={currentUser || user}
+      />
     </div>
   );
 }

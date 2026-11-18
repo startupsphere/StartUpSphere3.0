@@ -28,4 +28,18 @@ public class SecurityUtils {
         }
         throw new IllegalStateException("No authenticated user found");
     }
+
+    public static User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(authentication != null && authentication.isAuthenticated()) {
+            if (authentication.getPrincipal() instanceof User) {
+                return (User) authentication.getPrincipal();
+            }
+            String email = authentication.getName();
+            return userRepository.findFirstByEmailIgnoreCase(email)
+                .or(() -> userRepository.findFirstByEmail(email))
+                .orElse(null);
+        }
+        return null;
+    }
 }

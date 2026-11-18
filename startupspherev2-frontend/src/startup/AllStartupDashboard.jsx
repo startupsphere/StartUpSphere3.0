@@ -1,5 +1,5 @@
 import { getBackendUrl } from "../config/apiConfig";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   LineChart,
   BarChart,
@@ -78,6 +78,7 @@ export default function AllStartupDashboard() {
   const [loading, setLoading] = useState(true);
   const [industries, setIndustries] = useState([]);
   const [industryData, setIndustryData] = useState([]);
+  const [ecosystemTotalFunding, setEcosystemTotalFunding] = useState(0);
 
   // Cache for startup locations to avoid repeated fetching
   const [startupLocationsCache, setStartupLocationsCache] = useState(null);
@@ -217,6 +218,9 @@ export default function AllStartupDashboard() {
         setGrowthData(data.growthData);
         setFundingData(data.fundingData);
         setLocationData(data.locationData);
+        if (data.totalFunding !== undefined && data.totalFunding !== null) {
+          setEcosystemTotalFunding(Number(data.totalFunding));
+        }
 
         if (data.locationData && data.locationData.length) {
           const regions = data.locationData.map((item) => item.name);
@@ -385,17 +389,26 @@ export default function AllStartupDashboard() {
         }
 
         const data = await responses[0].json();
+        if (data.totalFunding !== undefined && data.totalFunding !== null) {
+          setEcosystemTotalFunding(Number(data.totalFunding));
+        }
 
         // Cache locations if fetched
         if (responses[1]) {
           if (responses[1].ok) {
             const locationsData = await responses[1].json();
+            const startUpList = locationsData.content || [];
             const locationsMap = {};
-            (locationsData.content || []).forEach(startup => {
+            let fundingFromAll = 0;
+            startUpList.forEach(startup => {
               locationsMap[startup.id] = startup.city || "Unknown";
+              fundingFromAll += Number(startup.totalStartupFundingReceived || startup.totalFunding || 0);
             });
             setStartupLocationsCache(locationsMap);
             setTotalStartups(locationsData.totalElements || 0);
+            if (fundingFromAll > 0) {
+              setEcosystemTotalFunding(prev => Math.max(prev, fundingFromAll));
+            }
             
             // Cache available regions
             const uniqueCities = [...new Set(Object.values(locationsMap))].filter(Boolean);
@@ -639,16 +652,8 @@ export default function AllStartupDashboard() {
           : "0.00";
       doc.text(`Average Score: ${avgScore}`, 25, summaryStartY + 25);
 
-      const totalFunding =
-        rankedStartups && rankedStartups.length > 0
-          ? (
-              rankedStartups.reduce(
-                (sum, s) => sum + (s.metrics?.totalFunding || 0),
-                0
-              ) / 1000000
-            ).toFixed(2)
-          : "0.00";
-      doc.text(`Total Funding: ₱${totalFunding}M`, 25, summaryStartY + 35);
+      const totalFundingVal = calculatedTotalFunding;
+      doc.text(`Total Funding: ₱${formatFundingAmount(totalFundingVal)}`, 25, summaryStartY + 35);
 
       // Add industry breakdown with better styling
       doc.setFontSize(16);
@@ -1350,6 +1355,41 @@ export default function AllStartupDashboard() {
     return descriptions[stageName] || "";
   };
 
+  // Helper to format funding with dynamic unit K, M, B (handles 5 digits e.g. 50K up to Billions)
+  const formatFundingAmount = (amount) => {
+    const num = Number(amount) || 0;
+    if (num === 0) return "0";
+    
+    if (num >= 1_000_000_000) {
+      const val = (num / 1_000_000_000).toFixed(1);
+      return val.endsWith(".0") ? `${parseInt(val, 10)}B` : `${val}B`;
+    }
+    if (num >= 1_000_000) {
+      const val = (num / 1_000_000).toFixed(1);
+      return val.endsWith(".0") ? `${parseInt(val, 10)}M` : `${val}M`;
+    }
+    if (num >= 1_000) {
+      const val = (num / 1_000).toFixed(1);
+      return val.endsWith(".0") ? `${parseInt(val, 10)}K` : `${val}K`;
+    }
+    return num.toLocaleString();
+  };
+
+  const calculatedTotalFunding = useMemo(() => {
+    if (ecosystemTotalFunding > 0) return ecosystemTotalFunding;
+    return rankedStartups.reduce((sum, startup) => {
+      const funding =
+        startup.totalStartupFundingReceived ||
+        startup.totalFunding ||
+        startup.metrics?.totalFunding ||
+        (typeof startup.metrics === "string"
+          ? JSON.parse(startup.metrics)?.totalFunding
+          : 0) ||
+        0;
+      return sum + Number(funding);
+    }, 0);
+  }, [ecosystemTotalFunding, rankedStartups]);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       <main className="flex-grow p-3 sm:p-6">
@@ -1384,20 +1424,18 @@ export default function AllStartupDashboard() {
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-green-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-green-700 text-xs sm:text-sm font-medium mb-1">Total Funding</p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="text-green-700 text-xs sm:text-sm font-medium">Total Funding</p>
+                  {calculatedTotalFunding >= 1_000_000_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Billions</span>
+                  ) : calculatedTotalFunding >= 1_000_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Millions</span>
+                  ) : calculatedTotalFunding >= 1_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Thousands</span>
+                  ) : null}
+                </div>
                 <p className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">
-                  ₱{(
-                    rankedStartups.reduce((sum, startup) => {
-                      const funding =
-                        startup.totalFunding ||
-                        startup.metrics?.totalFunding ||
-                        (typeof startup.metrics === "string"
-                          ? JSON.parse(startup.metrics)?.totalFunding
-                          : 0) ||
-                        0;
-                      return sum + Number(funding);
-                    }, 0) / 1000000
-                  ).toFixed(1)}M
+                  ₱{formatFundingAmount(calculatedTotalFunding)}
                 </p>
                 <p className="text-xs text-green-600 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>

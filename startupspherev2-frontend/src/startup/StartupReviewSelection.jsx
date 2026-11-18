@@ -1546,6 +1546,17 @@ export default function EnhancedStartupReviewSection({
 
                       <div>
                         <p className="text-sm font-medium text-gray-500">
+                          Total Funding Received
+                        </p>
+                        <p className="text-gray-900 font-bold text-emerald-700">
+                          {selectedStartup.totalStartupFundingReceived != null && selectedStartup.totalStartupFundingReceived > 0
+                            ? `₱${Number(selectedStartup.totalStartupFundingReceived).toLocaleString()}`
+                            : "₱0"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
                           Number of Funding Rounds
                         </p>
                         <p className="text-gray-800">
