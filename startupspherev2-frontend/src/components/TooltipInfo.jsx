@@ -188,10 +188,10 @@ export const TOOLTIP_PRESETS = {
     guidance: "Lower scores represent a frictionless environment with fewer unmet structural needs.",
   },
   BIR: {
-    title: "BIR Registration (Bureau of Internal Revenue)",
-    badge: "Tax Compliance",
+    title: "Government Certified",
+    badge: "Government Certified",
     summary:
-      "Official registration with the Philippine Bureau of Internal Revenue (BIR) for issuance of official receipts, TIN verification, and tax compliance.",
+      "Official government certification and regulatory compliance verification in the Philippines.",
     guidance: "Essential for legitimate commercial operations, public procurement, and institutional investor due diligence.",
   },
   SEC: {

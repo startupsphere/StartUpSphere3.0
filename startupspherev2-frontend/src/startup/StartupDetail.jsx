@@ -2064,10 +2064,10 @@ export default function StartupDetail() {
                       </div>
                     </div>
 
-                    {/* Government Registration & BIR Compliance Details */}
+                    {/* Government Registration & Government Certified Compliance Details */}
                     <div className="pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-1.5 mb-3">
-                        <span className="text-sm font-semibold text-gray-800">Government Registration & Tax Status</span>
+                        <span className="text-sm font-semibold text-gray-800">Government Registration & Government Certified Status</span>
                         <TooltipInfo type="GOV_REG" size="sm" />
                       </div>
 
@@ -2101,7 +2101,7 @@ export default function StartupDetail() {
                           <div className="flex items-center gap-1.5">
                             {startup.registrationAgency === "BIR" ? (
                               <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                BIR (Bureau of Internal Revenue)
+                                Government Certified
                               </span>
                             ) : startup.registrationAgency ? (
                               <span className="text-sm font-bold text-gray-800">

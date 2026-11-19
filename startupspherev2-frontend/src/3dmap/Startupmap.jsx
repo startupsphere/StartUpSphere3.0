@@ -81,6 +81,8 @@ export default function Startupmap({
   const [showHeatmap, setShowHeatmap] = useState(true);
 
   const [heatmapMode, setHeatmapMode] = useState("TRL");
+  const [trlFilter, setTrlFilter] = useState("ALL"); // "ALL", "HIGH" (7-9), "MID" (4-6), "LOW" (1-3)
+  const [engagementFilter, setEngagementFilter] = useState("ALL"); // "ALL", "RED", "ORANGE", "YELLOW", "CYAN", "BLUE"
   const [selectedEngagementData, setSelectedEngagementData] = useState(null);
   const [engagementMarkers, setEngagementMarkers] = useState([]);
   const heatmapModeRef = useRef("TRL");
@@ -3862,7 +3864,7 @@ export default function Startupmap({
     });
   };
 
-  // Filter map layers based on the active actor type and industry from Sidebar
+  // Filter map layers based on the active actor type, industry, and legend TRL filter
   useEffect(() => {
     const map = mapInstanceRef?.current;
     if (!map) return;
@@ -3882,8 +3884,17 @@ export default function Startupmap({
           }
         }
 
+        // TRL filter from map legend
+        if (trlFilter === "HIGH") {
+          conditions.push(["==", ["get", "colorClass"], 3]);
+        } else if (trlFilter === "MID") {
+          conditions.push(["==", ["get", "colorClass"], 2]);
+        } else if (trlFilter === "LOW") {
+          conditions.push(["==", ["get", "colorClass"], 1]);
+        }
+
         let filterExpr;
-        if (isBrowseDirectoryOpen) {
+        if (isBrowseDirectoryOpen || trlFilter !== "ALL") {
           if (conditions.length > 0) {
             filterExpr = conditions.length === 1 ? conditions[0] : ["all", ...conditions];
           } else {
@@ -3901,10 +3912,11 @@ export default function Startupmap({
           map.setFilter(layerId, filterExpr);
         }
         if (map.getLayer(coreLayerId)) {
-          const coreFilter =
-            isBrowseDirectoryOpen && conditions.length > 0
-              ? ["all", ["!", ["has", "point_count"]], ...conditions]
-              : ["!", ["has", "point_count"]];
+          const coreConditions = [["!", ["has", "point_count"]]];
+          if (conditions.length > 0) {
+            coreConditions.push(...conditions);
+          }
+          const coreFilter = coreConditions.length === 1 ? coreConditions[0] : ["all", ...coreConditions];
           map.setFilter(coreLayerId, coreFilter);
         }
       } catch (e) {
@@ -3918,7 +3930,42 @@ export default function Startupmap({
     } else {
       map.once('styledata', applyFiltersToMap);
     }
-  }, [activeActorType, activeIndustry, isBrowseDirectoryOpen, selectedStartupId, mapInstanceRef]);
+  }, [activeActorType, activeIndustry, isBrowseDirectoryOpen, selectedStartupId, trlFilter, mapInstanceRef]);
+
+  // Filter engagement layers based on legend engagement filter
+  useEffect(() => {
+    const map = mapInstanceRef?.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    const engagementLayers = [
+      "engagement-heatmap-circle",
+      "engagement-heatmap-glow",
+      "engagement-heatmap-center"
+    ];
+
+    let filterExpr = null;
+    if (engagementFilter === "RED") {
+      filterExpr = [">=", ["get", "engagementScore"], 31];
+    } else if (engagementFilter === "ORANGE") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 21], ["<=", ["get", "engagementScore"], 30]];
+    } else if (engagementFilter === "YELLOW") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 11], ["<=", ["get", "engagementScore"], 20]];
+    } else if (engagementFilter === "CYAN") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 1], ["<=", ["get", "engagementScore"], 10]];
+    } else if (engagementFilter === "BLUE") {
+      filterExpr = ["==", ["get", "engagementScore"], 0];
+    }
+
+    engagementLayers.forEach((layer) => {
+      if (map.getLayer(layer)) {
+        try {
+          map.setFilter(layer, filterExpr);
+        } catch (e) {
+          console.warn(`Could not set filter on ${layer}`, e);
+        }
+      }
+    });
+  }, [engagementFilter]);
 
   return (
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -4164,7 +4211,7 @@ export default function Startupmap({
             </div>
           </div>
 
-          {/* Content: Continuous Visual Gradient Ramp & Detailed Categories */}
+          {/* Content: Continuous Visual Gradient Ramp & Interactive TRL Filter Categories */}
           {heatmapMode === "TRL" ? (
             <div className="space-y-2">
               <div
@@ -4173,28 +4220,100 @@ export default function Startupmap({
                   background: "linear-gradient(90deg, #10b981 0%, #fbbf24 50%, #ef4444 100%)",
                 }}
               ></div>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-red-500 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Red (High):</span>{" "}
-                    <span className="text-gray-600">TRL 7-9: Market-ready / Deployed</span>
+              <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium px-0.5 pt-0.5">
+                <span className="flex items-center gap-1 font-semibold text-gray-700">
+                  <Filter className="w-3 h-3 text-indigo-500" />
+                  Filter by TRL:
+                </span>
+                {trlFilter !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => setTrlFilter("ALL")}
+                    className="text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer underline text-[10px]"
+                  >
+                    Reset Filter
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 text-[11px]">
+                {/* Red (High): TRL 7-9 */}
+                <button
+                  type="button"
+                  onClick={() => setTrlFilter((prev) => (prev === "HIGH" ? "ALL" : "HIGH"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    trlFilter === "HIGH"
+                      ? "bg-red-50 border-red-300 ring-1 ring-red-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for TRL 7-9"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Red (High):</span>{" "}
+                      <span className="text-gray-600">TRL 7-9: Market-ready</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-amber-400 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Yellow (Mid):</span>{" "}
-                    <span className="text-gray-600">TRL 4-6: Prototype / Testing</span>
+                  {trlFilter === "HIGH" && (
+                    <span className="text-[9px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Yellow (Mid): TRL 4-6 */}
+                <button
+                  type="button"
+                  onClick={() => setTrlFilter((prev) => (prev === "MID" ? "ALL" : "MID"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    trlFilter === "MID"
+                      ? "bg-amber-50 border-amber-300 ring-1 ring-amber-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for TRL 4-6"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Yellow (Mid):</span>{" "}
+                      <span className="text-gray-600">TRL 4-6: Prototype / Testing</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-emerald-500 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Green (Low):</span>{" "}
-                    <span className="text-gray-600">TRL 1-3: Research / Concept</span>
+                  {trlFilter === "MID" && (
+                    <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider bg-amber-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Green (Low): TRL 1-3 */}
+                <button
+                  type="button"
+                  onClick={() => setTrlFilter((prev) => (prev === "LOW" ? "ALL" : "LOW"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    trlFilter === "LOW"
+                      ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for TRL 1-3"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Green (Low):</span>{" "}
+                      <span className="text-gray-600">TRL 1-3: Research / Concept</span>
+                    </div>
                   </div>
-                </div>
+                  {trlFilter === "LOW" && (
+                    <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider bg-emerald-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+              </div>
+              <div className="pt-1 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                <span>Click tier to filter</span>
+                <span>{trlFilter === "ALL" ? "Showing all" : "Filter applied"}</span>
               </div>
             </div>
           ) : (
@@ -4207,46 +4326,150 @@ export default function Startupmap({
                 <span className="flex-1 bg-[#f97316]" title="Orange: Score 21–30"></span>
                 <span className="flex-1 bg-[#ef4444]" title="Red: Score 31+"></span>
               </div>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#ef4444] shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Red:</span>{" "}
-                    <span className="text-gray-600">Score 31 and above</span>
+              <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium px-0.5 pt-0.5">
+                <span className="flex items-center gap-1 font-semibold text-gray-700">
+                  <Filter className="w-3 h-3 text-indigo-500" />
+                  Filter Engagement:
+                </span>
+                {engagementFilter !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => setEngagementFilter("ALL")}
+                    className="text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer underline text-[10px]"
+                  >
+                    Reset Filter
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 text-[11px]">
+                {/* Red: 31+ */}
+                <button
+                  type="button"
+                  onClick={() => setEngagementFilter((prev) => (prev === "RED" ? "ALL" : "RED"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    engagementFilter === "RED"
+                      ? "bg-red-50 border-red-300 ring-1 ring-red-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for Score 31+"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Red:</span>{" "}
+                      <span className="text-gray-600">Score 31 and above</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#f97316] shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Orange:</span>{" "}
-                    <span className="text-gray-600">Score 21–30</span>
+                  {engagementFilter === "RED" && (
+                    <span className="text-[9px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Orange: 21-30 */}
+                <button
+                  type="button"
+                  onClick={() => setEngagementFilter((prev) => (prev === "ORANGE" ? "ALL" : "ORANGE"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    engagementFilter === "ORANGE"
+                      ? "bg-orange-50 border-orange-300 ring-1 ring-orange-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for Score 21–30"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#f97316] shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Orange:</span>{" "}
+                      <span className="text-gray-600">Score 21–30</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#eab308] shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Yellow:</span>{" "}
-                    <span className="text-gray-600">Score 11–20</span>
+                  {engagementFilter === "ORANGE" && (
+                    <span className="text-[9px] font-bold text-orange-600 uppercase tracking-wider bg-orange-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Yellow: 11-20 */}
+                <button
+                  type="button"
+                  onClick={() => setEngagementFilter((prev) => (prev === "YELLOW" ? "ALL" : "YELLOW"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    engagementFilter === "YELLOW"
+                      ? "bg-amber-50 border-amber-300 ring-1 ring-amber-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for Score 11–20"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#eab308] shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Yellow:</span>{" "}
+                      <span className="text-gray-600">Score 11–20</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#06b6d4] shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Cyan:</span>{" "}
-                    <span className="text-gray-600">Score 1–10</span>
+                  {engagementFilter === "YELLOW" && (
+                    <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider bg-amber-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Cyan: 1-10 */}
+                <button
+                  type="button"
+                  onClick={() => setEngagementFilter((prev) => (prev === "CYAN" ? "ALL" : "CYAN"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    engagementFilter === "CYAN"
+                      ? "bg-cyan-50 border-cyan-300 ring-1 ring-cyan-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for Score 1–10"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4] shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Cyan:</span>{" "}
+                      <span className="text-gray-600">Score 1–10</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2.5 h-2.5 mt-0.5 rounded-full bg-[#2563eb] shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-gray-900">Blue:</span>{" "}
-                    <span className="text-gray-600">Score 0</span>
+                  {engagementFilter === "CYAN" && (
+                    <span className="text-[9px] font-bold text-cyan-700 uppercase tracking-wider bg-cyan-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
+
+                {/* Blue: 0 */}
+                <button
+                  type="button"
+                  onClick={() => setEngagementFilter((prev) => (prev === "BLUE" ? "ALL" : "BLUE"))}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg transition-all text-left cursor-pointer border ${
+                    engagementFilter === "BLUE"
+                      ? "bg-blue-50 border-blue-300 ring-1 ring-blue-400 shadow-xs"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
+                  title="Click to toggle filter for Score 0"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] shrink-0"></span>
+                    <div>
+                      <span className="font-bold text-gray-900">Blue:</span>{" "}
+                      <span className="text-gray-600">Score 0</span>
+                    </div>
                   </div>
-                </div>
+                  {engagementFilter === "BLUE" && (
+                    <span className="text-[9px] font-bold text-blue-700 uppercase tracking-wider bg-blue-100 px-1.5 py-0.5 rounded">
+                      Active
+                    </span>
+                  )}
+                </button>
               </div>
               <div className="pt-1.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-medium">
-                <span>Opacity: 60%</span>
-                <span>Constant Size</span>
+                <span>Click tier to filter</span>
+                <span>{engagementFilter === "ALL" ? "Showing all" : "Filter applied"}</span>
               </div>
             </div>
           )}

@@ -1580,7 +1580,7 @@ export default function AllStartupDashboard() {
                   }`}
                 >
                   <option value="All">All Registration States</option>
-                  <option value="BIR">BIR (Bureau of Internal Revenue)</option>
+                  <option value="BIR">Government Certified</option>
                   <option value="SEC">SEC (Securities & Exchange Commission)</option>
                   <option value="DTI">DTI (Dept. of Trade & Industry)</option>
                   <option value="REGISTERED">Any Registered Agency</option>
@@ -2525,13 +2525,13 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            {/* Government Registration & BIR Compliance Distribution Chart */}
+            {/* Government Registration & Compliance Distribution Chart */}
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <h2 className="text-lg font-semibold text-blue-900">
-                    Government Compliance & BIR Status
+                    Government Certified & Compliance Status
                   </h2>
                   <TooltipInfo type="GOV_REG" size="xs" />
                   <TooltipInfo type="BIR" size="xs" />
@@ -2545,7 +2545,7 @@ export default function AllStartupDashboard() {
                   <BarChart
                     data={[
                       {
-                        name: "BIR (Tax)",
+                        name: "Gov. Certified",
                         count: rankedStartups.filter(s => s.registrationAgency === "BIR").length,
                         fill: "#10b981",
                       },

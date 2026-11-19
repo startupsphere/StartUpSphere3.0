@@ -25,6 +25,96 @@ import { HiOutlineMail } from "react-icons/hi";
 import { FaBell } from "react-icons/fa";
 import TooltipInfo from "../components/TooltipInfo";
 
+// Helper to format operating hours compactly and cleanly
+export const formatOperatingHours = (hoursStr) => {
+  if (!hoursStr || typeof hoursStr !== "string" || hoursStr.trim() === "") {
+    return { days: "N/A", times: null, full: "N/A" };
+  }
+
+  const raw = hoursStr.trim();
+  const colonIndex = raw.indexOf(":");
+
+  const formatTime = (t) => {
+    if (!t) return "";
+    const clean = t.trim();
+    const match = clean.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return clean;
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute} ${ampm}`;
+  };
+
+  if (colonIndex === -1) {
+    if (raw.includes("-")) {
+      const parts = raw.split("-");
+      if (parts.length === 2 && (parts[0].includes(":") || parts[1].includes(":"))) {
+        return {
+          days: "Schedule",
+          times: `${formatTime(parts[0])} – ${formatTime(parts[1])}`,
+          full: `${formatTime(parts[0])} – ${formatTime(parts[1])}`
+        };
+      }
+    }
+    return { days: raw, times: null, full: raw };
+  }
+
+  const daysPart = raw.substring(0, colonIndex).trim();
+  const timesPart = raw.substring(colonIndex + 1).trim();
+
+  let formattedTimes = timesPart;
+  if (timesPart.includes("-")) {
+    const parts = timesPart.split("-");
+    if (parts.length === 2) {
+      formattedTimes = `${formatTime(parts[0])} – ${formatTime(parts[1])}`;
+    }
+  }
+
+  const dayAbbr = {
+    monday: "Mon",
+    tuesday: "Tue",
+    wednesday: "Wed",
+    thursday: "Thu",
+    friday: "Fri",
+    saturday: "Sat",
+    sunday: "Sun",
+  };
+
+  const rawDays = daysPart.toLowerCase();
+  const hasMon = rawDays.includes("monday");
+  const hasTue = rawDays.includes("tuesday");
+  const hasWed = rawDays.includes("wednesday");
+  const hasThu = rawDays.includes("thursday");
+  const hasFri = rawDays.includes("friday");
+  const hasSat = rawDays.includes("saturday");
+  const hasSun = rawDays.includes("sunday");
+
+  let formattedDays = daysPart;
+
+  if (hasMon && hasTue && hasWed && hasThu && hasFri && hasSat && hasSun) {
+    formattedDays = "Mon – Sun";
+  } else if (hasMon && hasTue && hasWed && hasThu && hasFri && !hasSat && !hasSun) {
+    formattedDays = "Mon – Fri";
+  } else if (!hasMon && !hasTue && !hasWed && !hasThu && !hasFri && hasSat && hasSun) {
+    formattedDays = "Sat – Sun";
+  } else {
+    const tokens = daysPart.split(/[,\s]+/).filter(Boolean);
+    const abbrList = tokens.map((t) => {
+      const clean = t.toLowerCase().replace(/[^a-z]/g, "");
+      return dayAbbr[clean] || t;
+    });
+    const uniqueAbbr = [...new Set(abbrList)];
+    formattedDays = uniqueAbbr.join(", ");
+  }
+
+  return {
+    days: formattedDays,
+    times: formattedTimes,
+    full: `${formattedDays}: ${formattedTimes}`
+  };
+};
+
 // Modern StartupLogo helper with robust fallback avatar
 const StartupLogo = memo(({ startup }) => {
   const [imageError, setImageError] = useState(false);
@@ -244,6 +334,81 @@ export default function Sidebar({
       return true;
     }
     return false;
+  };
+
+  // Certificate Modal State
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [selectedCertStartup, setSelectedCertStartup] = useState(null);
+  const [certificateBlobUrl, setCertificateBlobUrl] = useState(null);
+  const [isCertPdf, setIsCertPdf] = useState(false);
+  const [loadingCert, setLoadingCert] = useState(false);
+  const [certError, setCertError] = useState(null);
+
+  const handleOpenCertificateModal = async (s) => {
+    if (!s || !s.id) return;
+    setSelectedCertStartup(s);
+    setCertModalOpen(true);
+    setLoadingCert(true);
+    setCertError(null);
+
+    if (certificateBlobUrl) {
+      try {
+        URL.revokeObjectURL(certificateBlobUrl);
+      } catch (e) {}
+      setCertificateBlobUrl(null);
+    }
+
+    try {
+      const res = await fetch(`${getBackendUrl()}/startups/${s.id}/registration-certificate`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        if (!blob || blob.size === 0) {
+          setCertError("No certificate document has been submitted for this startup.");
+          return;
+        }
+
+        const slice = await blob.slice(0, 4).arrayBuffer();
+        const bytes = new Uint8Array(slice);
+        const isPdfHeader = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
+
+        if (blob.type === "application/pdf" || isPdfHeader) {
+          setIsCertPdf(true);
+          const pdfBlob = new Blob([blob], { type: "application/pdf" });
+          setCertificateBlobUrl(URL.createObjectURL(pdfBlob));
+        } else {
+          setIsCertPdf(false);
+          let imgType = "image/jpeg";
+          if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+            imgType = "image/png";
+          } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+            imgType = "image/webp";
+          }
+          const imgBlob = new Blob([blob], { type: imgType });
+          setCertificateBlobUrl(URL.createObjectURL(imgBlob));
+        }
+      } else {
+        setCertError("No verified certificate has been submitted for this startup yet.");
+      }
+    } catch (err) {
+      console.error("Error loading certificate:", err);
+      setCertError("Could not retrieve certificate document. Please try again later.");
+    } finally {
+      setLoadingCert(false);
+    }
+  };
+
+  const handleCloseCertModal = () => {
+    setCertModalOpen(false);
+    if (certificateBlobUrl) {
+      try {
+        URL.revokeObjectURL(certificateBlobUrl);
+      } catch (e) {}
+      setCertificateBlobUrl(null);
+    }
   };
 
   // Screen resize detection for responsive mobile layout
@@ -3200,7 +3365,7 @@ export default function Sidebar({
                       title="Filter by government registration agency"
                     >
                       <option value="All">All Regs</option>
-                      <option value="BIR">BIR Registered</option>
+                      <option value="BIR">Government Certified</option>
                       <option value="SEC">SEC Registered</option>
                       <option value="DTI">DTI Registered</option>
                       <option value="REGISTERED">Gov Registered</option>
@@ -4402,39 +4567,87 @@ export default function Sidebar({
                   </p>
                 </div>
               </div>
-              <div className="text-center border-x border-gray-200">
+              <div className="text-center border-x border-gray-200 px-1" title={startup.operatingHours || "N/A"}>
                 <p className="text-xs text-gray-500 mb-1">Hours</p>
-                <div className="flex items-center justify-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-blue-500"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  <p className="font-medium text-gray-900">
-                    {startup.operatingHours || "N/A"}
-                  </p>
-                </div>
+                {(() => {
+                  const formatted = formatOperatingHours(startup.operatingHours);
+                  if (!formatted.times) {
+                    return (
+                      <div className="flex items-center justify-center gap-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-blue-500 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <p className="text-xs font-medium text-gray-900 truncate">
+                          {formatted.days}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-blue-500 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <p className="text-xs font-bold text-gray-900 leading-tight">
+                          {formatted.days}
+                        </p>
+                      </div>
+                      <p className="text-[10.5px] font-medium text-gray-600 mt-0.5 leading-tight">
+                        {formatted.times}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
-              <div className="text-center">
-                <p className="text-xs text-gray-500 mb-1">Status</p>
-                <div className="flex items-center justify-center gap-1">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50 animate-ping"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                  </span>
-                  <p className="font-medium text-gray-900">
-                    {startup.status || "Active"}
-                  </p>
+              <div className="text-center px-1">
+                <p className="text-xs text-gray-500 mb-1">Verified Certificates</p>
+                <div className="flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCertificateModal(startup)}
+                    className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors group"
+                    title="View submitted verified certificate"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span>View Certificate</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -4586,7 +4799,9 @@ export default function Sidebar({
                             <span className="inline-flex items-center gap-1 font-semibold text-gray-800">
                               {startup.registrationAgency === "other" && startup.otherRegistrationAgency
                                 ? startup.otherRegistrationAgency
-                                : startup.registrationAgency}
+                                : String(startup.registrationAgency || "").toUpperCase().includes("BIR")
+                                  ? "Government Certified"
+                                  : startup.registrationAgency}
                               {String(startup.registrationAgency || "").toUpperCase().includes("BIR") && (
                                 <TooltipInfo type="BIR" size="xs" />
                               )}
@@ -5104,6 +5319,133 @@ export default function Sidebar({
         startup={investmentTargetStartup || startup}
         currentUser={currentUser || user}
       />
+
+      {/* Verified Certificate Pop-up Window / Modal */}
+      <AnimatePresence>
+        {certModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+            onClick={handleCloseCertModal}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 leading-tight">
+                      Verified Certificate
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {selectedCertStartup?.companyName || "Startup"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseCertModal}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <MdClose size={20} />
+                </button>
+              </div>
+
+              {/* Content Body */}
+              <div className="p-5 overflow-y-auto flex-1 flex flex-col items-center justify-center min-h-[350px] bg-slate-50/50">
+                {loadingCert ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                    <div className="w-9 h-9 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <p className="text-sm font-medium">Loading certificate document...</p>
+                  </div>
+                ) : certError ? (
+                  <div className="text-center py-10 px-4 max-w-sm">
+                    <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800 mb-1">Certificate Not Available</p>
+                    <p className="text-xs text-gray-500">{certError}</p>
+                  </div>
+                ) : certificateBlobUrl ? (
+                  <div className="w-full flex flex-col items-center">
+                    {isCertPdf ? (
+                      <iframe
+                        src={certificateBlobUrl}
+                        title="Certificate PDF"
+                        className="w-full h-[500px] rounded-lg border border-gray-200 shadow-xs"
+                      />
+                    ) : (
+                      <div className="max-h-[500px] overflow-auto rounded-lg border border-gray-200 bg-white p-2 shadow-xs">
+                        <img
+                          src={certificateBlobUrl}
+                          alt="Verified Certificate"
+                          className="max-h-[480px] w-auto max-w-full object-contain rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-white">
+                <div className="text-xs text-gray-500">
+                  {selectedCertStartup?.registrationNumber ? (
+                    <span>
+                      Reg. No: <strong className="font-mono text-gray-700">{selectedCertStartup.registrationNumber}</strong>
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  {certificateBlobUrl && (
+                    <a
+                      href={certificateBlobUrl}
+                      download={`certificate-${selectedCertStartup?.companyName || "startup"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Open in New Tab
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCloseCertModal}
+                    className="px-4 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
