@@ -15,7 +15,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award, Sparkles, User, RotateCcw, DollarSign } from "lucide-react";
+import { Award, Sparkles, User, RotateCcw, DollarSign, FileCheck, FileX, Clock, Users } from "lucide-react";
 import InvestmentInterestModal from "../modals/InvestmentInterestModal";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
@@ -4612,108 +4612,98 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* Key Metrics - improved */}
-            <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-gray-200 my-4">
-              <div className="text-center">
-                <p className="text-xs text-gray-500 mb-1">Team Size</p>
-                <div className="flex items-center justify-center gap-1">
-                  <BsPeople className="h-4 w-4 text-blue-500" />
-                  <p className="font-medium text-gray-900">
+            {/* Key Metrics - elevated design */}
+            <div className="grid grid-cols-3 gap-2.5 p-2 bg-gradient-to-b from-gray-50/80 to-slate-100/50 rounded-2xl border border-gray-200/70 shadow-2xs my-4">
+              {/* Metric 1: Team Size */}
+              <div className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs">
+                <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1">
+                  Team
+                </span>
+                <div className="flex items-center gap-1.5 my-auto">
+                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Users className="w-3 h-3" />
+                  </div>
+                  <span className="font-bold text-sm text-gray-900 leading-none">
                     {startup.numberOfEmployees || "N/A"}
-                  </p>
+                  </span>
                 </div>
+                <span className="text-[9.5px] text-gray-400 font-medium mt-1">
+                  {startup.numberOfEmployees ? "members" : "not set"}
+                </span>
               </div>
-              <div className="text-center border-x border-gray-200 px-1" title={startup.operatingHours || "N/A"}>
-                <p className="text-xs text-gray-500 mb-1">Hours</p>
+
+              {/* Metric 2: Hours */}
+              <div
+                className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs"
+                title={startup.operatingHours || "N/A"}
+              >
+                <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1">
+                  Hours
+                </span>
                 {(() => {
                   const formatted = formatOperatingHours(startup.operatingHours);
                   if (!formatted.times) {
                     return (
-                      <div className="flex items-center justify-center gap-1">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-blue-500 shrink-0"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <p className="text-xs font-medium text-gray-900 truncate">
+                      <div className="flex items-center gap-1.5 my-auto">
+                        <div className="w-5 h-5 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                          <Clock className="w-3 h-3" />
+                        </div>
+                        <span className="font-semibold text-xs text-gray-800 leading-tight truncate">
                           {formatted.days}
-                        </p>
+                        </span>
                       </div>
                     );
                   }
                   return (
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-blue-500 shrink-0"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <p className="text-xs font-bold text-gray-900 leading-tight">
+                    <div className="flex flex-col items-center justify-center my-auto w-full">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                        <span className="font-bold text-[11px] text-gray-900 leading-tight">
                           {formatted.days}
-                        </p>
+                        </span>
                       </div>
-                      <p className="text-[10.5px] font-medium text-gray-600 mt-0.5 leading-tight">
+                      <span className="text-[10px] font-semibold text-blue-600/90 leading-tight mt-0.5 whitespace-nowrap">
                         {formatted.times}
-                      </p>
+                      </span>
                     </div>
                   );
                 })()}
+                <span className="text-[9.5px] text-gray-400 font-medium mt-1">
+                  schedule
+                </span>
               </div>
-              <div className="text-center px-1">
-                <p className="text-xs text-gray-500 mb-1">Verified Certificates</p>
-                <div className="flex items-center justify-center">
+
+              {/* Metric 3: Verified Certificate */}
+              <div className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs">
+                <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1 truncate max-w-full">
+                  Certificate
+                </span>
+                <div className="flex items-center justify-center my-auto w-full">
                   {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true) ? (
                     <button
                       type="button"
                       onClick={() => handleOpenCertificateModal(startup)}
-                      className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors group"
-                      title="View submitted verified certificate"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 text-[11px] font-bold shadow-3xs transition-all cursor-pointer active:scale-95 group"
+                      title="Click to view verified certificate document"
                     >
-                      <svg
-                        className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span>View Certificate</span>
+                      <FileCheck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+                      <span>View</span>
                     </button>
                   ) : (
-                    <span
-                      className="text-xs font-medium text-gray-400 select-none cursor-default"
-                      title="No certificate submitted"
+                    <div
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100/90 text-gray-400 text-[10.5px] font-medium border border-gray-200/60 select-none cursor-default"
+                      title="No certificate document submitted"
                     >
-                      No Certificate
-                    </span>
+                      <FileX className="w-3 h-3 text-gray-400 shrink-0" />
+                      <span>None</span>
+                    </div>
                   )}
                 </div>
+                <span className="text-[9.5px] text-gray-400 font-medium mt-1">
+                  {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true)
+                    ? "verified"
+                    : "unverified"}
+                </span>
               </div>
             </div>
 
