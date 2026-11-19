@@ -783,6 +783,11 @@ public class Startup {
         return registrationCertificate;
     }
 
+    @com.fasterxml.jackson.annotation.JsonProperty("hasRegistrationCertificate")
+    public boolean getHasRegistrationCertificate() {
+        return this.registrationCertificate != null && this.registrationCertificate.length > 0;
+    }
+
     public void setRegistrationCertificate(byte[] registrationCertificate) {
         this.registrationCertificate = registrationCertificate;
     }

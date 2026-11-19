@@ -343,6 +343,58 @@ export default function Sidebar({
   const [isCertPdf, setIsCertPdf] = useState(false);
   const [loadingCert, setLoadingCert] = useState(false);
   const [certError, setCertError] = useState(null);
+  const [certAvailability, setCertAvailability] = useState({});
+
+  // Check if current startup has a submitted registration certificate
+  useEffect(() => {
+    if (!startup?.id) return;
+
+    if (startup.hasRegistrationCertificate !== undefined) {
+      setCertAvailability((prev) => ({
+        ...prev,
+        [startup.id]: Boolean(startup.hasRegistrationCertificate),
+      }));
+      return;
+    }
+
+    if (startup.isGovernmentRegistered === false) {
+      setCertAvailability((prev) => ({
+        ...prev,
+        [startup.id]: false,
+      }));
+      return;
+    }
+
+    if (certAvailability[startup.id] !== undefined) {
+      return;
+    }
+
+    let isMounted = true;
+    fetch(`${getBackendUrl()}/startups/${startup.id}/registration-certificate`, {
+      method: "HEAD",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (isMounted) {
+          setCertAvailability((prev) => ({
+            ...prev,
+            [startup.id]: res.ok,
+          }));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCertAvailability((prev) => ({
+            ...prev,
+            [startup.id]: false,
+          }));
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [startup?.id, startup?.hasRegistrationCertificate, startup?.isGovernmentRegistered]);
 
   const handleOpenCertificateModal = async (s) => {
     if (!s || !s.id) return;
@@ -367,9 +419,12 @@ export default function Sidebar({
       if (res.ok) {
         const blob = await res.blob();
         if (!blob || blob.size === 0) {
+          setCertAvailability((prev) => ({ ...prev, [s.id]: false }));
           setCertError("No certificate document has been submitted for this startup.");
           return;
         }
+
+        setCertAvailability((prev) => ({ ...prev, [s.id]: true }));
 
         const slice = await blob.slice(0, 4).arrayBuffer();
         const bytes = new Uint8Array(slice);
@@ -391,6 +446,7 @@ export default function Sidebar({
           setCertificateBlobUrl(URL.createObjectURL(imgBlob));
         }
       } else {
+        setCertAvailability((prev) => ({ ...prev, [s.id]: false }));
         setCertError("No verified certificate has been submitted for this startup yet.");
       }
     } catch (err) {
@@ -4627,27 +4683,36 @@ export default function Sidebar({
               <div className="text-center px-1">
                 <p className="text-xs text-gray-500 mb-1">Verified Certificates</p>
                 <div className="flex items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCertificateModal(startup)}
-                    className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors group"
-                    title="View submitted verified certificate"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCertificateModal(startup)}
+                      className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors group"
+                      title="View submitted verified certificate"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span>View Certificate</span>
-                  </button>
+                      <svg
+                        className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span>View Certificate</span>
+                    </button>
+                  ) : (
+                    <span
+                      className="text-xs font-medium text-gray-400 select-none cursor-default"
+                      title="No certificate submitted"
+                    >
+                      No Certificate
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
