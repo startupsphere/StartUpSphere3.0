@@ -3885,6 +3885,10 @@ export default function Startupmap({
         }
 
         // TRL filter from map legend
+        const isTrlLegendFilterActive = trlFilter !== "ALL";
+        const isEngagementLegendFilterActive = heatmapMode === "ENGAGEMENT" && engagementFilter !== "ALL";
+        const isLegendFilterActive = isTrlLegendFilterActive || isEngagementLegendFilterActive;
+
         if (trlFilter === "HIGH") {
           conditions.push(["==", ["get", "colorClass"], 3]);
         } else if (trlFilter === "MID") {
@@ -3894,7 +3898,10 @@ export default function Startupmap({
         }
 
         let filterExpr;
-        if (isBrowseDirectoryOpen || trlFilter !== "ALL") {
+        if (isLegendFilterActive) {
+          // When legend filter is active: do not show pinpoint icons, only show the colors!
+          filterExpr = ["==", "id", ""];
+        } else if (isBrowseDirectoryOpen) {
           if (conditions.length > 0) {
             filterExpr = conditions.length === 1 ? conditions[0] : ["all", ...conditions];
           } else {
@@ -3910,6 +3917,12 @@ export default function Startupmap({
 
         if (map.getLayer(layerId)) {
           map.setFilter(layerId, filterExpr);
+          // Hide pinpoint marker icon whenever a legend filter is active
+          if (isLegendFilterActive) {
+            try { map.setLayoutProperty(layerId, "visibility", "none"); } catch (e) {}
+          } else {
+            try { map.setLayoutProperty(layerId, "visibility", "visible"); } catch (e) {}
+          }
         }
         if (map.getLayer(coreLayerId)) {
           const coreConditions = [["!", ["has", "point_count"]]];
@@ -3918,6 +3931,11 @@ export default function Startupmap({
           }
           const coreFilter = coreConditions.length === 1 ? coreConditions[0] : ["all", ...coreConditions];
           map.setFilter(coreLayerId, coreFilter);
+
+          // When TRL legend filter is active, guarantee colors are visible
+          if (isTrlLegendFilterActive && heatmapMode === "TRL") {
+            try { map.setLayoutProperty(coreLayerId, "visibility", "visible"); } catch (e) {}
+          }
         }
       } catch (e) {
         console.warn("Could not apply layer filters yet", e);
@@ -3930,7 +3948,7 @@ export default function Startupmap({
     } else {
       map.once('styledata', applyFiltersToMap);
     }
-  }, [activeActorType, activeIndustry, isBrowseDirectoryOpen, selectedStartupId, trlFilter, mapInstanceRef]);
+  }, [activeActorType, activeIndustry, isBrowseDirectoryOpen, selectedStartupId, trlFilter, engagementFilter, heatmapMode, showHeatmap, mapInstanceRef]);
 
   // Filter engagement layers based on legend engagement filter
   useEffect(() => {
