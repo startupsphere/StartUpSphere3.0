@@ -5,9 +5,6 @@ import {
   BarChart,
   Bar,
   Line,
-  AreaChart,
-  Area,
-  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -42,16 +39,6 @@ import {
   HelpCircle,
   Trash2,
   Eye,
-  X,
-  Clock,
-  AlertTriangle,
-  Archive,
-  Mail,
-  EyeOff,
-  RefreshCw,
-  Building2,
-  CheckCircle,
-  ExternalLink,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
 import jsPDF from "jspdf";
@@ -68,13 +55,12 @@ export default function AllStartupDashboard() {
   const location = useLocation();
   const { closeSidebar } = useSidebar();
   const [activeTab, setActiveTab] = useState(
-    location.state?.activeTab || "rankings"
+    location.state?.activeTab || "overview"
   );
   const [selectedIndustry, setSelectedIndustry] = useState("All");
   const [rankingMetric, setRankingMetric] = useState("overall");
   const [selectedGovReg, setSelectedGovReg] = useState("All");
   const [selectedTrlStage, setSelectedTrlStage] = useState("All");
-  const [rankingSearchQuery, setRankingSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0); // Changed to 0-based for API
   const itemsPerPage = 10;
   const [totalPagesState, setTotalPagesState] = useState(0);
@@ -103,12 +89,7 @@ export default function AllStartupDashboard() {
   const [growthData, setGrowthData] = useState([]);
   const [fundingData, setFundingData] = useState([]);
   const [locationData, setLocationData] = useState([]);
-  const [monthlyGrowthData, setMonthlyGrowthData] = useState([]);
-  const [backendTrlStages, setBackendTrlStages] = useState([]);
-  const [backendGovCompliance, setBackendGovCompliance] = useState([]);
   const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [growthTimeframe, setGrowthTimeframe] = useState("6M"); // "6M" | "12M" | "ALL"
-  const [allEcosystemStartups, setAllEcosystemStartups] = useState([]);
 
   // New state for chart filtering and interaction
   const [selectedChartIndustry, setSelectedChartIndustry] = useState(null);
@@ -146,241 +127,6 @@ export default function AllStartupDashboard() {
   const [role, setRole] = useState(null);
   const [deleteConfirmStartup, setDeleteConfirmStartup] = useState(null);
   const [isDeletingStartup, setIsDeletingStartup] = useState(false);
-
-  // Activity Directory States (Active, Inactive, Archive lifecycle)
-  const [activityList, setActivityList] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [activitySearch, setActivitySearch] = useState("");
-  const [activityIndustry, setActivityIndustry] = useState("All");
-  const [activityPage, setActivityPage] = useState(0);
-  const [activityTotalPages, setActivityTotalPages] = useState(0);
-  const [activityTotalElements, setActivityTotalElements] = useState(0);
-  const [activitySummary, setActivitySummary] = useState({
-    activeCount: 0,
-    inactiveCount: 0,
-    archivedCount: 0,
-    totalApproved: 0,
-  });
-  const [sendingEmailId, setSendingEmailId] = useState(null);
-  const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [manualCheckLoading, setManualCheckLoading] = useState(false);
-
-  const fetchActivitySummary = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${getBackendUrl()}/startups/activity-directory?category=all&page=0&size=1`, {
-        headers,
-        credentials: "include",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.summary) {
-          setActivitySummary(data.summary);
-        }
-      }
-    } catch (e) {
-      console.error("Error loading activity summary", e);
-    }
-  };
-
-  const fetchActivityDirectory = async () => {
-    if (!["active", "inactive", "archive"].includes(activeTab)) return;
-    setActivityLoading(true);
-    try {
-      const categoryParam =
-        activeTab === "active"
-          ? "ACTIVE"
-          : activeTab === "inactive"
-            ? "INACTIVE"
-            : "ARCHIVED";
-      const params = new URLSearchParams({
-        category: categoryParam,
-        page: activityPage,
-        size: itemsPerPage,
-      });
-      if (activitySearch.trim()) {
-        params.append("search", activitySearch.trim());
-      }
-      if (activityIndustry && activityIndustry !== "All") {
-        params.append("industry", activityIndustry);
-      }
-
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `${getBackendUrl()}/startups/activity-directory?${params.toString()}`,
-        { headers, credentials: "include" }
-      );
-      if (!res.ok) throw new Error("Failed to fetch activity directory");
-      const data = await res.json();
-      setActivityList(data.content || []);
-      setActivityTotalPages(data.totalPages || 0);
-      setActivityTotalElements(data.totalElements || 0);
-      if (data.summary) {
-        setActivitySummary(data.summary);
-      }
-    } catch (err) {
-      console.error("Error fetching activity directory:", err);
-      toast.error("Failed to load businesses directory");
-    } finally {
-      setActivityLoading(false);
-    }
-  };
-
-  const handleSendInactivityReminder = async (startup) => {
-    setSendingEmailId(startup.id);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `${getBackendUrl()}/startups/${startup.id}/send-inactivity-reminder`,
-        {
-          method: "POST",
-          headers,
-          credentials: "include",
-        }
-      );
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success(`Inactivity notice emailed to ${startup.companyName}!`);
-        fetchActivityDirectory();
-        fetchActivitySummary();
-      } else {
-        toast.error(data.message || "Failed to send notice email.");
-      }
-    } catch (e) {
-      toast.error("Network error sending notice email.");
-    } finally {
-      setSendingEmailId(null);
-    }
-  };
-
-  const handleArchiveBusiness = async (startup) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to move "${startup.companyName}" to Archive? This business will be hidden from the public map.`
-      )
-    ) {
-      return;
-    }
-    setActionLoadingId(startup.id);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `${getBackendUrl()}/startups/${startup.id}/archive`,
-        {
-          method: "POST",
-          headers,
-          credentials: "include",
-        }
-      );
-      if (res.ok) {
-        toast.success(
-          `"${startup.companyName}" moved to Archive and hidden from the map.`
-        );
-        fetchActivityDirectory();
-        fetchActivitySummary();
-      } else {
-        toast.error("Failed to archive startup.");
-      }
-    } catch (e) {
-      toast.error("Error archiving startup.");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleReactivateBusiness = async (startup) => {
-    setActionLoadingId(startup.id);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `${getBackendUrl()}/startups/${startup.id}/reactivate`,
-        {
-          method: "POST",
-          headers,
-          credentials: "include",
-        }
-      );
-      if (res.ok) {
-        toast.success(
-          `"${startup.companyName}" reactivated successfully! Restored to the interactive map.`
-        );
-        fetchActivityDirectory();
-        fetchActivitySummary();
-      } else {
-        toast.error("Failed to reactivate startup.");
-      }
-    } catch (e) {
-      toast.error("Error reactivating startup.");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleRunLifecycleCheck = async () => {
-    setManualCheckLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `${getBackendUrl()}/startups/check-inactivity-lifecycle`,
-        {
-          method: "POST",
-          headers,
-          credentials: "include",
-        }
-      );
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success(data.message || "Inactivity lifecycle check completed.");
-        fetchActivityDirectory();
-        fetchActivitySummary();
-      } else {
-        toast.error("Failed to execute lifecycle check.");
-      }
-    } catch (e) {
-      toast.error("Error running lifecycle check.");
-    } finally {
-      setManualCheckLoading(false);
-    }
-  };
-
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return "N/A";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "N/A";
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return "N/A";
-    }
-  };
-
-  useEffect(() => {
-    fetchActivitySummary();
-  }, []);
-
-  useEffect(() => {
-    if (["active", "inactive", "archive"].includes(activeTab)) {
-      fetchActivityDirectory();
-    }
-  }, [activeTab, activityPage, activityIndustry]);
-
-  useEffect(() => {
-    if (!["active", "inactive", "archive"].includes(activeTab)) return;
-    const timer = setTimeout(() => {
-      fetchActivityDirectory();
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [activitySearch]);
 
   const handleConfirmDeleteStartup = async () => {
     if (!deleteConfirmStartup) return;
@@ -472,15 +218,6 @@ export default function AllStartupDashboard() {
         setGrowthData(data.growthData);
         setFundingData(data.fundingData);
         setLocationData(data.locationData);
-        if (data.monthlyGrowth) {
-          setMonthlyGrowthData(data.monthlyGrowth);
-        }
-        if (data.trlStages) {
-          setBackendTrlStages(data.trlStages);
-        }
-        if (data.govCompliance) {
-          setBackendGovCompliance(data.govCompliance);
-        }
         if (data.totalFunding !== undefined && data.totalFunding !== null) {
           setEcosystemTotalFunding(Number(data.totalFunding));
         }
@@ -497,25 +234,7 @@ export default function AllStartupDashboard() {
       }
     };
 
-    const fetchAllStartupsForAnalytics = async () => {
-      try {
-        const response = await fetch(
-          `${getBackendUrl()}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
-          { credentials: "include" }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const items = data.content || (Array.isArray(data) ? data : []);
-          setAllEcosystemStartups(items);
-          setTotalStartups(data.totalElements || items.length);
-        }
-      } catch (err) {
-        console.error("Failed to fetch all startups for analytics:", err);
-      }
-    };
-
     fetchDashboardAnalytics();
-    fetchAllStartupsForAnalytics();
     fetchRole();
   }, [selectedIndustry, selectedGovReg, selectedTrlStage, refreshTrigger]);
 
@@ -598,7 +317,6 @@ export default function AllStartupDashboard() {
         }
 
         setTopStartups(normalizedStartups);
-        setAllEcosystemStartups((prev) => (prev.length > 0 ? prev : normalizedStartups));
         setTopStartupsError(null);
 
         // Cache the result only for non-filtered requests
@@ -648,9 +366,6 @@ export default function AllStartupDashboard() {
         if (selectedTrlStage !== "All") {
           params.append("trl", selectedTrlStage);
         }
-        if (rankingSearchQuery && rankingSearchQuery.trim()) {
-          params.append("search", rankingSearchQuery.trim());
-        }
 
         const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
 
@@ -683,9 +398,6 @@ export default function AllStartupDashboard() {
           if (responses[1].ok) {
             const locationsData = await responses[1].json();
             const startUpList = locationsData.content || [];
-            if (startUpList.length > 0) {
-              setAllEcosystemStartups(startUpList);
-            }
             const locationsMap = {};
             let fundingFromAll = 0;
             startUpList.forEach(startup => {
@@ -777,7 +489,7 @@ export default function AllStartupDashboard() {
     };
 
     fetchRankedStartups();
-  }, [selectedIndustry, selectedGovReg, selectedTrlStage, rankingMetric, currentPage, rankingSearchQuery, refreshTrigger]);
+  }, [selectedIndustry, selectedGovReg, selectedTrlStage, rankingMetric, currentPage, refreshTrigger]);
 
   useEffect(() => {
     if (activeTab === "reports") {
@@ -1482,84 +1194,6 @@ export default function AllStartupDashboard() {
     );
   };
 
-  const ActivityPaginationControls = () => {
-    const isFirstPage = activityPage === 0;
-    const isLastPage = activityPage >= activityTotalPages - 1 || activityTotalPages === 0;
-
-    return (
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
-        <div className="text-sm text-gray-600">
-          Showing{" "}
-          <span className="font-semibold text-gray-900">
-            {activityTotalElements === 0 ? 0 : activityPage * itemsPerPage + 1}
-          </span>{" "}
-          to{" "}
-          <span className="font-semibold text-gray-900">
-            {Math.min((activityPage + 1) * itemsPerPage, activityTotalElements)}
-          </span>{" "}
-          of{" "}
-          <span className="font-semibold text-gray-900">
-            {activityTotalElements}
-          </span>{" "}
-          records
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setActivityPage(0)}
-            disabled={isFirstPage}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${isFirstPage
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-gray-700 bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
-              }`}
-          >
-            First
-          </button>
-          <button
-            onClick={() => setActivityPage((p) => Math.max(0, p - 1))}
-            disabled={isFirstPage}
-            className={`p-1.5 rounded-lg border transition-colors ${isFirstPage
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-gray-700 bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
-              }`}
-            title="Previous Page"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <span className="px-3 py-1 text-xs font-semibold text-gray-800 bg-gray-100 rounded-lg">
-            Page {activityTotalPages === 0 ? 0 : activityPage + 1} of{" "}
-            {Math.max(1, activityTotalPages)}
-          </span>
-
-          <button
-            onClick={() =>
-              setActivityPage((p) => Math.min(activityTotalPages - 1, p + 1))
-            }
-            disabled={isLastPage}
-            className={`p-1.5 rounded-lg border transition-colors ${isLastPage
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-gray-700 bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
-              }`}
-            title="Next Page"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setActivityPage(Math.max(0, activityTotalPages - 1))}
-            disabled={isLastPage}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${isLastPage
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-gray-700 bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
-              }`}
-          >
-            Last
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   // Add these new state variables for review filtering
   const [reviewFilterStatus, setReviewFilterStatus] = useState("all");
   const [reviewSearchQuery, setReviewSearchQuery] = useState("");
@@ -1747,300 +1381,6 @@ export default function AllStartupDashboard() {
     }, 0);
   }, [ecosystemTotalFunding, rankedStartups]);
 
-  // Shared tooltip style across all analytics charts ensuring hover text is pure black
-  const chartTooltipProps = {
-    contentStyle: {
-      backgroundColor: "#ffffff",
-      color: "#000000",
-      borderRadius: "10px",
-      border: "1px solid #cbd5e1",
-      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-      padding: "8px 12px",
-    },
-    itemStyle: {
-      color: "#000000",
-      fontWeight: 600,
-      fontSize: "12px",
-    },
-    labelStyle: {
-      color: "#000000",
-      fontWeight: 700,
-      fontSize: "13px",
-      marginBottom: "4px",
-    },
-  };
-
-  // Helper to parse dates across foundedDate, registrationDate, createdAt, and lastUpdated
-  const parseStartupDate = (s) => {
-    if (!s) return null;
-    const candidates = [s.foundedDate, s.registrationDate, s.createdAt, s.lastUpdated];
-    for (const raw of candidates) {
-      if (!raw || raw === "N/A") continue;
-      if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
-      const str = String(raw).trim();
-      if (!str) continue;
-      // Standard ISO / Date parse
-      const dt = new Date(str);
-      if (!isNaN(dt.getTime())) {
-        return dt;
-      }
-      // Month-name patterns e.g. "Jul 4, 2026", "May 26, 2026"
-      const mMatch = str.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
-      if (mMatch) {
-        const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-        const mIdx = monthNames.findIndex((m) => mMatch[1].toLowerCase().startsWith(m));
-        if (mIdx !== -1) {
-          return new Date(parseInt(mMatch[3], 10), mIdx, parseInt(mMatch[2], 10));
-        }
-      }
-      // Year only: e.g. "2024"
-      if (/^\d{4}$/.test(str)) {
-        return new Date(parseInt(str, 10), 0, 1);
-      }
-    }
-    return null;
-  };
-
-  // Monthly startup growth dataset tracking actual startups from past months
-  const computedMonthlyGrowth = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const now = new Date();
-
-    // Select richest pool of startups available
-    const pool = (allEcosystemStartups && allEcosystemStartups.length > 0)
-      ? allEcosystemStartups
-      : ((topStartups && topStartups.length > 0) ? topStartups : rankedStartups);
-
-    // Dynamic month span based on growthTimeframe
-    let span = 6;
-    if (growthTimeframe === "12M") span = 12;
-    if (growthTimeframe === "ALL") span = 24;
-
-    const result = [];
-    for (let i = span - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mName = months[d.getMonth()];
-      const y = d.getFullYear();
-      const m = d.getMonth();
-
-      // Startups founded or joined in this specific month
-      const addedThisMonth = pool.filter((s) => {
-        const dt = parseStartupDate(s);
-        if (!dt) return false;
-        return dt.getFullYear() === y && dt.getMonth() === m;
-      });
-
-      // Cumulative startups founded on or before this month
-      // Startups without parseable date are included in baseline so total ventures match
-      const cumulativeCount = pool.filter((s) => {
-        const dt = parseStartupDate(s);
-        if (!dt) return true;
-        return dt.getFullYear() < y || (dt.getFullYear() === y && dt.getMonth() <= m);
-      }).length;
-
-      result.push({
-        month: mName,
-        monthYear: `${mName} ${y}`,
-        newStartups: addedThisMonth.length,
-        totalStartups: cumulativeCount,
-        newStartupNames: addedThisMonth.map((s) => s.companyName || s.name).filter(Boolean),
-      });
-    }
-
-    return result;
-  }, [allEcosystemStartups, topStartups, rankedStartups, growthTimeframe]);
-
-  // Master pool representing all listed businesses and startups in the ecosystem
-  const allListedBusinesses = useMemo(() => {
-    if (allEcosystemStartups && allEcosystemStartups.length > 0) {
-      return allEcosystemStartups;
-    }
-    if (topStartups && topStartups.length > 0) {
-      return topStartups;
-    }
-    return rankedStartups;
-  }, [allEcosystemStartups, topStartups, rankedStartups]);
-
-  // Geographical distribution listing all cities with business counts
-  const computedLocationData = useMemo(() => {
-    if (locationData && locationData.length > 0) {
-      return locationData;
-    }
-    const locMap = {};
-    allListedBusinesses.forEach((s) => {
-      const city = (s.city || s.location || "Other").trim();
-      if (!city || city === "Unknown" || city === "N/A") {
-        locMap["Other"] = (locMap["Other"] || 0) + 1;
-      } else {
-        locMap[city] = (locMap[city] || 0) + 1;
-      }
-    });
-    return Object.entries(locMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [locationData, allListedBusinesses]);
-
-  // Helper to get TRL level number (1 - 9)
-  const getStartupTrlLevel = (s) => {
-    if (!s || !s.trlLevel) return 0;
-    const match = String(s.trlLevel).match(/\d+/);
-    return match ? parseInt(match[0], 10) : 0;
-  };
-
-  // Compute growth score directly from TRL readiness level (TRL 1-9 normalized to 11-100 pts)
-  const getStartupGrowthScore = (s) => {
-    if (!s) return 0;
-    if (s.growthScore !== undefined && s.growthScore !== null && Number(s.growthScore) > 0) {
-      return Number(s.growthScore);
-    }
-    const lvl = getStartupTrlLevel(s);
-    if (lvl > 0) {
-      return Math.round((Math.min(Math.max(lvl, 1), 9) / 9) * 100);
-    }
-    return 0;
-  };
-
-  // Average, Growth, and Ecosystem scores across all listed businesses by industry
-  const industryMetricsData = useMemo(() => {
-    return industries.map((industry) => {
-      const startups = allListedBusinesses.filter((s) => s.industry === industry);
-      const count = startups.length;
-      if (count === 0) {
-        return {
-          name: industry,
-          count: 0,
-          score: 0,
-          growthScore: 0,
-          avgTrl: 0,
-          ecosystemScore: 0,
-        };
-      }
-
-      // 1. Growth Score based on TRL readiness (per business)
-      const growthScores = startups.map((s) => getStartupGrowthScore(s));
-      const trlLevels = startups.map((s) => getStartupTrlLevel(s)).filter((lvl) => lvl > 0);
-      const avgGrowth = Math.round(
-        growthScores.reduce((sum, score) => sum + score, 0) / count
-      );
-      const avgTrl = trlLevels.length > 0
-        ? Number((trlLevels.reduce((sum, lvl) => sum + lvl, 0) / trlLevels.length).toFixed(1))
-        : 0;
-
-      // 2. Ecosystem Score based on PPP partnerships, mentors, and investors
-      const ecosystemScores = startups.map((s) => {
-        if (s.ecosystemScore !== undefined && s.ecosystemScore !== null && Number(s.ecosystemScore) > 0) {
-          return Number(s.ecosystemScore);
-        }
-        const ppp = Number(s.publicPrivatePartnershipsInvolvingStartups || s.partnerships || 0);
-        const mentors = Number(s.numberOfMentorsOrAdvisorsInvolved || s.mentors || 0);
-        const investors = Number(s.numberOfInvestors || s.investors || 0);
-        const raw = (ppp * 3) + (mentors * 2) + (investors * 2);
-        return Math.min(100, Math.round(raw > 0 ? raw * 5 : 25));
-      });
-      const avgEcosystem = Math.round(
-        ecosystemScores.reduce((sum, score) => sum + score, 0) / count
-      );
-
-      // 3. Investment Score based on funding received
-      const investmentScores = startups.map((s) => {
-        if (s.investmentScore !== undefined && s.investmentScore !== null && Number(s.investmentScore) > 0) {
-          return Number(s.investmentScore);
-        }
-        const funding = Number(s.totalStartupFundingReceived || s.totalFunding || 0);
-        if (funding <= 0) return 15;
-        return Math.min(100, Math.round((Math.log10(funding + 1) / Math.log10(10000000 + 1)) * 100));
-      });
-
-      // 4. Overall Score composite
-      const avgOverall = Math.round(
-        startups.reduce((sum, s, idx) => {
-          if (s.overallScore !== undefined && s.overallScore !== null && Number(s.overallScore) > 0) {
-            return sum + Number(s.overallScore);
-          }
-          if (s.score !== undefined && s.score !== null && Number(s.score) > 0) {
-            return sum + Number(s.score);
-          }
-          const g = growthScores[idx] || 0;
-          const inv = investmentScores[idx] || 0;
-          const eco = ecosystemScores[idx] || 0;
-          return sum + Math.round((g * 0.4) + (inv * 0.3) + (eco * 0.3));
-        }, 0) / count
-      );
-
-      return {
-        name: industry,
-        count: count,
-        score: avgOverall,
-        growthScore: avgGrowth,
-        avgTrl: avgTrl,
-        ecosystemScore: avgEcosystem,
-      };
-    });
-  }, [allListedBusinesses, industries]);
-
-  // Government registered & compliance / government funded dataset across all businesses
-  const govComplianceData = useMemo(() => {
-    const pool = allListedBusinesses;
-    const registered = pool.filter(
-      (s) =>
-        s.isGovernmentRegistered === true ||
-        (s.registrationAgency && s.registrationAgency.trim().length > 0 && s.registrationAgency !== "Unregistered")
-    ).length;
-
-    const funded = pool.filter(
-      (s) =>
-        Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0) > 0 ||
-        Boolean(s.governmentSupport)
-    ).length;
-
-    const sec = pool.filter((s) => s.registrationAgency === "SEC").length;
-    const dti = pool.filter((s) => s.registrationAgency === "DTI").length;
-    const bir = pool.filter((s) => s.registrationAgency === "BIR").length;
-    const otherAgc = pool.filter(
-      (s) => s.registrationAgency && !["BIR", "SEC", "DTI", "Unregistered"].includes(s.registrationAgency)
-    ).length;
-
-    const unregistered = pool.filter(
-      (s) =>
-        !s.isGovernmentRegistered &&
-        (!s.registrationAgency || s.registrationAgency === "Unregistered") &&
-        Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0) === 0
-    ).length;
-
-    return [
-      { name: "Gov. Registered", count: registered, fill: "#10b981" },
-      { name: "Gov. Funded", count: funded, fill: "#06b6d4" },
-      { name: "SEC (Corp)", count: sec, fill: "#3b82f6" },
-      { name: "DTI (Trade)", count: dti, fill: "#6366f1" },
-      { name: "BIR (Certified)", count: bir, fill: "#8b5cf6" },
-      { name: "Other Agc.", count: otherAgc, fill: "#ec4899" },
-      { name: "Unregistered", count: unregistered, fill: "#f59e0b" },
-    ];
-  }, [allListedBusinesses]);
-
-  // Technology Readiness Stages dataset across ALL listed businesses (TRL 1 through TRL 9)
-  const trlReadinessStagesData = useMemo(() => {
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((lvl) => {
-      const matching = allListedBusinesses.filter((s) => {
-        const raw = String(s.trlLevel || "");
-        const match = raw.match(/\d+/);
-        return match ? parseInt(match[0], 10) === lvl : false;
-      });
-
-      let color = "#10b981"; // Concept (TRL 1-3)
-      if (lvl >= 4 && lvl <= 6) color = "#f59e0b"; // Prototype (TRL 4-6)
-      if (lvl >= 7) color = "#ef4444"; // Commercial (TRL 7-9)
-
-      return {
-        stage: `TRL ${lvl}`,
-        level: lvl,
-        count: matching.length,
-        fill: color,
-        startups: matching.map((s) => s.companyName || s.name).filter(Boolean),
-      };
-    });
-  }, [allListedBusinesses]);
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       <main className="flex-grow p-3 sm:p-6">
@@ -2053,7 +1393,7 @@ export default function AllStartupDashboard() {
           <span>Back to Home</span>
         </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
           {/* Total Startups Card */}
           <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-indigo-200">
             <div className="flex items-start justify-between">
@@ -2067,6 +1407,34 @@ export default function AllStartupDashboard() {
               </div>
               <div className="p-2.5 sm:p-3 bg-indigo-200 rounded-lg">
                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-700" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Funding Card */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 sm:p-6 border border-green-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="text-green-700 text-xs sm:text-sm font-medium">Total Funding</p>
+                  {calculatedTotalFunding >= 1_000_000_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Billions</span>
+                  ) : calculatedTotalFunding >= 1_000_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Millions</span>
+                  ) : calculatedTotalFunding >= 1_000 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Thousands</span>
+                  ) : null}
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">
+                  ₱{formatFundingAmount(calculatedTotalFunding)}
+                </p>
+                <p className="text-xs text-green-600 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                  Total invested
+                </p>
+              </div>
+              <div className="p-2.5 sm:p-3 bg-green-200 rounded-lg">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-700" />
               </div>
             </div>
           </div>
@@ -2115,259 +1483,204 @@ export default function AllStartupDashboard() {
           </div>
         </div>
 
-        {/* Consolidated Ecosystem Executive Filter Toolbar (For Rankings & Analytics) */}
-        {(activeTab === "rankings" || activeTab === "analytics") && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-5 mb-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
-                  <Filter className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <span>Ecosystem Filters & Analytics Controls</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                      Consolidated
-                    </span>
-                  </h2>
-                  <p className="text-xs text-gray-500">Filter entire ecosystem directory across all tabs in real-time</p>
-                </div>
+        {/* Consolidated Ecosystem Executive Filter Toolbar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-5 mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                <Filter className="w-5 h-5" />
               </div>
-
-              {/* Reset Filters Action */}
-              {(selectedIndustry !== "All" || selectedGovReg !== "All" || selectedTrlStage !== "All" || rankingMetric !== "overall" || rankingSearchQuery) && (
-                <button
-                  onClick={() => {
-                    setSelectedIndustry("All");
-                    setSelectedGovReg("All");
-                    setSelectedTrlStage("All");
-                    setRankingMetric("overall");
-                    setRankingSearchQuery("");
-                    setCurrentPage(0);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-rose-200"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset All Filters</span>
-                </button>
-              )}
+              <div>
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <span>Ecosystem Filters & Analytics Controls</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    Consolidated
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-500">Filter entire ecosystem directory across all tabs in real-time</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* 1. Industry Filter */}
-              <div className="space-y-1.5">
+            {/* Reset Filters Action */}
+            {(selectedIndustry !== "All" || selectedGovReg !== "All" || selectedTrlStage !== "All" || rankingMetric !== "overall") && (
+              <button
+                onClick={() => {
+                  setSelectedIndustry("All");
+                  setSelectedGovReg("All");
+                  setSelectedTrlStage("All");
+                  setRankingMetric("overall");
+                  setCurrentPage(0);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-rose-200"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset All Filters</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Industry Filter */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                <span>Industry Sector</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedIndustry}
+                  onChange={(e) => {
+                    setSelectedIndustry(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedIndustry !== "All"
+                    ? "bg-indigo-50/70 border-indigo-400 text-indigo-900 ring-2 ring-indigo-100"
+                    : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                    }`}
+                >
+                  <option value="All">All Industries ({industries.length} available)</option>
+                  {industries.map((ind, i) => (
+                    <option key={i} value={ind}>{ind}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 2. Government Registration (with BIR) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
-                  <span>Industry Sector</span>
+                  <span>Govt. Registration</span>
+                  <TooltipInfo type="GOV_REG" size="xs" />
                 </label>
-                <div className="relative">
-                  <select
-                    value={selectedIndustry}
-                    onChange={(e) => {
-                      setSelectedIndustry(e.target.value);
-                      setCurrentPage(0);
-                    }}
-                    className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedIndustry !== "All"
-                      ? "bg-indigo-50/70 border-indigo-400 text-indigo-900 ring-2 ring-indigo-100"
-                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
-                      }`}
-                  >
-                    <option value="All">All Industries ({industries.length} available)</option>
-                    {industries.map((ind, i) => (
-                      <option key={i} value={ind}>{ind}</option>
-                    ))}
-                  </select>
-                </div>
+                {selectedGovReg === "BIR" && (
+                  <TooltipInfo type="BIR" size="xs" />
+                )}
               </div>
-
-              {/* 2. Government Registration (with BIR) */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
-                    <span>Govt. Registration</span>
-                    <TooltipInfo type="GOV_REG" size="xs" />
-                  </label>
-                  {selectedGovReg === "BIR" && (
-                    <TooltipInfo type="BIR" size="xs" />
-                  )}
-                </div>
-                <div className="relative">
-                  <select
-                    value={selectedGovReg}
-                    onChange={(e) => {
-                      setSelectedGovReg(e.target.value);
-                      setCurrentPage(0);
-                    }}
-                    className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedGovReg !== "All"
-                      ? "bg-emerald-50/70 border-emerald-400 text-emerald-900 ring-2 ring-emerald-100"
-                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
-                      }`}
-                  >
-                    <option value="All">All Registration States</option>
-                    <option value="BIR">Government Certified</option>
-                    <option value="SEC">SEC (Securities & Exchange Commission)</option>
-                    <option value="DTI">DTI (Dept. of Trade & Industry)</option>
-                    <option value="REGISTERED">Any Registered Agency</option>
-                    <option value="UNREGISTERED">Unregistered / Pending</option>
-                  </select>
-                </div>
+              <div className="relative">
+                <select
+                  value={selectedGovReg}
+                  onChange={(e) => {
+                    setSelectedGovReg(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedGovReg !== "All"
+                    ? "bg-emerald-50/70 border-emerald-400 text-emerald-900 ring-2 ring-emerald-100"
+                    : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                    }`}
+                >
+                  <option value="All">All Registration States</option>
+                  <option value="BIR">Government Certified</option>
+                  <option value="SEC">SEC (Securities & Exchange Commission)</option>
+                  <option value="DTI">DTI (Dept. of Trade & Industry)</option>
+                  <option value="REGISTERED">Any Registered Agency</option>
+                  <option value="UNREGISTERED">Unregistered / Pending</option>
+                </select>
               </div>
+            </div>
 
-              {/* 3. TRL Readiness Stage */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
-                    <span>TRL Readiness</span>
-                    <TooltipInfo type="TRL" size="xs" />
-                  </label>
-                </div>
-                <div className="relative">
-                  <select
-                    value={selectedTrlStage}
-                    onChange={(e) => {
-                      setSelectedTrlStage(e.target.value);
-                      setCurrentPage(0);
-                    }}
-                    className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedTrlStage !== "All"
-                      ? "bg-amber-50/70 border-amber-400 text-amber-900 ring-2 ring-amber-100"
-                      : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
-                      }`}
-                  >
-                    <option value="All">All TRL Levels</option>
-                    <option value="TRL 1">TRL 1 - Basic Principles Observed</option>
-                    <option value="TRL 2">TRL 2 - Technology Concept Formulated</option>
-                    <option value="TRL 3">TRL 3 - Experimental Proof of Concept</option>
-                    <option value="TRL 4">TRL 4 - Technology Validated in Lab</option>
-                    <option value="TRL 5">TRL 5 - Technology Validated in Relevant Environment</option>
-                    <option value="TRL 6">TRL 6 - Technology Demonstrated in Relevant Environment</option>
-                    <option value="TRL 7">TRL 7 - System Prototype Demonstration</option>
-                    <option value="TRL 8">TRL 8 - System Complete and Qualified</option>
-                    <option value="TRL 9">TRL 9 - Actual System Proven in Operational Environment</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* 4. Ranking Performance Metric */}
-              <div className="space-y-1.5">
+            {/* 3. TRL Readiness Stage */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
-                  <span>Leaderboard Metric</span>
+                  <span>TRL Readiness</span>
+                  <TooltipInfo type="TRL" size="xs" />
                 </label>
-                <div className="relative">
-                  <select
-                    value={rankingMetric}
-                    onChange={(e) => {
-                      setRankingMetric(e.target.value);
-                      setCurrentPage(0);
-                    }}
-                    className="w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                  >
-                    <option value="overall">Overall Performance Score</option>
-                    <option value="growth">Growth Score</option>
-                    <option value="investment">Investment Score</option>
-                    <option value="ecosystem">Ecosystem Score</option>
-                    <option value="engagement">Engagement Score</option>
-                  </select>
-                </div>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedTrlStage}
+                  onChange={(e) => {
+                    setSelectedTrlStage(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className={`w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold transition-all border outline-none cursor-pointer ${selectedTrlStage !== "All"
+                    ? "bg-amber-50/70 border-amber-400 text-amber-900 ring-2 ring-amber-100"
+                    : "bg-gray-50 hover:bg-gray-100/80 border-gray-300 text-gray-800"
+                    }`}
+                >
+                  <option value="All">All TRL Levels</option>
+                  <option value="TRL 1">TRL 1 - Basic Principles Observed</option>
+                  <option value="TRL 2">TRL 2 - Technology Concept Formulated</option>
+                  <option value="TRL 3">TRL 3 - Experimental Proof of Concept</option>
+                  <option value="TRL 4">TRL 4 - Technology Validated in Lab</option>
+                  <option value="TRL 5">TRL 5 - Technology Validated in Relevant Environment</option>
+                  <option value="TRL 6">TRL 6 - Technology Demonstrated in Relevant Environment</option>
+                  <option value="TRL 7">TRL 7 - System Prototype Demonstration</option>
+                  <option value="TRL 8">TRL 8 - System Complete and Qualified</option>
+                  <option value="TRL 9">TRL 9 - Actual System Proven in Operational Environment</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 4. Ranking Performance Metric */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                <span>Leaderboard Metric</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={rankingMetric}
+                  onChange={(e) => {
+                    setRankingMetric(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className="w-full rounded-xl px-3.5 py-2.5 pr-10 text-xs md:text-sm font-semibold bg-gray-50 hover:bg-gray-100/80 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                >
+                  <option value="overall">Overall Performance Score</option>
+                  <option value="growth">Growth Score</option>
+                  <option value="investment">Investment Score</option>
+                  <option value="ecosystem">Ecosystem Score</option>
+                  <option value="engagement">Engagement Score</option>
+                </select>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         <div className="border-b border-gray-200 mb-6">
-          <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto pb-1 scrollbar-thin">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "overview"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+            >
+              Overview
+            </button>
             <button
               onClick={() => setActiveTab("rankings")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap transition-colors ${activeTab === "rankings"
-                  ? "border-indigo-500 text-indigo-600 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "rankings"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
             >
               Rankings
             </button>
             <button
               onClick={() => setActiveTab("analytics")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap transition-colors ${activeTab === "analytics"
-                  ? "border-indigo-500 text-indigo-600 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "analytics"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
             >
               Analytics
             </button>
-
-            {/* Active Businesses Tab */}
             <button
-              onClick={() => {
-                setActiveTab("active");
-                setActivityPage(0);
-              }}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === "active"
-                  ? "border-emerald-500 text-emerald-600 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              onClick={() => setActiveTab("reports")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "reports"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
             >
-              <span
-                className={`w-2 h-2 rounded-full ${activeTab === "active" ? "bg-emerald-500 animate-pulse" : "bg-emerald-400"
-                  }`}
-              ></span>
-              <span>Active Businesses</span>
-              {activitySummary.activeCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-semibold">
-                  {activitySummary.activeCount}
-                </span>
-              )}
+              Reports
             </button>
-
-            {/* Inactive Businesses Tab */}
-            <button
-              onClick={() => {
-                setActiveTab("inactive");
-                setActivityPage(0);
-              }}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === "inactive"
-                  ? "border-amber-500 text-amber-600 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${activeTab === "inactive" ? "bg-amber-500 animate-pulse" : "bg-amber-400"
-                  }`}
-              ></span>
-              <span>Inactive Businesses</span>
-              {activitySummary.inactiveCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-semibold">
-                  {activitySummary.inactiveCount}
-                </span>
-              )}
-            </button>
-
-            {/* Archive Tab */}
-            <button
-              onClick={() => {
-                setActiveTab("archive");
-                setActivityPage(0);
-              }}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === "archive"
-                  ? "border-rose-500 text-rose-600 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${activeTab === "archive" ? "bg-rose-500 animate-pulse" : "bg-rose-400"
-                  }`}
-              ></span>
-              <span>Archive</span>
-              {activitySummary.archivedCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-rose-100 text-rose-700 font-semibold">
-                  {activitySummary.archivedCount}
-                </span>
-              )}
-            </button>
-
             {role === "ROLE_ADMIN" && (
               <button
                 onClick={() => setActiveTab("review")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer whitespace-nowrap transition-colors ${activeTab === "review"
-                    ? "border-indigo-500 text-indigo-600 font-semibold"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "review"
+                  ? "border-indigo-500 text-indigo-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
               >
                 Startup Review
@@ -2376,12 +1689,485 @@ export default function AllStartupDashboard() {
           </nav>
         </div>
 
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Top Performing Startups Section */}
+            <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                      Top Performing Startups
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {selectedIndustry === "All"
+                        ? `Displaying all startups (${topStartups.length} total) ranked by overall performance`
+                        : `Displaying all startups in ${selectedIndustry} (${topStartups.length} found)`}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <label htmlFor="industry-select" className="text-sm font-medium text-gray-700">Filter by Industry:</label>
+                    <select
+                      id="industry-select"
+                      className={`px-4 py-2 border rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400 ${selectedIndustry !== "All"
+                        ? 'border-indigo-500 ring-2 ring-indigo-200 font-semibold'
+                        : 'border-gray-300'
+                        }`}
+                      value={selectedIndustry}
+                      onChange={(e) => {
+                        setSelectedIndustry(e.target.value);
+                      }}
+                    >
+                      <option value="All">All Industries</option>
+                      {industries.map((industry, index) => (
+                        <option key={index} value={industry}>
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {topStartupsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p className="text-gray-600 font-medium">Loading top startups {selectedIndustry !== "All" ? `for ${selectedIndustry}` : ""}...</p>
+                  </div>
+                ) : topStartupsError ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg max-w-md">
+                      <p className="text-red-700 font-semibold mb-2">Failed to Load Top Startups</p>
+                      <p className="text-red-600 text-sm mb-4">{topStartupsError}</p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="text-sm font-medium text-red-700 hover:text-red-800 bg-red-100 hover:bg-red-200 px-3 py-2 rounded transition-colors"
+                      >
+                        Try Refreshing Page
+                      </button>
+                    </div>
+                  </div>
+                ) : topStartups.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Rank</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Company Name</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Industry</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Overall Score</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Growth Rate</th>
+                          {role === "ROLE_ADMIN" && (
+                            <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {topStartups.map((startup, index) => (
+                          <tr key={startup.id} className="hover:bg-indigo-50 transition-colors duration-150">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <span className="inline-flex items-center justify-center h-8 w-8 min-w-[32px] rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-sm shadow-xs shrink-0">
+                                  {index + 1}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm font-semibold text-gray-900">{startup.companyName}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {startup.industry}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-16 h-2 bg-gray-200 rounded-full mr-2">
+                                  <div
+                                    className="h-2 bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-300"
+                                    style={{ width: `${Math.min(Math.max(startup.overallScore || 0, 0), 100)}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm font-semibold text-gray-900">{Math.round(Math.min(Math.max(startup.overallScore || 0, 0), 100))}/100</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center text-sm font-semibold text-green-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                                +{(startup.growthScore ?? startup.growthRate ?? 0).toFixed(1)}%
+                              </div>
+                            </td>
+                            {role === "ROLE_ADMIN" && (
+                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/startup/${startup.id}`)}
+                                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                    title="View startup details"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmStartup(startup)}
+                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete startup (Admin only)"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-gray-400 mb-3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <p className="text-gray-600">No startups found for the selected filters</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Charts Grid Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Industry Distribution */}
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-blue-50 to-purple-50 px-6 py-5">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                    Industry Distribution
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">Startup count across {industries.length} industries • Total: <span className="font-bold text-indigo-700">{industryData.reduce((sum, ind) => sum + ind.value, 0)}</span> startups</p>
+                </div>
+                <div className="p-6 flex-1 flex flex-col">
+                  {loading ? (
+                    <div className="flex items-center justify-center flex-1">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : industryData.length > 0 ? (
+                    <div className="flex flex-col flex-1">
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                            <Pie
+                              data={industryData}
+                              cx="50%"
+                              cy="45%"
+                              innerRadius={45}
+                              outerRadius={72}
+                              paddingAngle={3}
+                              dataKey="value"
+                              animationBegin={0}
+                              animationDuration={800}
+                              animationEasing="ease-out"
+                            >
+                              {industryData.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={entry.color}
+                                  opacity={selectedChartIndustry === null || selectedChartIndustry === entry.name ? 1 : 0.3}
+                                  className="cursor-pointer transition-opacity duration-200 hover:opacity-100"
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: '#fff',
+                                border: '2px solid #4f46e5',
+                                borderRadius: '12px',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
+                                padding: '12px 16px',
+                                fontSize: '13px',
+                                fontWeight: '600'
+                              }}
+                              formatter={(value) => [
+                                `${value} startups`,
+                                'Count'
+                              ]}
+                              labelFormatter={(label) => `${label}`}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="mt-5 pt-5 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-bold text-gray-900">Industries Breakdown</h4>
+                          {selectedChartIndustry && (
+                            <button
+                              onClick={() => setSelectedChartIndustry(null)}
+                              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors bg-indigo-50"
+                            >
+                              ✕ Clear Filter
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto">
+                          {industryData.map((entry, index) => {
+                            const isSelected = selectedChartIndustry === entry.name;
+                            const percentage = ((entry.value / industryData.reduce((sum, ind) => sum + ind.value, 0)) * 100).toFixed(1);
+                            return (
+                              <div
+                                key={index}
+                                onClick={() => setSelectedChartIndustry(isSelected ? null : entry.name)}
+                                onMouseEnter={() => setHoveredIndustry(entry.name)}
+                                onMouseLeave={() => setHoveredIndustry(null)}
+                                className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 shadow-sm hover:shadow-md ${isSelected
+                                  ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                                  : hoveredIndustry === entry.name
+                                    ? 'bg-gray-50 border-gray-300 shadow-sm'
+                                    : 'bg-white border-gray-200 hover:border-indigo-300'
+                                  }`}
+                              >
+                                <div className="flex items-start gap-2 mb-2">
+                                  <span className="text-2xl flex-shrink-0" title={entry.name}>{getIndustryIcon(entry.name)}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-gray-900 line-clamp-2">{entry.name}</p>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-300"
+                                      style={{
+                                        width: `${percentage}%`,
+                                        backgroundColor: entry.color
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-gray-600">{percentage}%</span>
+                                    <span className="text-xs font-bold text-gray-900 bg-gray-100 rounded px-2 py-1">{entry.value}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center flex-1">
+                      <p className="text-gray-600">No industry data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Funding Stages */}
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col ">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 via-pink-50 to-indigo-50 px-6 py-5">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600 mr-3"><path d="M6 9c0-1 1-2 2-2s2 1 2 2M18 9c0-1-1-2-2-2s-2 1-2 2M6 15c0 1 1 2 2 2s2-1 2-2M18 15c0 1-1 2-2 2s-2-1-2-2"></path><path d="M12 3v3m0 12v3M3 12h3m12 0h3"></path></svg>
+                    Funding Stages
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">Funding distribution • Total: <span className="font-bold text-purple-700">{fundingData.reduce((sum, stage) => sum + stage.value, 0)}</span> startups</p>
+                </div>
+                <div className="p-6 flex-1 flex flex-col">
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center flex-1">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    </div>
+                  ) : fundingData.length > 0 ? (
+                    <div className="flex flex-col flex-1">
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                            <Pie
+                              data={fundingData}
+                              cx="50%"
+                              cy="45%"
+                              outerRadius={72}
+                              dataKey="value"
+                              animationBegin={0}
+                              animationDuration={800}
+                              animationEasing="ease-out"
+                            >
+                              {fundingData.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                  opacity={selectedFundingStage === null || selectedFundingStage === entry.name ? 1 : 0.3}
+                                  className="cursor-pointer transition-opacity duration-200 hover:opacity-100"
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: '#fff',
+                                border: '2px solid #7c3aed',
+                                borderRadius: '12px',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
+                                padding: '12px 16px',
+                                fontSize: '13px',
+                                fontWeight: '600'
+                              }}
+                              formatter={(value) => [
+                                `${value} startups`,
+                                'Count'
+                              ]}
+                              labelFormatter={(label) => `${label}`}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="mt-5 pt-5 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-bold text-gray-900">Funding Stages Breakdown</h4>
+                          {selectedFundingStage && (
+                            <button
+                              onClick={() => setSelectedFundingStage(null)}
+                              className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-md transition-colors bg-purple-50"
+                            >
+                              ✕ Clear Filter
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 max-h-56 overflow-y-auto">
+                          {fundingData.map((entry, index) => {
+                            const isSelected = selectedFundingStage === entry.name;
+                            const percentage = ((entry.value / fundingData.reduce((sum, stage) => sum + stage.value, 0)) * 100).toFixed(1);
+                            const description = getFundingStageDescription(entry.name);
+                            return (
+                              <div
+                                key={index}
+                                onClick={() => setSelectedFundingStage(isSelected ? null : entry.name)}
+                                onMouseEnter={() => setHoveredFundingStage(entry.name)}
+                                onMouseLeave={() => setHoveredFundingStage(null)}
+                                className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 shadow-sm hover:shadow-md ${isSelected
+                                  ? 'bg-purple-50 border-purple-500 shadow-md'
+                                  : hoveredFundingStage === entry.name
+                                    ? 'bg-gray-50 border-gray-300 shadow-sm'
+                                    : 'bg-white border-gray-200 hover:border-purple-300'
+                                  }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="text-sm font-bold text-gray-900">{entry.name}</h5>
+                                  <span className={`text-xs font-bold text-white rounded-full px-3 py-1 transition-colors ${isSelected
+                                    ? 'bg-purple-600'
+                                    : 'bg-purple-500 group-hover:bg-purple-600'
+                                    }`}>{percentage}%</span>
+                                </div>
+                                {description && (
+                                  <p className="text-xs text-gray-600 mb-3 italic">{description}</p>
+                                )}
+                                <div className="space-y-2">
+                                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-300"
+                                      style={{
+                                        width: `${percentage}%`,
+                                        backgroundColor: COLORS[index % COLORS.length]
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-gray-600">Startups</span>
+                                    <span className="text-sm font-bold text-gray-900 bg-gray-100 rounded px-2 py-1">{entry.value}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center flex-1 flex-col">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300 mb-2"><circle cx="12" cy="12" r="10"></circle></svg>
+                      <p className="text-gray-600 font-medium">No funding data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Growth Trends */}
+            <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                  Growth Trends by Industry
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">Year-over-year growth analysis across all industries</p>
+              </div>
+              <div className="p-6">
+                <div className="h-72">
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : growthData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={growthData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                        <defs>
+                          <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis
+                          dataKey="name"
+                          stroke="#9ca3af"
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis
+                          stroke="#9ca3af"
+                          style={{ fontSize: '12px' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#fff',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          iconType="line"
+                        />
+                        {growthData.length > 0 &&
+                          Object.keys(growthData[0])
+                            .filter((key) => key !== "name")
+                            .map((industry, index) => (
+                              <Line
+                                key={industry}
+                                type="monotone"
+                                dataKey={industry}
+                                stroke={COLORS[index % COLORS.length]}
+                                strokeWidth={2.5}
+                                dot={{ fill: COLORS[index % COLORS.length], r: 4 }}
+                                activeDot={{ r: 6 }}
+                                isAnimationActive={true}
+                              />
+                            ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-600">No growth data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "rankings" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               {/* Minimal Uniform Header Section */}
               <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 flex items-center">
                       <Award className="h-5 w-5 text-indigo-600 mr-2.5" />
@@ -2391,36 +2177,8 @@ export default function AllStartupDashboard() {
                       Comprehensive rankings by verified performance metrics and readiness levels
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                    {/* Search Bar for specific business in rankings */}
-                    <div className="relative min-w-[260px] sm:min-w-[300px]">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={rankingSearchQuery}
-                        onChange={(e) => {
-                          setRankingSearchQuery(e.target.value);
-                          setCurrentPage(0);
-                        }}
-                        placeholder="Search business name or industry..."
-                        className="w-full pl-10 pr-9 py-2 text-xs md:text-sm text-black placeholder:text-gray-400 font-medium bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs"
-                      />
-                      {rankingSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRankingSearchQuery("");
-                            setCurrentPage(0);
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                          title="Clear search"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    <span className="inline-flex items-center text-xs font-semibold px-3 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-200 shadow-xs whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-indigo-700 border border-indigo-200 shadow-xs">
                       Ranked by: {rankingMetric.charAt(0).toUpperCase() + rankingMetric.slice(1)} Score
                     </span>
                   </div>
@@ -2434,32 +2192,6 @@ export default function AllStartupDashboard() {
                     <div className="flex flex-col items-center justify-center py-16">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
                       <p className="text-gray-600 font-medium text-lg">Loading rankings...</p>
-                    </div>
-                  ) : rankedStartups.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3.5 text-indigo-500 border border-indigo-100">
-                        <Search className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-base font-bold text-gray-900 mb-1">
-                        {rankingSearchQuery ? `No business found matching "${rankingSearchQuery}"` : "No startups found"}
-                      </h3>
-                      <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4 leading-relaxed">
-                        {rankingSearchQuery
-                          ? "Try searching with a different keyword, business name, or clear the search to view all rankings."
-                          : "No registered businesses match the current filter criteria."}
-                      </p>
-                      {rankingSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRankingSearchQuery("");
-                            setCurrentPage(0);
-                          }}
-                          className="px-4 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer border border-indigo-200"
-                        >
-                          Clear Search
-                        </button>
-                      )}
                     </div>
                   ) : (
                     <>
@@ -2501,9 +2233,9 @@ export default function AllStartupDashboard() {
                               <tr key={startup.id} className="hover:bg-indigo-50/60 transition-colors duration-150">
                                 <td className="px-5 py-4 whitespace-nowrap">
                                   <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-8 w-8 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-center">
-                                      <span className="text-black font-bold text-sm">
-                                        {startup.rank || (currentPage * itemsPerPage + index + 1)}
+                                    <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                      <span className="text-white font-bold text-sm">
+                                        {currentPage * itemsPerPage + index + 1}
                                       </span>
                                     </div>
                                   </div>
@@ -2610,312 +2342,75 @@ export default function AllStartupDashboard() {
 
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 1. Monthly Startup Growth Chart */}
-            <div className="col-span-1 lg:col-span-2 bg-white p-6 rounded-lg shadow border border-gray-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                    <TrendingUp className="w-5 h-5" />
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-4 text-blue-900">
+                Geographical Distribution
+              </h2>
+              <div className="h-64">
+                {dashboardLoading ? (
+                  <div className="text-center py-6">
+                    Loading location data...
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Monthly Startup Growth
-                      </h2>
-                      <TooltipInfo type="CHART_MONTHLY_GROWTH" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Tracking new startup additions per month and cumulative ecosystem trajectory
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                  {/* Timeframe selector: 6 Months, 12 Months, All Time */}
-                  <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setGrowthTimeframe("6M")}
-                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${growthTimeframe === "6M"
-                          ? "bg-white text-blue-700 shadow-xs font-bold"
-                          : "text-gray-600 hover:text-gray-900"
-                        }`}
-                    >
-                      Past 6M
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGrowthTimeframe("12M")}
-                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${growthTimeframe === "12M"
-                          ? "bg-white text-blue-700 shadow-xs font-bold"
-                          : "text-gray-600 hover:text-gray-900"
-                        }`}
-                    >
-                      Past 12M
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGrowthTimeframe("ALL")}
-                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${growthTimeframe === "ALL"
-                          ? "bg-white text-blue-700 shadow-xs font-bold"
-                          : "text-gray-600 hover:text-gray-900"
-                        }`}
-                    >
-                      All Time (2Y)
-                    </button>
-                  </div>
-
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    Growth Momentum
-                  </span>
-                </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={locationData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        label
+                      >
+                        {locationData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
+            </div>
 
-              {/* Dynamic stats banner */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-                <div>
-                  <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Ecosystem Total</div>
-                  <div className="text-lg font-bold text-gray-900">
-                    {computedMonthlyGrowth[computedMonthlyGrowth.length - 1]?.totalStartups || 0}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">New in Selected Period</div>
-                  <div className="text-lg font-bold text-blue-600">
-                    +{computedMonthlyGrowth.reduce((acc, curr) => acc + (curr.newStartups || 0), 0)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Latest Month Added</div>
-                  <div className="text-lg font-bold text-emerald-600">
-                    +{computedMonthlyGrowth[computedMonthlyGrowth.length - 1]?.newStartups || 0}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Active Window</div>
-                  <div className="text-lg font-bold text-indigo-600">
-                    {growthTimeframe === "6M" ? "Past 6 Mos." : (growthTimeframe === "12M" ? "Past 12 Mos." : "24 Mos.")}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={computedMonthlyGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 12, fontWeight: 500 }}
-                    />
-                    <YAxis
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 12, fontWeight: 500 }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null;
-                        const dataItem = payload[0]?.payload || {};
-                        const names = dataItem.newStartupNames || [];
-                        return (
-                          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xl text-black">
-                            <div className="font-bold text-sm text-black mb-1.5 border-b border-gray-100 pb-1">
-                              {dataItem.monthYear || label}
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-semibold text-black mb-1">
-                              <span className="w-2.5 h-2.5 rounded-xs bg-blue-500 inline-block"></span>
-                              <span>New Registrations:</span>
-                              <span className="font-bold text-blue-600">{dataItem.newStartups || 0}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-semibold text-black">
-                              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
-                              <span>Cumulative Total:</span>
-                              <span className="font-bold text-indigo-600">{dataItem.totalStartups || 0} Startups</span>
-                            </div>
-                            {names.length > 0 && (
-                              <div className="mt-2 pt-1.5 border-t border-gray-100 text-[11px] text-gray-800">
-                                <span className="font-bold text-black">New ventures: </span>
-                                <span>{names.slice(0, 3).join(", ")}{names.length > 3 ? ` +${names.length - 3} more` : ""}</span>
-                              </div>
-                            )}
-                          </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-4 text-blue-900">
+                Average Scores by Industry
+              </h2>
+              {loading ? (
+                <div className="text-center py-6">Loading data...</div>
+              ) : (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={industries.map((industry) => {
+                        const startups = rankedStartups.filter(
+                          (s) => s.industry === industry
                         );
-                      }}
-                    />
-                    <Legend wrapperStyle={{ color: "#000000", fontWeight: 600, paddingTop: "8px" }} />
-                    <Bar
-                      dataKey="newStartups"
-                      name="New Startups"
-                      fill="#3b82f6"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="totalStartups"
-                      name="Cumulative Total"
-                      stroke="#6366f1"
-                      strokeWidth={3}
-                      dot={{ r: 4, fill: "#6366f1" }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* 2. Geographical Distribution */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-blue-900">
-                          Geographical Distribution
-                        </h2>
-                        <TooltipInfo type="CHART_GEOGRAPHICAL" size="xs" />
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Tracks all listed startups & businesses across locations
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                    {computedLocationData.reduce((acc, curr) => acc + curr.value, 0)} Total
-                  </span>
-                </div>
-                <div className="h-60">
-                  {dashboardLoading ? (
-                    <div className="text-center py-6 text-gray-500">
-                      Loading location data...
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={computedLocationData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={75}
-                          dataKey="value"
-                          label={({ name, value }) => `${value}`}
-                        >
-                          {computedLocationData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip {...chartTooltipProps} formatter={(val) => [`${val} Businesses / Startups`, "Count"]} />
-                        <Legend wrapperStyle={{ color: "#000000", fontWeight: 600, fontSize: "11px" }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-
-              {/* Explicit number breakdown listing all startups and businesses per location */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-600">
-                    Location Directory ({computedLocationData.length} Areas)
-                  </span>
-                  <span className="text-xs font-bold text-blue-700">
-                    {computedLocationData.reduce((acc, curr) => acc + curr.value, 0)} Total Businesses
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
-                  {computedLocationData.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2 rounded-lg bg-gray-50/80 border border-gray-100 hover:bg-gray-100/70 transition-colors"
+                        const avgScore =
+                          startups.length > 0
+                            ? startups.reduce(
+                              (sum, s) => sum + s.overallScore,
+                              0
+                            ) / startups.length
+                            : 0;
+                        return {
+                          name: industry,
+                          score: Math.round(avgScore),
+                        };
+                      })}
                     >
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                        />
-                        <span className="text-xs font-medium text-gray-800 truncate" title={item.name}>
-                          {item.name}
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold text-gray-900 ml-1.5 shrink-0">
-                        {item.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Average Scores by Industry */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
-                    <BarChart2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Average Scores by Industry
-                      </h2>
-                      <TooltipInfo type="CHART_AVERAGE_SCORES" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Evaluated across all {allListedBusinesses.length} listed businesses
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                  Performance
-                </span>
-              </div>
-              {loading && allListedBusinesses.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">Loading data...</div>
-              ) : (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={industryMetricsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload || !payload.length) return null;
-                          const item = payload[0]?.payload || {};
-                          return (
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-md text-black">
-                              <div className="font-bold text-xs mb-1 text-black">{label}</div>
-                              <div className="text-xs text-black">
-                                Avg Score: <span className="font-bold text-purple-600">{item.score} pts</span>
-                              </div>
-                              <div className="text-[11px] text-gray-600 mt-0.5">
-                                Tracked Businesses: <span className="font-semibold text-black">{item.count}</span>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="score" fill="#8884d8" radius={[4, 4, 0, 0]}>
-                        {industryMetricsData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip />
+                      <Bar dataKey="score" fill="#8884d8">
+                        {industryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2924,69 +2419,40 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            {/* 4. Growth Score by Industry */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-teal-50 text-teal-600 rounded-lg">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Growth Score by Industry
-                      </h2>
-                      <TooltipInfo type="CHART_GROWTH_SCORE" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Based on TRL stage readiness of all {allListedBusinesses.length} businesses
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded bg-teal-50 text-teal-700 border border-teal-200">
-                  TRL Readiness Basis
-                </span>
-              </div>
-              {loading && allListedBusinesses.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">Loading data...</div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-4 text-blue-900">
+                Growth Score by Industry
+              </h2>
+              {loading ? (
+                <div className="text-center py-6">Loading data...</div>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={industryMetricsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload || !payload.length) return null;
-                          const item = payload[0]?.payload || {};
-                          return (
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-md text-black">
-                              <div className="font-bold text-xs mb-1 text-black">{label}</div>
-                              <div className="text-xs text-black">
-                                Growth Score: <span className="font-bold text-teal-600">{item.growthScore} pts</span>
-                              </div>
-                              <div className="text-[11px] text-gray-600 mt-0.5">
-                                Tracked Businesses: <span className="font-semibold text-black">{item.count}</span>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="growthScore" fill="#00C49F" radius={[4, 4, 0, 0]}>
-                        {industryMetricsData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                    <BarChart
+                      data={industries.map((industry) => {
+                        const startups = rankedStartups.filter(
+                          (s) => s.industry === industry
+                        );
+                        const avgScore =
+                          startups.length > 0
+                            ? startups.reduce(
+                              (sum, s) => sum + s.growthScore,
+                              0
+                            ) / startups.length
+                            : 0;
+                        return {
+                          name: industry,
+                          score: Math.round(avgScore),
+                        };
+                      })}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip />
+                      <Bar dataKey="score" fill="#00C49F">
+                        {industryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2995,69 +2461,40 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            {/* 5. Ecosystem Score by Industry */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Ecosystem Score by Industry
-                      </h2>
-                      <TooltipInfo type="CHART_ECOSYSTEM_SCORE" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Tracks PPP partnerships & investors of all {allListedBusinesses.length} businesses
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                  PPP & Investors
-                </span>
-              </div>
-              {loading && allListedBusinesses.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">Loading data...</div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-4 text-blue-900">
+                Ecosystem Score by Industry
+              </h2>
+              {loading ? (
+                <div className="text-center py-6">Loading data...</div>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={industryMetricsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        stroke="#4b5563"
-                        tick={{ fill: "#111827", fontSize: 11 }}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload || !payload.length) return null;
-                          const item = payload[0]?.payload || {};
-                          return (
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-md text-black">
-                              <div className="font-bold text-xs mb-1 text-black">{label}</div>
-                              <div className="text-xs text-black">
-                                Ecosystem Score: <span className="font-bold text-amber-600">{item.ecosystemScore} pts</span>
-                              </div>
-                              <div className="text-[11px] text-gray-600 mt-0.5">
-                                Tracked Businesses: <span className="font-semibold text-black">{item.count}</span>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="ecosystemScore" fill="#FFBB28" radius={[4, 4, 0, 0]}>
-                        {industryMetricsData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                    <BarChart
+                      data={industries.map((industry) => {
+                        const startups = rankedStartups.filter(
+                          (s) => s.industry === industry
+                        );
+                        const avgScore =
+                          startups.length > 0
+                            ? startups.reduce(
+                              (sum, s) => sum + s.ecosystemScore,
+                              0
+                            ) / startups.length
+                            : 0;
+                        return {
+                          name: industry,
+                          score: Math.round(avgScore),
+                        };
+                      })}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip />
+                      <Bar dataKey="score" fill="#FFBB28">
+                        {industryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -3066,50 +2503,65 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            {/* 6. Government Certified & Compliance Status Chart */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
+            {/* Government Registration & Compliance Distribution Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Government Certified & Compliance Status
-                      </h2>
-                      <TooltipInfo type="CHART_GOV_COMPLIANCE" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Tracking compliance & grants of all {allListedBusinesses.length} businesses
-                    </p>
-                  </div>
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Government Certified & Compliance Status
+                  </h2>
+                  <TooltipInfo type="GOV_REG" size="xs" />
+                  <TooltipInfo type="BIR" size="xs" />
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {allListedBusinesses.length} Tracked
+                  Agencies
                 </span>
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={govComplianceData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 11 }}
-                    />
-                    <YAxis
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 11 }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      {...chartTooltipProps}
-                      formatter={(value) => [`${value} Startups / Researches`, "Count"]}
-                    />
+                  <BarChart
+                    data={[
+                      {
+                        name: "Gov. Certified",
+                        count: rankedStartups.filter(s => s.registrationAgency === "BIR").length,
+                        fill: "#10b981",
+                      },
+                      {
+                        name: "SEC (Corp)",
+                        count: rankedStartups.filter(s => s.registrationAgency === "SEC").length,
+                        fill: "#3b82f6",
+                      },
+                      {
+                        name: "DTI (Trade)",
+                        count: rankedStartups.filter(s => s.registrationAgency === "DTI").length,
+                        fill: "#6366f1",
+                      },
+                      {
+                        name: "Other Agc.",
+                        count: rankedStartups.filter(s => s.registrationAgency && !["BIR", "SEC", "DTI"].includes(s.registrationAgency)).length,
+                        fill: "#8b5cf6",
+                      },
+                      {
+                        name: "Unregistered",
+                        count: rankedStartups.filter(s => !s.isGovernmentRegistered && !s.registrationAgency).length,
+                        fill: "#f59e0b",
+                      },
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Startups`, "Count"]} />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {govComplianceData.map((entry, idx) => (
-                        <Cell key={`bar-${idx}`} fill={entry.fill} />
+                      {[
+                        "#10b981",
+                        "#3b82f6",
+                        "#6366f1",
+                        "#8b5cf6",
+                        "#f59e0b",
+                      ].map((col, idx) => (
+                        <Cell key={`bar-${idx}`} fill={col} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -3117,70 +2569,60 @@ export default function AllStartupDashboard() {
               </div>
             </div>
 
-            {/* 7. Technology Readiness Level (TRL) Breakdown Chart */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
+            {/* Technology Readiness Level (TRL) Breakdown Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-blue-900">
-                        Technology Readiness Stages
-                      </h2>
-                      <TooltipInfo type="CHART_TRL_STAGES" size="xs" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Tracking TRL 1 - 9 across all {allListedBusinesses.length} listed businesses
-                    </p>
-                  </div>
+                  <Layers className="w-5 h-5 text-indigo-600" />
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Technology Readiness (TRL) Stages
+                  </h2>
+                  <TooltipInfo type="TRL" size="xs" />
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  {trlReadinessStagesData.reduce((acc, curr) => acc + curr.count, 0)} Tracked
+                  Levels 1 - 9
                 </span>
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={trlReadinessStagesData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="stage"
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 11 }}
-                    />
-                    <YAxis
-                      stroke="#4b5563"
-                      tick={{ fill: "#111827", fontSize: 11 }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null;
-                        const item = payload[0]?.payload || {};
-                        const names = item.startups || [];
-                        return (
-                          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xl text-black">
-                            <div className="font-bold text-sm text-black mb-1.5 border-b border-gray-100 pb-1">
-                              {label}
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-semibold text-black">
-                              <span>Readiness Count:</span>
-                              <span className="font-bold text-indigo-600">{item.count || 0} Ventures</span>
-                            </div>
-                            {names.length > 0 && (
-                              <div className="mt-2 pt-1.5 border-t border-gray-100 text-[11px] text-gray-800 max-w-xs">
-                                <span className="font-bold text-black">Businesses: </span>
-                                <span>{names.slice(0, 4).join(", ")}{names.length > 4 ? ` +${names.length - 4} more` : ""}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {trlReadinessStagesData.map((entry, idx) => (
-                        <Cell key={`trl-${idx}`} fill={entry.fill} />
+                  <BarChart
+                    data={[
+                      {
+                        stage: "TRL 1-3 (Concept)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 1 && num <= 3;
+                        }).length,
+                        fill: "#10b981",
+                      },
+                      {
+                        stage: "TRL 4-6 (Prototype)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 4 && num <= 6;
+                        }).length,
+                        fill: "#eab308",
+                      },
+                      {
+                        stage: "TRL 7-9 (Commercial)",
+                        startups: rankedStartups.filter(s => {
+                          const raw = String(s.trlLevel || "");
+                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
+                          return num >= 7;
+                        }).length,
+                        fill: "#ef4444",
+                      },
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="stage" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Startups`, "Ecosystem Startups"]} />
+                    <Bar dataKey="startups" radius={[6, 6, 0, 0]}>
+                      {["#10b981", "#eab308", "#ef4444"].map((col, idx) => (
+                        <Cell key={`trl-${idx}`} fill={col} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -3190,755 +2632,526 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
-        {/* Active Businesses Tab Content */}
-        {activeTab === "active" && (
-          <div className="space-y-6">
-            {/* Header & Metric Banner */}
-            <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-200 rounded-2xl p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="p-2 bg-emerald-600 text-white rounded-xl shadow-xs">
-                      <CheckCircle className="w-5 h-5" />
-                    </span>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Active Startups & Businesses
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2 max-w-2xl leading-relaxed">
-                    Startups actively maintaining their profiles with updates to contacts, investors, government credibility, or company details within the last 90 days. All active businesses are verified and displayed on the interactive startup map.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="bg-white/90 backdrop-blur-xs px-4 py-3 rounded-xl border border-emerald-100 shadow-xs flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium">Active Startups</p>
-                      <p className="text-lg font-bold text-gray-900">{activitySummary.activeCount}</p>
-                    </div>
-                  </div>
-                  <div className="bg-white/90 backdrop-blur-xs px-4 py-3 rounded-xl border border-emerald-100 shadow-xs flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium">Public Map</p>
-                      <p className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                        Visible to All
+        {activeTab === "reports" && (
+          <div className="grid grid-cols-1 gap-6">
+            {/* Available Reports Section - Enhanced with real data */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">
+                Startup Ecosystem Reports
+              </h2>
+              {reportsLoading ? (
+                <div className="text-center py-6">Loading reports...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {generatedReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className={`border rounded-lg p-4 ${report.isCustom
+                        ? "bg-indigo-50 border-indigo-200"
+                        : "hover:bg-indigo-50"
+                        }  transition-colors duration-150`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium mb-2 text-blue-900">
+                          {report.title}
+                        </h3>
+                        <div className="p-2 bg-blue-100 rounded text-xs font-bold text-blue-800">
+                          {report.type.toUpperCase()}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {report.description}
                       </p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {report.date}
+                        </p>
+                        <button
+                          className=" rounded-md p-2 flex items-center text-indigo-600 text-sm font-medium hover:text-indigo-800 hover:bg-indigo-200 cursor-pointer"
+                          onClick={() => downloadReport(report)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-white/90 backdrop-blur-xs px-4 py-3 rounded-xl border border-emerald-100 shadow-xs flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                      <Clock className="w-5 h-5" />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Report Builder - Enhanced with real data */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center mb-4 text-blue-900">
+                <FileText className="h-6 w-6 mr-2" />
+                <h2 className="text-xl font-bold">Custom Report Builder</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Industry
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="industry"
+                    value={reportFormData.industry}
+                    onChange={handleReportFormChange}
+                  >
+                    <option>All Industries</option>
+                    {industries.map((industry, index) => (
+                      <option key={index} value={industry}>
+                        {industry}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Region
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="region"
+                    value={reportFormData.region}
+                    onChange={handleReportFormChange}
+                    disabled={psgcLoading}
+                  >
+                    <option value="All Regions">All Regions</option>
+                    {psgcLoading ? (
+                      <option value="" disabled>Loading regions...</option>
+                    ) : (
+                      availableRegions.map((region, index) => (
+                        <option key={region.code || index} value={region.name || region}>
+                          {region.regionName || region.name || region}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {psgcLoading && (
+                    <div className="absolute right-10 top-2.5">
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium">Inactivity Rule</p>
-                      <p className="text-xs font-bold text-gray-700 mt-0.5">90-Day Window</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Time Period
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="timePeriod"
+                    value={reportFormData.timePeriod}
+                    onChange={handleReportFormChange}
+                  >
+                    <option>2025 (YTD)</option>
+                    <option>2024</option>
+                    <option>2023</option>
+                    <option>Last 3 Years</option>
+                    <option>Last 5 Years</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <BarChart2 className="h-4 w-4 mr-1" />
+                  Metrics to Include
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-black">
+                  {[
+                    "Growth Rate",
+                    "Funding Amount",
+                    "Survival Rate",
+                    "Employment Data",
+                    "Investment Rounds",
+                    "Foreign Investment",
+                    "Government Support",
+                    "Mentorship Data",
+                    "Public-Private Partnerships",
+                  ].map((metric, index) => (
+                    <div key={index} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`metric-${index}`}
+                        className="mr-2"
+                        checked={reportFormData.metrics.includes(metric)}
+                        onChange={() => handleMetricChange(metric)}
+                      />
+                      <label htmlFor={`metric-${index}`} className="text-sm">
+                        {metric}
+                      </label>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                    <Zap className="h-4 w-4 mr-1" />
+                    Report Preview
+                  </h4>
+                  <div className="text-sm text-blue-700">
+                    {reportFormData.metrics.length === 0 ? (
+                      <p>Select at least one metric to generate a report</p>
+                    ) : (
+                      <p>
+                        Your custom report will include data for{" "}
+                        <strong>{reportFormData.industry}</strong> in{" "}
+                        <strong>{reportFormData.region}</strong> during{" "}
+                        <strong>{reportFormData.timePeriod}</strong> with
+                        analysis of{" "}
+                        <strong>{reportFormData.metrics.length} metrics</strong>
+                        .
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Filter and Search Bar */}
-            <div className="bg-white p-4 rounded-xl shadow-xs border border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={activitySearch}
-                  onChange={(e) => {
-                    setActivitySearch(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  placeholder="Search active businesses by name, industry, or email..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white text-black border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium placeholder:text-gray-400"
-                />
-                {activitySearch && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityPage(0);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <select
-                  value={activityIndustry}
-                  onChange={(e) => {
-                    setActivityIndustry(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  className="rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold bg-gray-50 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              <div className="mt-6 flex justify-end">
+                <button
+                  className={`flex items-center px-4 py-2 rounded text-white ${reportFormData.metrics.length === 0 || reportsLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-500"
+                    }`}
+                  disabled={
+                    reportFormData.metrics.length === 0 || reportsLoading
+                  }
+                  onClick={generateCustomReport}
                 >
-                  <option value="All">All Industries</option>
-                  {industries.map((ind, i) => (
-                    <option key={i} value={ind}>{ind}</option>
-                  ))}
-                </select>
-
-                {(activitySearch || activityIndustry !== "All") && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityIndustry("All");
-                      setActivityPage(0);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
+                  {reportsLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Custom Report
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Active Table */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Business & Location
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Industry & TRL
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Last Profile Update
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Map Visibility
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Inactivity Window
-                      </th>
-                      <th className="px-6 py-3.5 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {activityLoading ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm font-medium">Loading active businesses...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : activityList.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center">
-                            <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-2" />
-                            <p className="text-base font-semibold text-gray-800">No active businesses found</p>
-                            <p className="text-xs text-gray-500 mt-1">Try adjusting your search query or industry filter.</p>
-                          </div>
-                        </td>
-                      </tr>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">
+                Report Analytics
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-md font-semibold mb-3 text-blue-900">
+                    Industry Distribution in Reports
+                  </h3>
+                  <div className="h-64">
+                    {reportsLoading ? (
+                      <div className="text-center py-6">Loading data...</div>
                     ) : (
-                      activityList.map((startup) => (
-                        <tr key={startup.id} className="hover:bg-emerald-50/20 transition-colors">
-                          <td className="px-6 py-4">
-                            <div>
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="font-bold text-gray-900 hover:text-emerald-600 text-left cursor-pointer transition-colors"
-                              >
-                                {startup.companyName}
-                              </button>
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                <span>{startup.city ? `${startup.city}, ` : ""}{startup.province || "Philippines"}</span>
-                              </div>
-                              {startup.contactEmail && (
-                                <p className="text-xs text-gray-400 mt-0.5">{startup.contactEmail}</p>
-                              )}
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={industryData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {industryData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-md font-semibold mb-3 text-blue-900">
+                    Growth Trends
+                  </h3>
+                  <div className="h-64">
+                    {dashboardLoading ? (
+                      <div className="text-center py-6">
+                        Loading growth data...
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={growthData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          {growthData.length > 0 &&
+                            Object.keys(growthData[0])
+                              .filter((key) => key !== "name")
+                              .slice(0, 3) // Limit to first 3 industries for clarity
+                              .map((industry, index) => (
+                                <Line
+                                  key={industry}
+                                  type="monotone"
+                                  dataKey={industry}
+                                  stroke={COLORS[index % COLORS.length]}
+                                  activeDot={{ r: 8 }}
+                                />
+                              ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-md font-semibold mb-3 text-blue-900">
+                  Recent Report Activity
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Report Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Generated
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Downloads
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {generatedReports.slice(0, 5).map((report) => (
+                        <tr key={report.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {report.title}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                              {startup.industry || "General"}
+                            <div className="text-sm text-gray-500">
+                              {report.date}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {report.type.toUpperCase()}
                             </span>
-                            <div className="mt-1 text-xs text-gray-600 font-semibold">
-                              {startup.trlLevel || "TRL Stage N/A"}
-                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <p className="text-xs font-semibold text-gray-800">
-                              {formatDisplayDate(startup.lastUpdated)}
-                            </p>
-                            <span className="text-xs text-emerald-600 font-medium">
-                              {startup.daysInactive === 0 ? "Today" : `${startup.daysInactive} days ago`}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Visible on Map</span>
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-xs text-gray-700 font-medium">
-                              <span className="font-bold text-gray-900">{Math.max(0, 90 - startup.daysInactive)} days</span> remaining
-                            </div>
-                            <div className="w-24 bg-gray-200 rounded-full h-1.5 mt-1.5 overflow-hidden">
-                              <div
-                                className="bg-emerald-500 h-1.5 rounded-full"
-                                style={{ width: `${Math.min(100, Math.max(5, ((90 - startup.daysInactive) / 90) * 100))}%` }}
-                              ></div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="p-2 text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                                title="View Startup Profile"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              {role === "ROLE_ADMIN" && (
-                                <button
-                                  onClick={() => handleArchiveBusiness(startup)}
-                                  disabled={actionLoadingId === startup.id}
-                                  className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                                  title="Move to Archive (Admin)"
-                                >
-                                  <Archive className="w-4 h-4" />
-                                </button>
-                              )}
+                            <div className="text-sm text-gray-900">
+                              {Math.floor(Math.random() * 50) + 1}
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-gray-100 px-6">
-                <ActivityPaginationControls />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Inactive Businesses Tab Content */}
-        {activeTab === "inactive" && (
-          <div className="space-y-6">
-            {/* Warning Alert Banner */}
-            <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-300 rounded-2xl p-6 shadow-xs">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-xs mt-0.5">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                      <span>90-Day Inactivity Warning Zone</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold">
-                        Weekly Automated Notices
-                      </span>
-                    </h2>
-                    <p className="text-sm text-gray-700 mt-2 max-w-3xl leading-relaxed">
-                      Startups listed below have had <strong>no profile updates for over 90 days</strong> (such as new investors, updated contacts, government credentials, or company details). The system automatically dispatches <strong>weekly reminder emails</strong> to the registered contact.
-                    </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-900 bg-amber-100/90 border border-amber-300 px-3 py-1.5 rounded-lg w-fit">
-                      <Clock className="w-4 h-4 text-amber-700" />
-                      <span>7-Day Grace Period: After 7 days of inactivity (97 days total), startups will be automatically moved to Archive and hidden from the map.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                  <button
-                    onClick={handleRunLifecycleCheck}
-                    disabled={manualCheckLoading}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-60"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${manualCheckLoading ? "animate-spin" : ""}`} />
-                    <span>{manualCheckLoading ? "Checking Lifecycle..." : "Run Lifecycle Check Now"}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Inactive Search & Filter Bar */}
-            <div className="bg-white p-4 rounded-xl shadow-xs border border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={activitySearch}
-                  onChange={(e) => {
-                    setActivitySearch(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  placeholder="Search inactive businesses by name, industry, or email..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white text-black border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium placeholder:text-gray-400"
-                />
-                {activitySearch && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityPage(0);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <select
-                  value={activityIndustry}
-                  onChange={(e) => {
-                    setActivityIndustry(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  className="rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold bg-gray-50 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                >
-                  <option value="All">All Industries</option>
-                  {industries.map((ind, i) => (
-                    <option key={i} value={ind}>{ind}</option>
-                  ))}
-                </select>
-
-                {(activitySearch || activityIndustry !== "All") && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityIndustry("All");
-                      setActivityPage(0);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Inactive Table */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Startup & Contact
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Industry
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Inactivity Duration
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Grace Period Countdown
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Weekly Email Status
-                      </th>
-                      <th className="px-6 py-3.5 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {activityLoading ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm font-medium">Loading inactive businesses...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : activityList.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center">
-                            <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-2" />
-                            <p className="text-base font-semibold text-gray-800">No inactive businesses</p>
-                            <p className="text-xs text-gray-500 mt-1">All startups have maintained recent updates within 90 days.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      activityList.map((startup) => (
-                        <tr key={startup.id} className="hover:bg-amber-50/25 transition-colors">
-                          <td className="px-6 py-4">
-                            <div>
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="font-bold text-gray-900 hover:text-amber-600 text-left cursor-pointer transition-colors"
-                              >
-                                {startup.companyName}
-                              </button>
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                <span>{startup.city ? `${startup.city}, ` : ""}{startup.province || "Philippines"}</span>
-                              </div>
-                              {startup.contactEmail && (
-                                <a
-                                  href={`mailto:${startup.contactEmail}`}
-                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5"
-                                >
-                                  <Mail className="w-3 h-3 text-blue-500" />
-                                  <span>{startup.contactEmail}</span>
-                                </a>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                              {startup.industry || "General"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                              <span>{startup.daysInactive} days inactive</span>
-                            </span>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Last update: {formatDisplayDate(startup.lastUpdated)}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {startup.daysUntilArchive > 0 ? (
-                              <div>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-300">
-                                  <Clock className="w-3.5 h-3.5 text-rose-500" />
-                                  <span>{startup.daysUntilArchive} days left until Archive</span>
-                                </span>
-                                <p className="text-[11px] text-gray-500 mt-1">
-                                  Will be hidden from map when archived
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800">
-                                Grace Expired (Pending Archive)
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {startup.lastInactivityEmailSent ? (
-                              <div className="text-xs text-gray-700">
-                                <p className="font-semibold text-gray-900 flex items-center gap-1">
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Weekly notice sent</span>
-                                </p>
-                                <span className="text-gray-500">
-                                  {formatDisplayDate(startup.lastInactivityEmailSent)}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-gray-500 italic">
-                                Scheduled for next weekly run
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleSendInactivityReminder(startup)}
-                                disabled={sendingEmailId === startup.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                                title="Send weekly inactivity warning email now"
-                              >
-                                {sendingEmailId === startup.id ? (
-                                  <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Mail className="w-3.5 h-3.5 text-amber-700" />
-                                )}
-                                <span>Email Notice</span>
-                              </button>
-                              <button
-                                onClick={() => handleArchiveBusiness(startup)}
-                                disabled={actionLoadingId === startup.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                                title="Move to archive and hide from map"
-                              >
-                                <Archive className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Archive</span>
-                              </button>
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                title="View details"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-gray-100 px-6">
-                <ActivityPaginationControls />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Archive Tab Content */}
-        {activeTab === "archive" && (
-          <div className="space-y-6">
-            {/* Archive Notice Banner */}
-            <div className="bg-gradient-to-r from-rose-500/10 via-gray-100 to-rose-500/5 border border-rose-200 rounded-2xl p-6">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs mt-0.5">
-                    <Archive className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                      <span>Archived Businesses</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold border border-rose-200 flex items-center gap-1">
-                        <EyeOff className="w-3 h-3 text-rose-600" />
-                        Hidden from Public Map
-                      </span>
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-2 max-w-3xl leading-relaxed">
-                      Startups are moved to Archive after exceeding the <strong>7-day grace period following 90 days of inactivity</strong> (97+ days total without updates), or by administrative decision. <strong>Archived businesses are completely hidden from the interactive public map</strong> so users cannot encounter outdated startups.
-                    </p>
-                    <p className="text-xs text-rose-700 font-medium mt-2">
-                      💡 To restore an archived startup and make it visible on the map again, click <strong>Reactivate</strong> below or have the founder update any business details.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="bg-white px-4 py-3 rounded-xl border border-rose-100 shadow-xs flex items-center gap-3">
-                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
-                      <Archive className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium">Archived Startups</p>
-                      <p className="text-lg font-bold text-gray-900">{activitySummary.archivedCount}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Archive Search & Filter Bar */}
-            <div className="bg-white p-4 rounded-xl shadow-xs border border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={activitySearch}
-                  onChange={(e) => {
-                    setActivitySearch(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  placeholder="Search archived businesses by name, industry, or email..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white text-black border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all font-medium placeholder:text-gray-400"
-                />
-                {activitySearch && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityPage(0);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <select
-                  value={activityIndustry}
-                  onChange={(e) => {
-                    setActivityIndustry(e.target.value);
-                    setActivityPage(0);
-                  }}
-                  className="rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold bg-gray-50 border border-gray-300 text-gray-800 outline-none cursor-pointer focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                >
-                  <option value="All">All Industries</option>
-                  {industries.map((ind, i) => (
-                    <option key={i} value={ind}>{ind}</option>
-                  ))}
-                </select>
-
-                {(activitySearch || activityIndustry !== "All") && (
-                  <button
-                    onClick={() => {
-                      setActivitySearch("");
-                      setActivityIndustry("All");
-                      setActivityPage(0);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Archive Table */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Startup & Contact
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Industry
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Total Inactive Days
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Public Map Status
-                      </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Archive Status
-                      </th>
-                      <th className="px-6 py-3.5 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {activityLoading ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm font-medium">Loading archived businesses...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : activityList.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-12 text-gray-500">
-                          <div className="flex flex-col items-center justify-center">
-                            <Archive className="w-10 h-10 text-gray-400 mb-2" />
-                            <p className="text-base font-semibold text-gray-800">No archived businesses found</p>
-                            <p className="text-xs text-gray-500 mt-1">Archived startups will appear here once 7 days of inactivity pass.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      activityList.map((startup) => (
-                        <tr key={startup.id} className="hover:bg-rose-50/20 transition-colors">
-                          <td className="px-6 py-4">
-                            <div>
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="font-bold text-gray-900 hover:text-rose-600 text-left cursor-pointer transition-colors"
-                              >
-                                {startup.companyName}
-                              </button>
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                <span>{startup.city ? `${startup.city}, ` : ""}{startup.province || "Philippines"}</span>
-                              </div>
-                              {startup.contactEmail && (
-                                <p className="text-xs text-gray-400 mt-0.5">{startup.contactEmail}</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                              {startup.industry || "General"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-xs font-bold text-gray-800">
-                              {startup.daysInactive} days inactive
-                            </span>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              Last update: {formatDisplayDate(startup.lastUpdated)}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-300">
-                              <EyeOff className="w-3.5 h-3.5 text-rose-600" />
-                              <span>Hidden from Map</span>
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
-                              Archived
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleReactivateBusiness(startup)}
-                                disabled={actionLoadingId === startup.id}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                                title="Reactivate business and make visible on map"
-                              >
-                                {actionLoadingId === startup.id ? (
-                                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <RotateCcw className="w-3.5 h-3.5" />
-                                )}
-                                <span>Reactivate</span>
-                              </button>
-                              <button
-                                onClick={() => navigate(`/startup/${startup.id}`)}
-                                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                title="View details"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-gray-100 px-6">
-                <ActivityPaginationControls />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Startup Review Tab Content */}
         {activeTab === "review" && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Startup Application Review
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4 text-blue-900 flex items-center justify-between">
+              <div>
+                Startup Review
+                {location.state?.startupName && (
+                  <span className="ml-2 text-base font-normal text-amber-600">
+                    (Reviewing: {location.state.startupName})
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={refreshDashboard}
+                className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-md flex items-center hover:bg-blue-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 12a9 9 0 0 0 6.7 15L13 21"></path><path d="M14 18H8"></path><path d="M17 14h-3"></path></svg>
+                Refresh Data
+              </button>
             </h2>
-            <p className="text-gray-600 mb-6">
-              Review and evaluate startup applications for incubation and funding
-              eligibility.
-            </p>
 
-            <StartupReviewSection
-              selectedStartupId={selectedReviewStartupId}
-              onRefresh={refreshDashboard}
-            />
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-5 border-b border-gray-200">
+                <h3 className="text-md font-medium text-gray-800 mb-4">Filter Startups for Review</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Industry</label>
+                    <select
+                      className="border-gray-300 border rounded-md p-2 text-sm w-44 text-gray-800"
+                      value={selectedIndustry}
+                      onChange={(e) => setSelectedIndustry(e.target.value)}
+                    >
+                      <option value="All">All Industries</option>
+                      {industries.map((industry, index) => (
+                        <option key={index} value={industry}>
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Region</label>
+                    <select
+                      className="border-gray-300 border rounded-md p-2 text-sm w-44 text-gray-800"
+                      value={reportFormData.region}
+                      onChange={(e) =>
+                        setReportFormData(prev => ({ ...prev, region: e.target.value }))
+                      }
+                      disabled={psgcLoading}
+                    >
+                      <option value="All Regions">All Regions</option>
+                      {psgcLoading ? (
+                        <option value="" disabled>Loading regions...</option>
+                      ) : (
+                        availableRegions.map((region, index) => (
+                          <option key={region.code || index} value={region.name || region}>
+                            {region.regionName || region.name || region}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    {psgcLoading && (
+                      <div className="absolute right-10 top-2.5">
+                        <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Status</label>
+                    <select
+                      className="border-gray-300 border rounded-md p-2 text-sm w-44 text-gray-800"
+                      value={reviewFilterStatus}
+                      onChange={(e) => setReviewFilterStatus(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="In Review">Pending Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Needs Revision</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Search</label>
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search startups..."
+                        className="pl-9 pr-4 py-2 border border-gray-300 text-gray-800 rounded-md text-sm w-64"
+                        value={reviewSearchQuery}
+                        onChange={(e) => setReviewSearchQuery(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') handleReviewFilter();
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-end space-x-2 ml-auto">
+                    <button
+                      onClick={resetReviewFilters}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-100 transition-colors"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={handleReviewFilter}
+                      disabled={reviewLoading}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-700 transition-colors disabled:bg-indigo-400"
+                    >
+                      {reviewLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Filtering...
+                        </>
+                      ) : (
+                        <>
+                          <Filter className="h-4 w-4 mr-1" />
+                          Apply Filters
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5">
+                {reviewLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mr-2"></div>
+                    <p className="text-gray-600">Loading startups for review...</p>
+                  </div>
+                ) : (
+                  <StartupReviewSection
+                    startupId={selectedReviewStartupId}
+                    industry={selectedIndustry}
+                    region={reportFormData.region}
+                    status={reviewFilterStatus}
+                    searchQuery={reviewSearchQuery}
+                    filteredStartups={filteredStartups.length > 0 ? filteredStartups : null}
+                    onRefresh={handleReviewFilter}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Pending Reviews</h3>
+                <div className="flex items-center">
+                  <div className="p-2 bg-amber-100 rounded mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  </div>
+                  <span className="text-xl font-semibold text-gray-800">
+                    {filteredStartups.filter(s => s.reviewStatus === "pending")?.length || 0}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Approved Startups</h3>
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  </div>
+                  <span className="text-xl font-semibold text-gray-800">
+                    {filteredStartups.filter(s => s.reviewStatus === "approved")?.length || 0}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Needs Revision</h3>
+                <div className="flex items-center">
+                  <div className="p-2 bg-red-100 rounded mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                  </div>
+                  <span className="text-xl font-semibold text-gray-800">
+                    {filteredStartups.filter(s => s.reviewStatus === "rejected")?.length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+             */}
           </div>
         )}
 

@@ -127,7 +127,7 @@ export default function StartupDetail() {
 
       setDeleteStartupModal({ isOpen: false, isDeleting: false, error: null });
       navigate("/all-startup-dashboard", {
-        state: { 
+        state: {
           activeTab: "rankings",
           message: `"${startup?.companyName || "Startup"}" was deleted successfully.`
         }
@@ -292,8 +292,7 @@ export default function StartupDetail() {
     setStakeholderLoading(true);
     try {
       const response = await fetch(
-        `${
-          getBackendUrl()
+        `${getBackendUrl()
         }/startup-stakeholders/startup/${id}/stakeholders`,
         {
           headers: getAuthHeaders(),
@@ -396,7 +395,7 @@ export default function StartupDetail() {
         // Handle other errors
         setFormError(
           responseData.message ||
-            "An error occurred while adding the stakeholder. Please try again."
+          "An error occurred while adding the stakeholder. Please try again."
         );
         setIsSubmitting(false);
         return;
@@ -820,8 +819,7 @@ export default function StartupDetail() {
       // Step 1: Delete the startup-stakeholder association
       console.log(`Deleting association with ID: ${associationId}`);
       const associationResponse = await fetch(
-        `${
-          getBackendUrl()
+        `${getBackendUrl()
         }/startup-stakeholders/${associationId}`,
         {
           method: "DELETE",
@@ -1005,11 +1003,10 @@ export default function StartupDetail() {
   {
     notification && (
       <div
-        className={`fixed top-4 right-4 z-50 max-w-md rounded-lg shadow-lg p-4 flex items-start ${
-          notification.type === "success"
-            ? "bg-green-50 border border-green-100"
-            : "bg-red-50 border border-red-100"
-        }`}
+        className={`fixed top-4 right-4 z-50 max-w-md rounded-lg shadow-lg p-4 flex items-start ${notification.type === "success"
+          ? "bg-green-50 border border-green-100"
+          : "bg-red-50 border border-red-100"
+          }`}
         role="alert"
         aria-live="assertive"
       >
@@ -1026,31 +1023,28 @@ export default function StartupDetail() {
         )}
         <div className="flex-1">
           <h3
-            className={`text-sm font-medium ${
-              notification.type === "success"
-                ? "text-green-800"
-                : "text-red-800"
-            }`}
+            className={`text-sm font-medium ${notification.type === "success"
+              ? "text-green-800"
+              : "text-red-800"
+              }`}
           >
             {notification.title}
           </h3>
           <p
-            className={`mt-1 text-sm ${
-              notification.type === "success"
-                ? "text-green-700"
-                : "text-red-700"
-            }`}
+            className={`mt-1 text-sm ${notification.type === "success"
+              ? "text-green-700"
+              : "text-red-700"
+              }`}
           >
             {notification.message}
           </p>
         </div>
         <button
           onClick={() => setNotification(null)}
-          className={`ml-4 p-1 rounded-full ${
-            notification.type === "success"
-              ? "hover:bg-green-100 text-green-500"
-              : "hover:bg-red-100 text-red-500"
-          }`}
+          className={`ml-4 p-1 rounded-full ${notification.type === "success"
+            ? "hover:bg-green-100 text-green-500"
+            : "hover:bg-red-100 text-red-500"
+            }`}
           aria-label="Close notification"
         >
           <X size={16} />
@@ -1382,8 +1376,7 @@ export default function StartupDetail() {
       // UPDATED: Delete the stakeholder entity directly using the /stakeholders endpoint
       console.log(`Deleting stakeholder with ID: ${actualStakeholderId}`);
       const stakeholderResponse = await fetch(
-        `${
-          getBackendUrl()
+        `${getBackendUrl()
         }/stakeholders/${actualStakeholderId}`,
         {
           method: "DELETE",
@@ -1543,11 +1536,10 @@ export default function StartupDetail() {
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-md rounded-lg shadow-lg p-4 flex items-center ${
-            notification.type === "success"
-              ? "bg-green-50 border border-green-100"
-              : "bg-red-50 border border-red-100"
-          }`}
+          className={`fixed top-4 right-4 z-50 max-w-md rounded-lg shadow-lg p-4 flex items-center ${notification.type === "success"
+            ? "bg-green-50 border border-green-100"
+            : "bg-red-50 border border-red-100"
+            }`}
         >
           {notification.type === "success" ? (
             <CheckCircle2
@@ -1571,11 +1563,10 @@ export default function StartupDetail() {
           </p>
           <button
             onClick={() => setNotification(null)}
-            className={`ml-4 p-1 rounded-full ${
-              notification.type === "success"
-                ? "hover:bg-green-100 text-green-500"
-                : "hover:bg-red-100 text-red-500"
-            }`}
+            className={`ml-4 p-1 rounded-full ${notification.type === "success"
+              ? "hover:bg-green-100 text-green-500"
+              : "hover:bg-red-100 text-red-500"
+              }`}
           >
             <X size={16} />
           </button>
@@ -1587,21 +1578,19 @@ export default function StartupDetail() {
         <div className="mb-6 border-b border-gray-200">
           <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto no-scrollbar">
             <button
-              className={`px-1 py-4 border-b-2 font-medium text-sm ${
-                activeTab === "details"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              className={`px-1 py-4 border-b-2 font-medium text-sm ${activeTab === "details"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
               onClick={() => setActiveTab("details")}
             >
               Startup Details
             </button>
             <button
-              className={`px-1 py-4 border-b-2 font-medium text-sm ${
-                activeTab === "stakeholders"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              className={`px-1 py-4 border-b-2 font-medium text-sm ${activeTab === "stakeholders"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
               onClick={() => setActiveTab("stakeholders")}
             >
               Stakeholders
@@ -1768,77 +1757,77 @@ export default function StartupDetail() {
                   startup.twitter ||
                   startup.instagram ||
                   startup.linkedIn) && (
-                  <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                    {startup.facebook && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100/80 transition-colors">
+                    <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                      {startup.facebook && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100/80 transition-colors">
+                          <a
+                            href={startup.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-[#1877F2] hover:underline"
+                            title="Open Facebook Page"
+                          >
+                            <Facebook size={15} />
+                            <span>Facebook</span>
+                          </a>
+                          {(startup.facebookFollowers > 0 || startup.facebookLikes > 0) && (
+                            <div className="flex items-center gap-1.5 border-l border-blue-200 pl-2 text-xs font-medium text-blue-900">
+                              {startup.facebookFollowers > 0 && (
+                                <span>{startup.facebookFollowers.toLocaleString()} followers</span>
+                              )}
+                              {startup.facebookFollowers > 0 && startup.facebookLikes > 0 && (
+                                <span className="text-blue-300">·</span>
+                              )}
+                              {startup.facebookLikes > 0 && (
+                                <span>{startup.facebookLikes.toLocaleString()} likes</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {startup.instagram && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100/80 transition-colors">
+                          <a
+                            href={startup.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-pink-600 hover:underline"
+                            title="Open Instagram Profile"
+                          >
+                            <Instagram size={15} />
+                            <span>Instagram</span>
+                          </a>
+                          {startup.instagramFollowers > 0 && (
+                            <div className="border-l border-pink-200 pl-2 text-xs font-medium text-pink-900">
+                              <span>{startup.instagramFollowers.toLocaleString()} followers</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {startup.twitter && (
                         <a
-                          href={startup.facebook}
+                          href={startup.twitter}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-semibold text-[#1877F2] hover:underline"
-                          title="Open Facebook Page"
+                          className="p-2 text-gray-400 hover:text-blue-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                          title="Twitter"
                         >
-                          <Facebook size={15} />
-                          <span>Facebook</span>
+                          <Twitter size={16} />
                         </a>
-                        {(startup.facebookFollowers > 0 || startup.facebookLikes > 0) && (
-                          <div className="flex items-center gap-1.5 border-l border-blue-200 pl-2 text-xs font-medium text-blue-900">
-                            {startup.facebookFollowers > 0 && (
-                              <span>{startup.facebookFollowers.toLocaleString()} followers</span>
-                            )}
-                            {startup.facebookFollowers > 0 && startup.facebookLikes > 0 && (
-                              <span className="text-blue-300">·</span>
-                            )}
-                            {startup.facebookLikes > 0 && (
-                              <span>{startup.facebookLikes.toLocaleString()} likes</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {startup.instagram && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100/80 transition-colors">
+                      )}
+                      {startup.linkedIn && (
                         <a
-                          href={startup.instagram}
+                          href={startup.linkedIn}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-semibold text-pink-600 hover:underline"
-                          title="Open Instagram Profile"
+                          className="p-2 text-gray-400 hover:text-blue-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                          title="LinkedIn"
                         >
-                          <Instagram size={15} />
-                          <span>Instagram</span>
+                          <Linkedin size={16} />
                         </a>
-                        {startup.instagramFollowers > 0 && (
-                          <div className="border-l border-pink-200 pl-2 text-xs font-medium text-pink-900">
-                            <span>{startup.instagramFollowers.toLocaleString()} followers</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {startup.twitter && (
-                      <a
-                        href={startup.twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-gray-400 hover:text-blue-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        title="Twitter"
-                      >
-                        <Twitter size={16} />
-                      </a>
-                    )}
-                    {startup.linkedIn && (
-                      <a
-                        href={startup.linkedIn}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-gray-400 hover:text-blue-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        title="LinkedIn"
-                      >
-                        <Linkedin size={16} />
-                      </a>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -2040,13 +2029,12 @@ export default function StartupDetail() {
                       {/* Progress Bar */}
                       <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden border border-gray-200">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            Number(startup.trlLevel) >= 7
-                              ? "bg-gradient-to-r from-blue-500 to-emerald-500"
-                              : Number(startup.trlLevel) >= 4
+                          className={`h-full rounded-full transition-all duration-500 ${Number(startup.trlLevel) >= 7
+                            ? "bg-gradient-to-r from-blue-500 to-emerald-500"
+                            : Number(startup.trlLevel) >= 4
                               ? "bg-gradient-to-r from-blue-400 to-amber-500"
                               : "bg-blue-500"
-                          }`}
+                            }`}
                           style={{ width: `${Math.min(100, (Number(startup.trlLevel || 1) / 9) * 100)}%` }}
                         ></div>
                       </div>
@@ -2148,11 +2136,10 @@ export default function StartupDetail() {
                       onClick={() => {
                         setShowStakeholderBrowser(true);
                       }}
-                      className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                        isStartupVerified
-                          ? "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          : "bg-gray-300 cursor-not-allowed"
-                      }`}
+                      className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isStartupVerified
+                        ? "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        : "bg-gray-300 cursor-not-allowed"
+                        }`}
                       disabled={!isStartupVerified}
                       title={
                         isStartupVerified
@@ -2263,29 +2250,26 @@ export default function StartupDetail() {
                                 <div className="mt-4 flex flex-col items-center">
                                   <div className="flex items-center space-x-2">
                                     <div
-                                      className={`h-2 w-2 rounded-full ${
-                                        selectedRegion
-                                          ? "bg-green-500"
-                                          : "bg-gray-300"
-                                      }`}
+                                      className={`h-2 w-2 rounded-full ${selectedRegion
+                                        ? "bg-green-500"
+                                        : "bg-gray-300"
+                                        }`}
                                     ></div>
                                     <span className="text-sm">Region</span>
 
                                     <div
-                                      className={`h-2 w-2 rounded-full ${
-                                        selectedProvince
-                                          ? "bg-green-500"
-                                          : "bg-gray-300"
-                                      }`}
+                                      className={`h-2 w-2 rounded-full ${selectedProvince
+                                        ? "bg-green-500"
+                                        : "bg-gray-300"
+                                        }`}
                                     ></div>
                                     <span className="text-sm">Province</span>
 
                                     <div
-                                      className={`h-2 w-2 rounded-full ${
-                                        selectedCity
-                                          ? "bg-green-500"
-                                          : "bg-gray-300"
-                                      }`}
+                                      className={`h-2 w-2 rounded-full ${selectedCity
+                                        ? "bg-green-500"
+                                        : "bg-gray-300"
+                                        }`}
                                     ></div>
                                     <span className="text-sm">City</span>
                                   </div>
@@ -2452,14 +2436,13 @@ export default function StartupDetail() {
                                               email: cleanEmail,
                                             });
                                           }}
-                                          className={`block text-gray-800 w-full px-3 py-2 border ${
-                                            stakeholderFormData.email &&
+                                          className={`block text-gray-800 w-full px-3 py-2 border ${stakeholderFormData.email &&
                                             !validateEmail(
                                               stakeholderFormData.email
                                             )
-                                              ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                                              : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                          } rounded-md shadow-sm sm:text-sm transition-all`}
+                                            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                                            : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                            } rounded-md shadow-sm sm:text-sm transition-all`}
                                           placeholder="john.smith@example.com"
                                         />
                                         {stakeholderFormData.email &&
@@ -2602,15 +2585,14 @@ export default function StartupDetail() {
                                       <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                           <div
-                                            className={`w-2 h-2 rounded-full ${
-                                              stakeholderFormData.status ===
+                                            className={`w-2 h-2 rounded-full ${stakeholderFormData.status ===
                                               "Active"
-                                                ? "bg-green-500"
-                                                : stakeholderFormData.status ===
-                                                  "Inactive"
+                                              ? "bg-green-500"
+                                              : stakeholderFormData.status ===
+                                                "Inactive"
                                                 ? "bg-gray-400"
                                                 : "bg-yellow-500"
-                                            }`}
+                                              }`}
                                           ></div>
                                         </div>
                                         <select
@@ -2697,11 +2679,10 @@ export default function StartupDetail() {
                                           !selectedRegion ||
                                           provinces.length === 0
                                         }
-                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${
-                                          !selectedRegion
-                                            ? "bg-gray-100 cursor-not-allowed"
-                                            : ""
-                                        }`}
+                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${!selectedRegion
+                                          ? "bg-gray-100 cursor-not-allowed"
+                                          : ""
+                                          }`}
                                       >
                                         <option value="">
                                           Select a province
@@ -2742,11 +2723,10 @@ export default function StartupDetail() {
                                           !selectedProvince ||
                                           cities.length === 0
                                         }
-                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${
-                                          !selectedProvince
-                                            ? "bg-gray-100 cursor-not-allowed"
-                                            : ""
-                                        }`}
+                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${!selectedProvince
+                                          ? "bg-gray-100 cursor-not-allowed"
+                                          : ""
+                                          }`}
                                       >
                                         <option value="">
                                           Select a city/municipality
@@ -2780,11 +2760,10 @@ export default function StartupDetail() {
                                           !selectedCity ||
                                           barangays.length === 0
                                         }
-                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${
-                                          !selectedCity
-                                            ? "bg-gray-100 cursor-not-allowed"
-                                            : ""
-                                        }`}
+                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all text-gray-800 ${!selectedCity
+                                          ? "bg-gray-100 cursor-not-allowed"
+                                          : ""
+                                          }`}
                                       >
                                         <option value="">
                                           Select a barangay
@@ -2953,10 +2932,10 @@ export default function StartupDetail() {
                                               ...(e.target.checked
                                                 ? {}
                                                 : {
-                                                    locationLat: null,
-                                                    locationLng: null,
-                                                    locationName: "",
-                                                  }),
+                                                  locationLat: null,
+                                                  locationLng: null,
+                                                  locationName: "",
+                                                }),
                                             });
                                           }}
                                           className="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
@@ -2973,7 +2952,7 @@ export default function StartupDetail() {
                                     <div className="space-y-4">
                                       <div className="relative rounded-md border border-gray-300 bg-gray-50 p-4">
                                         {stakeholderFormData.locationLat &&
-                                        stakeholderFormData.locationLng ? (
+                                          stakeholderFormData.locationLng ? (
                                           <div className="flex flex-col space-y-3">
                                             <div className="flex items-center justify-between">
                                               <div>
@@ -3085,11 +3064,10 @@ export default function StartupDetail() {
                               type="button"
                               disabled={isSubmitting}
                               onClick={closeStakeholderModal}
-                              className={`px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium ${
-                                isSubmitting
-                                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                                  : "text-gray-700 bg-white hover:bg-gray-50"
-                              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
+                              className={`px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium ${isSubmitting
+                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                : "text-gray-700 bg-white hover:bg-gray-50"
+                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
                             >
                               Cancel
                             </button>
@@ -3097,11 +3075,10 @@ export default function StartupDetail() {
                               type="submit"
                               form="stakeholder-form"
                               disabled={isSubmitting}
-                              className={`px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                                isSubmitting
-                                  ? "bg-blue-500 cursor-not-allowed"
-                                  : "bg-blue-600 hover:bg-blue-700"
-                              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors inline-flex items-center`}
+                              className={`px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isSubmitting
+                                ? "bg-blue-500 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700"
+                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors inline-flex items-center`}
                             >
                               {isSubmitting ? (
                                 <>
@@ -3194,11 +3171,10 @@ export default function StartupDetail() {
                                 return (
                                   <React.Fragment key={stakeholderId}>
                                     <tr
-                                      className={`hover:bg-gray-50 ${
-                                        expandedStakeholders[stakeholderId]
-                                          ? "bg-blue-50/40"
-                                          : ""
-                                      }`}
+                                      className={`hover:bg-gray-50 ${expandedStakeholders[stakeholderId]
+                                        ? "bg-blue-50/40"
+                                        : ""
+                                        }`}
                                     >
                                       <td className="px-3 py-4 whitespace-nowrap">
                                         <button
@@ -3427,48 +3403,48 @@ export default function StartupDetail() {
                                                 {(stakeholder.createdAt ||
                                                   stakeholder.lastUpdated ||
                                                   stakeholderData.dateJoined) && (
-                                                  <div className="space-y-2">
-                                                    <h4 className="text-sm font-semibold flex items-center text-gray-700">
-                                                      <Clock
-                                                        size={16}
-                                                        className="mr-1 text-gray-400"
-                                                      />{" "}
-                                                      Date Information
-                                                    </h4>
-                                                    <div className="pl-6 space-y-1 text-sm">
-                                                      {stakeholderData.dateJoined && (
-                                                        <p className="text-gray-600">
-                                                          <span className="font-medium">
-                                                            Date Joined:
-                                                          </span>{" "}
-                                                          {formatDate(
-                                                            stakeholderData.dateJoined
-                                                          )}
-                                                        </p>
-                                                      )}
-                                                      {stakeholder.createdAt && (
-                                                        <p className="text-gray-600">
-                                                          <span className="font-medium">
-                                                            Created:
-                                                          </span>{" "}
-                                                          {formatDateTime(
-                                                            stakeholder.createdAt
-                                                          )}
-                                                        </p>
-                                                      )}
-                                                      {stakeholder.lastUpdated && (
-                                                        <p className="text-gray-600">
-                                                          <span className="font-medium">
-                                                            Last Updated:
-                                                          </span>{" "}
-                                                          {formatDateTime(
-                                                            stakeholder.lastUpdated
-                                                          )}
-                                                        </p>
-                                                      )}
+                                                    <div className="space-y-2">
+                                                      <h4 className="text-sm font-semibold flex items-center text-gray-700">
+                                                        <Clock
+                                                          size={16}
+                                                          className="mr-1 text-gray-400"
+                                                        />{" "}
+                                                        Date Information
+                                                      </h4>
+                                                      <div className="pl-6 space-y-1 text-sm">
+                                                        {stakeholderData.dateJoined && (
+                                                          <p className="text-gray-600">
+                                                            <span className="font-medium">
+                                                              Date Joined:
+                                                            </span>{" "}
+                                                            {formatDate(
+                                                              stakeholderData.dateJoined
+                                                            )}
+                                                          </p>
+                                                        )}
+                                                        {stakeholder.createdAt && (
+                                                          <p className="text-gray-600">
+                                                            <span className="font-medium">
+                                                              Created:
+                                                            </span>{" "}
+                                                            {formatDateTime(
+                                                              stakeholder.createdAt
+                                                            )}
+                                                          </p>
+                                                        )}
+                                                        {stakeholder.lastUpdated && (
+                                                          <p className="text-gray-600">
+                                                            <span className="font-medium">
+                                                              Last Updated:
+                                                            </span>{" "}
+                                                            {formatDateTime(
+                                                              stakeholder.lastUpdated
+                                                            )}
+                                                          </p>
+                                                        )}
+                                                      </div>
                                                     </div>
-                                                  </div>
-                                                )}
+                                                  )}
                                               </div>
                                             </div>
 
@@ -3540,11 +3516,10 @@ export default function StartupDetail() {
                             onClick={() => {
                               setShowStakeholderBrowser(true);
                             }}
-                            className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-                              isStartupVerified
-                                ? "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                : "bg-gray-300 cursor-not-allowed"
-                            }`}
+                            className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${isStartupVerified
+                              ? "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              : "bg-gray-300 cursor-not-allowed"
+                              }`}
                             disabled={!isStartupVerified}
                             title={
                               isStartupVerified
@@ -3593,12 +3568,12 @@ export default function StartupDetail() {
                   onLocationSelect={handleLocationSelect}
                   initialLocation={
                     stakeholderFormData.locationLat &&
-                    stakeholderFormData.locationLng
+                      stakeholderFormData.locationLng
                       ? {
-                          lat: stakeholderFormData.locationLat,
-                          lng: stakeholderFormData.locationLng,
-                          name: stakeholderFormData.locationName,
-                        }
+                        lat: stakeholderFormData.locationLat,
+                        lng: stakeholderFormData.locationLng,
+                        name: stakeholderFormData.locationName,
+                      }
                       : null
                   }
                 />
@@ -3687,11 +3662,10 @@ export default function StartupDetail() {
                 }
                 disabled={deleteModal.isDeleting}
                 className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium
-            ${
-              deleteModal.isDeleting
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            } transition-colors duration-200`}
+            ${deleteModal.isDeleting
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  } transition-colors duration-200`}
               >
                 Cancel
               </button>
@@ -3700,11 +3674,10 @@ export default function StartupDetail() {
                 onClick={confirmDeleteStakeholder}
                 disabled={deleteModal.isDeleting}
                 className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium 
-            text-white ${
-              deleteModal.isDeleting
-                ? "bg-red-500 cursor-wait"
-                : "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            } transition-colors duration-200 inline-flex items-center`}
+            text-white ${deleteModal.isDeleting
+                    ? "bg-red-500 cursor-wait"
+                    : "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  } transition-colors duration-200 inline-flex items-center`}
               >
                 {deleteModal.isDeleting ? (
                   <>

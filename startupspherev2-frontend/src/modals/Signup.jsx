@@ -145,7 +145,7 @@ export default function Signup({ closeModal, openLogin }) {
           }
           throw new Error(formatErrorMessage(errorData.error));
         }
-        
+
         // Handle other errors with a formal message
         throw new Error(formatErrorMessage(errorData.message || "We're unable to complete your registration at this time. Please try again later."));
       }
@@ -396,11 +396,10 @@ export default function Signup({ closeModal, openLogin }) {
                 </div>
                 <input
                   id="email"
-                  className={`block w-full px-3 py-2.5 sm:py-3 pl-11 text-gray-900 placeholder-gray-400 bg-white border ${
-                    emailError
-                      ? 'border-4 border-red-500 focus:border-red-800 focus:ring-red-800'
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/50'
-                  } rounded-lg focus:ring-2 transition-all duration-200 text-sm sm:text-base`}
+                  className={`block w-full px-3 py-2.5 sm:py-3 pl-11 text-gray-900 placeholder-gray-400 bg-white border ${emailError
+                    ? 'border-4 border-red-500 focus:border-red-800 focus:ring-red-800'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/50'
+                    } rounded-lg focus:ring-2 transition-all duration-200 text-sm sm:text-base`}
                   type="email"
                   placeholder="Enter your email"
                   value={email}
@@ -507,13 +506,12 @@ export default function Signup({ closeModal, openLogin }) {
                     </div>
                     {passwordStrength.label && (
                       <span
-                        className={`text-xs font-semibold ${
-                          passwordStrength.label === "Weak"
-                            ? "text-red-600"
-                            : passwordStrength.label === "Average"
+                        className={`text-xs font-semibold ${passwordStrength.label === "Weak"
+                          ? "text-red-600"
+                          : passwordStrength.label === "Average"
                             ? "text-orange-500"
                             : "text-green-600"
-                        }`}
+                          }`}
                       >
                         {passwordStrength.label}
                       </span>
@@ -620,11 +618,10 @@ export default function Signup({ closeModal, openLogin }) {
                 </div>
                 <input
                   id="confirmPassword"
-                  className={`block w-full px-3 py-2.5 sm:py-3 pl-11 pr-11 text-gray-900 placeholder-gray-400 bg-white border ${
-                    confirmPassword && password !== confirmPassword
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/50'
-                  } rounded-lg focus:ring-2 transition-all duration-200 text-sm sm:text-base`}
+                  className={`block w-full px-3 py-2.5 sm:py-3 pl-11 pr-11 text-gray-900 placeholder-gray-400 bg-white border ${confirmPassword && password !== confirmPassword
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/50'
+                    } rounded-lg focus:ring-2 transition-all duration-200 text-sm sm:text-base`}
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   value={confirmPassword}
@@ -720,7 +717,7 @@ export default function Signup({ closeModal, openLogin }) {
 
             {/* Error message */}
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-2.5 sm:p-3 bg-red-50 border border-red-100 rounded-lg"
