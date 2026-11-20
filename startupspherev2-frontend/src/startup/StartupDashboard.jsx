@@ -1529,7 +1529,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
         {/* Enhanced Alert Messages */}
         {error && (
           <div className="mb-6">
@@ -1598,54 +1598,47 @@ export default function StartupDashboard({ openAddMethodModal }) {
         )}
 
         {/* Consolidated Portfolio Filter & Focus Toolbar */}
-        <div className="mb-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-3 sm:p-4">
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-              {/* Focus Startup Selector */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
-                    <Building className="w-4 h-4" />
-                  </div>
-                  <span>Focus Startup:</span>
-                </div>
-                <div className="relative min-w-[240px] w-full sm:w-auto">
-                  <select
-                    id="dashboard-startup-select"
-                    value={selectedStartup}
-                    onChange={handleChange}
-                    className="w-full text-gray-900 text-sm font-semibold rounded-xl px-4 py-2.5 pr-10 outline-none cursor-pointer"
-                    disabled={loading}
-                  >
-                    <option value="all">All Portfolio Startups ({startups.length})</option>
-                    {Array.from(new Map(startups.map((st) => [st.id, st])).values()).map((st) => (
-                      <option value={st.id} key={st.id}>
-                        {st.companyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <div className="mb-3.5">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 px-3.5 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Focus Startup Selector */}
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shrink-0">
+                <Building className="w-4 h-4" />
               </div>
+              <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Focus Startup:</span>
+              <div className="relative min-w-[200px] sm:min-w-[260px] flex-1 sm:flex-initial">
+                <select
+                  id="dashboard-startup-select"
+                  value={selectedStartup}
+                  onChange={handleChange}
+                  className="w-full text-gray-900 text-xs sm:text-sm font-bold bg-gray-50 hover:bg-gray-100/80 rounded-lg px-3 py-1.5 pr-8 border border-gray-200 focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer transition-all"
+                  disabled={loading}
+                >
+                  <option value="all">All Portfolio Startups ({startups.length})</option>
+                  {Array.from(new Map(startups.map((st) => [st.id, st])).values()).map((st) => (
+                    <option value={st.id} key={st.id}>
+                      {st.companyName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-              {/* View Metric Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1 hidden sm:inline">
-                  View:
-                </span>
-                {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
-                  <button
-                    key={filter}
-                    className={`px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                      activeFilter === filter
-                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-                        : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent"
-                    }`}
-                    onClick={() => handleFilterClick(filter)}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
+            {/* View Metric Filters - Segmented Control */}
+            <div className="inline-flex items-center p-1 bg-gray-100/90 rounded-xl border border-gray-200/60 gap-1 self-start md:self-auto overflow-x-auto max-w-full">
+              {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
+                <button
+                  key={filter}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                    activeFilter === filter
+                      ? "bg-white text-indigo-700 shadow-xs font-bold border border-gray-200/50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/50"
+                  }`}
+                  onClick={() => handleFilterClick(filter)}
+                >
+                  {filter}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -1808,24 +1801,24 @@ export default function StartupDashboard({ openAddMethodModal }) {
               const igCount = startups.filter(s => s.instagram).length;
 
               return (
-                <div className="mb-4">
+                <div className="mb-3.5">
                   {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                     {/* Views Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-amber-300 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100/80">
-                          <FaEye className="h-4 w-4 text-amber-600" />
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-amber-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100/80">
+                          <FaEye className="h-3.5 w-3.5 text-amber-600" />
                         </div>
                         <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-200/80 uppercase">
                           Views
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Total Views
                         </h3>
-                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                           {loading ? (
                             <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
@@ -1839,20 +1832,20 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Bookmarks Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-emerald-300 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100/80">
-                          <FaBookBookmark className="h-4 w-4 text-emerald-600" />
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-emerald-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100/80">
+                          <FaBookBookmark className="h-3.5 w-3.5 text-emerald-600" />
                         </div>
                         <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded border border-emerald-200/80 uppercase">
                           Saved
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Bookmarks
                         </h3>
-                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                           {loading ? (
                             <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
@@ -1866,9 +1859,9 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Likes Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-blue-300 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
                           <BiLike className="h-4 w-4 text-blue-600" />
                         </div>
                         <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-200/80 uppercase">
@@ -1876,10 +1869,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Platform Likes
                         </h3>
-                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                           {loading ? (
                             <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
@@ -1893,17 +1886,17 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Facebook Page Engagement Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 hover:shadow-sm hover:border-blue-300 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
-                          <FaFacebook className="h-4 w-4 text-[#1877F2]" />
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
+                          <FaFacebook className="h-3.5 w-3.5 text-[#1877F2]" />
                         </div>
                         <div className="flex items-center gap-1">
                           {activeStartup && (activeStartup.facebook || activeStartup.instagram) && (
                             <button
                               onClick={() => handleSyncSocial(activeStartup)}
                               disabled={syncingSocialId === activeStartup.id}
-                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[10px] font-semibold rounded border border-blue-200 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[10px] font-semibold rounded border border-blue-200 transition-colors cursor-pointer"
                               title="Sync Live Metrics from Page Link"
                             >
                               <RefreshCw className={`w-2.5 h-2.5 ${syncingSocialId === activeStartup.id ? "animate-spin text-blue-600" : ""}`} />
@@ -1919,7 +1912,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                               title="Open Facebook Page"
                             >
                               <span>Page</span>
-                              <ExternalLink size={9} />
+                              <ExternalLink size={8} />
                             </a>
                           ) : (
                             <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">
@@ -1929,11 +1922,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
                           FB Followers
                         </h3>
                         <div className="flex items-baseline gap-1">
-                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
+                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                             {loading ? (
                               <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
@@ -1953,17 +1946,17 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Instagram Audience Card */}
-                    <div className="col-span-2 sm:col-span-1 md:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 hover:shadow-sm hover:border-pink-300 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
-                          <FaInstagram className="h-4 w-4" />
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-pink-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+                          <FaInstagram className="h-3.5 w-3.5" />
                         </div>
                         <div className="flex items-center gap-1">
                           {activeStartup && activeStartup.instagram && (
                             <button
                               onClick={() => handleSyncSocial(activeStartup)}
                               disabled={syncingSocialId === activeStartup.id}
-                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-50 text-pink-700 hover:bg-pink-100 text-[10px] font-semibold rounded border border-pink-200 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-50 text-pink-700 hover:bg-pink-100 text-[10px] font-semibold rounded border border-pink-200 transition-colors cursor-pointer"
                               title="Sync Live Metrics from Instagram Link"
                             >
                               <RefreshCw className={`w-2.5 h-2.5 ${syncingSocialId === activeStartup.id ? "animate-spin text-pink-600" : ""}`} />
@@ -1979,7 +1972,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                               title="Open Instagram Profile"
                             >
                               <span>IG</span>
-                              <ExternalLink size={9} />
+                              <ExternalLink size={8} />
                             </a>
                           ) : (
                             <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">
@@ -1989,11 +1982,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
                           Instagram Reach
                         </h3>
                         <div className="flex items-baseline gap-1">
-                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
+                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                             {loading ? (
                               <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
@@ -2018,30 +2011,32 @@ export default function StartupDashboard({ openAddMethodModal }) {
               const activeTrl = activeStartup?.trlLevel
                 ? Number(String(activeStartup.trlLevel).replace(/\D/g, "")) || 4
                 : 4;
-              const isGovReg = activeStartup ? activeStartup.isGovernmentRegistered : startups.some(s => s.isGovernmentRegistered);
-              const agency = activeStartup ? activeStartup.registrationAgency : "BIR";
-              const regNumber = activeStartup ? activeStartup.registrationNumber : "BIR-REG-2025-01";
+              const isGovReg = activeStartup ? !!activeStartup.isGovernmentRegistered : startups.some(s => s.isGovernmentRegistered);
+              const agency = activeStartup?.registrationAgency
+                ? (String(activeStartup.registrationAgency).toUpperCase().includes("BIR") ? "Government Certified" : activeStartup.registrationAgency)
+                : (isGovReg ? "Government Certified" : "Registered");
+              const regNumber = activeStartup?.registrationNumber || (isGovReg ? "Verified" : "Pending");
               const convRate = metrics.views > 0 ? ((metrics.bookmarks / metrics.views) * 100).toFixed(1) : "0.0";
               const likeRate = metrics.views > 0 ? ((metrics.likes / metrics.views) * 100).toFixed(1) : "0.0";
 
               return (
-                <div className="mb-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+                <div className="mb-3.5">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {/* TRL Readiness Roadmap */}
-                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1.5">
                             <Layers className="w-4 h-4 text-indigo-600" />
-                            <h3 className="text-sm font-bold text-gray-900">TRL Readiness</h3>
+                            <h3 className="text-xs sm:text-sm font-bold text-gray-900">TRL Readiness</h3>
                             <TooltipInfo type="TRL" size="xs" />
                           </div>
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                             TRL Level {activeTrl} of 9
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-gray-500 mb-2.5">
+                        <p className="text-[11px] text-gray-500 mb-2">
                           {activeTrl <= 3
                             ? "Phase 1: Basic Research & Concept Formulation"
                             : activeTrl <= 6
@@ -2050,7 +2045,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </p>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200 mb-2.5">
+                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200 mb-2">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 transition-all duration-500"
                             style={{ width: `${Math.min(100, (activeTrl / 9) * 100)}%` }}
@@ -2058,7 +2053,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] text-gray-500 pt-2 border-t border-gray-100">
+                      <div className="grid grid-cols-3 gap-1 text-center text-[10px] text-gray-500 pt-2 border-t border-gray-100">
                         <span className={`p-1 rounded ${activeTrl <= 3 ? "bg-emerald-50 text-emerald-800 font-bold" : "bg-gray-50"}`}>
                           1-3 Concept
                         </span>
@@ -2072,20 +2067,20 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Government Registration & Government Certified Compliance */}
-                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1.5">
                             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                            <h3 className="text-sm font-bold text-gray-900">Government Certified Status</h3>
+                            <h3 className="text-xs sm:text-sm font-bold text-gray-900">Government Certified Status</h3>
                             <TooltipInfo type="GOV_REG" size="xs" />
                           </div>
-                          {agency === "BIR" && (
+                          {agency === "Government Certified" && (
                             <TooltipInfo type="BIR" size="xs" />
                           )}
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">Registration:</span>
                             <span className={`font-semibold inline-flex items-center gap-1 ${isGovReg ? "text-emerald-700" : "text-amber-600"}`}>
@@ -2097,39 +2092,39 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">Agency:</span>
                             <span className="font-bold text-gray-800 px-2 py-0.5 rounded bg-gray-100 border border-gray-200">
-                              {agency === "BIR" ? "Government Certified" : (agency || "Government Registered")}
+                              {agency}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">Certificate / Reg ID:</span>
                             <span className="font-mono font-medium text-gray-700">
-                              {regNumber || "Pending"}
+                              {regNumber}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10.5px] text-gray-500">
                         <span>Regulatory Compliance</span>
                         <span className="text-emerald-600 font-bold">Good Standing</span>
                       </div>
                     </div>
 
                     {/* Engagement & Conversion Insights */}
-                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1.5">
                             <TrendingUp className="w-4 h-4 text-blue-600" />
-                            <h3 className="text-sm font-bold text-gray-900">Conversion Ratios</h3>
+                            <h3 className="text-xs sm:text-sm font-bold text-gray-900">Conversion Ratios</h3>
                           </div>
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
                             Efficiency
                           </span>
                         </div>
 
-                        <div className="space-y-2.5">
+                        <div className="space-y-2">
                           <div>
                             <div className="flex justify-between text-xs mb-1">
                               <span className="text-gray-500">View-to-Bookmark Rate:</span>
@@ -2158,7 +2153,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10.5px] text-gray-500">
                         <span>Total Active Reach:</span>
                         <span className="font-bold text-gray-800">
                           {(metrics.views + metrics.bookmarks + metrics.likes).toLocaleString()} Interactions
@@ -2169,73 +2164,45 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </div>
               );
             })()}
+                  </div>
+                </div>
+              );
+            })()}
 
         {/* Enhanced Charts Section */}
-        <div className="mb-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Donut Chart Card - Redesigned */}
-            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-5 hover:shadow-sm transition-all duration-200">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                <div className="flex-1">
-                  <h3 className="text-base font-bold text-gray-900 mb-0.5">
+        <div className="mb-3.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
+            {/* Donut Chart Card - Redesigned Compact */}
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 sm:p-4 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-gray-900">
                     Engagement Distribution
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span className="inline-flex items-center justify-center w-4 h-4 bg-indigo-100 rounded-full">
-                      <span className="text-[10px] font-semibold text-indigo-600">
-                        {startupIds.length}
-                      </span>
-                    </span>
-                    <span>Total Startups</span>
-                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Proportion across portfolio activity
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[10.5px] font-semibold text-indigo-700">
+                  <span>{startupIds.length} Startups</span>
                 </div>
               </div>
 
               {loading ? (
-                <div className="flex justify-center items-center h-80">
-                  <div className="relative w-16 h-16">
+                <div className="flex justify-center items-center h-48">
+                  <div className="relative w-12 h-12">
                     <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
                   </div>
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="text-center p-4 bg-amber-50 rounded-lg border border-amber-100">
-                      <p className="text-xs font-semibold text-amber-700 mb-2 uppercase">
-                        Views
-                      </p>
-                      <p className="text-2xl font-bold text-amber-900 flex items-center justify-center gap-2">
-                        {metrics.views.toLocaleString()}
-                        <FaEye className="text-amber-600" size={18} />
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-xs font-semibold text-blue-700 mb-2 uppercase">
-                        Likes
-                      </p>
-                      <p className="text-2xl font-bold text-blue-900 flex items-center justify-center gap-2">
-                        {metrics.likes.toLocaleString()}
-                        <BiLike className="text-blue-600" size={18} />
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-                      <p className="text-xs font-semibold text-emerald-700 mb-2 uppercase">
-                        Bookmarks
-                      </p>
-                      <p className="text-2xl font-bold text-emerald-900 flex items-center justify-center gap-2">
-                        {metrics.bookmarks.toLocaleString()}
-                        <FaBookBookmark
-                          className="text-emerald-600"
-                          size={18}
-                        />
-                      </p>
-                    </div>
-                  </div>
-                  <div className="relative w-56 h-56 mx-auto">
+                <div className="flex flex-col sm:flex-row items-center justify-around gap-3 py-1">
+                  <div className="relative w-40 h-40 shrink-0 flex items-center justify-center">
                     <Doughnut
                       data={donutData}
                       options={{
+                        maintainAspectRatio: false,
+                        responsive: true,
                         plugins: {
                           legend: {
                             display: false,
@@ -2243,39 +2210,16 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           tooltip: {
                             enabled: true,
                             backgroundColor: "rgba(0, 0, 0, 0.8)",
-                            padding: 12,
-                            cornerRadius: 8,
-                            titleFont: {
-                              size: 13,
-                              weight: "bold",
-                            },
-                            bodyFont: {
-                              size: 12,
-                            },
+                            padding: 8,
+                            cornerRadius: 6,
                             callbacks: {
                               title: (tooltipItems) => {
-                                return donutData.labels[
-                                  tooltipItems[0].dataIndex
-                                ];
+                                return donutData.labels[tooltipItems[0].dataIndex];
                               },
                               label: (context) => {
-                                const label =
-                                  donutData.labels[context.dataIndex];
-                                const value =
-                                  donutData.datasets[0].data[context.dataIndex];
-
-                                if (selectedStartup === "all") {
-                                  return `${label}: ${value} likes`;
-                                } else {
-                                  const metrics = [
-                                    "Likes",
-                                    "Bookmarks",
-                                    "Views",
-                                  ];
-                                  return `${
-                                    metrics[context.dataIndex]
-                                  }: ${value}`;
-                                }
+                                const label = donutData.labels[context.dataIndex];
+                                const value = donutData.datasets[0].data[context.dataIndex];
+                                return `${label}: ${value.toLocaleString()}`;
                               },
                             },
                           },
@@ -2289,29 +2233,54 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       plugins={[centerTextPlugin]}
                     />
                   </div>
-                </>
+
+                  {/* Breakdown List */}
+                  <div className="w-full sm:w-44 space-y-1.5">
+                    <div className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-amber-50/70 border border-amber-100 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                        <span className="font-semibold text-amber-950">Views</span>
+                      </div>
+                      <span className="font-bold text-amber-900">{metrics.views.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-blue-50/70 border border-blue-100 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                        <span className="font-semibold text-blue-950">Likes</span>
+                      </div>
+                      <span className="font-bold text-blue-900">{metrics.likes.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span className="font-semibold text-emerald-950">Bookmarks</span>
+                      </div>
+                      <span className="font-bold text-emerald-900">{metrics.bookmarks.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Line Chart Card - Enhanced */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-              <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-1">
+            {/* Line Chart Card - Enhanced Compact */}
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 sm:p-4 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
+              <div className="mb-2">
+                <h2 className="text-xs sm:text-sm font-bold text-gray-900 mb-0.5">
                   Engagement Over Time
                 </h2>
-                <p className="text-sm text-gray-600 font-medium">
-                  Monthly trends for views, likes, and bookmarks
+                <p className="text-[11px] text-gray-500">
+                  Monthly trend for views, likes, and bookmarks
                 </p>
               </div>
               {loading ? (
-                <div className="flex justify-center items-center h-64">
+                <div className="flex justify-center items-center h-48">
                   <div className="relative w-12 h-12">
                     <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
                   </div>
                 </div>
               ) : (
-                <div className="w-full h-72">
+                <div className="w-full h-44 sm:h-48">
                   <Line
                     data={engagementData}
                     options={{
@@ -2322,10 +2291,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           position: "top",
                           labels: {
                             usePointStyle: true,
-                            padding: 15,
+                            padding: 10,
                             font: {
-                              size: 12,
-                              weight: "500",
+                              size: 11,
+                              weight: "600",
                             },
                           },
                         },
@@ -2333,14 +2302,14 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           mode: "index",
                           intersect: false,
                           backgroundColor: "rgba(0, 0, 0, 0.8)",
-                          padding: 12,
-                          cornerRadius: 8,
+                          padding: 10,
+                          cornerRadius: 6,
                           titleFont: {
-                            size: 13,
+                            size: 12,
                             weight: "bold",
                           },
                           bodyFont: {
-                            size: 12,
+                            size: 11,
                           },
                         },
                       },
@@ -2349,26 +2318,16 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           grid: {
                             display: false,
                           },
-                          title: {
-                            display: true,
-                            text: "Months",
-                            font: {
-                              size: 12,
-                              weight: "600",
-                            },
+                          ticks: {
+                            font: { size: 10 },
                           },
                         },
                         y: {
                           grid: {
                             color: "rgba(0, 0, 0, 0.05)",
                           },
-                          title: {
-                            display: true,
-                            text: "Engagement Count",
-                            font: {
-                              size: 12,
-                              weight: "600",
-                            },
+                          ticks: {
+                            font: { size: 10 },
                           },
                           beginAtZero: true,
                         },
@@ -2385,39 +2344,48 @@ export default function StartupDashboard({ openAddMethodModal }) {
             </div>
           </div>
         </div>
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Professional Startups Table */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="text-lg font-bold text-gray-900">Your Startups</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Manage and monitor all your startup listings
-              </p>
+        <div className="mb-4">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/90 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900">Your Startups</h2>
+                <p className="text-[11px] text-gray-500">
+                  Manage and monitor all your startup listings
+                </p>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <tr className="bg-gray-50/60 border-b border-gray-200">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Startup Name
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Industry
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Founded Date
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Phone Number
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>

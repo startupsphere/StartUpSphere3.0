@@ -1691,26 +1691,28 @@ export default function StartupDetail() {
                     </div>
                   </div>
 
-                  {/* Government Registration Status Badge */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      <ShieldCheck size={17} className={startup.isGovernmentRegistered ? "text-emerald-500" : "text-gray-400"} />
-                      <span>Govt. Reg.</span>
-                      <TooltipInfo type="GOV_REG" size="xs" />
+                  {/* Government Registration Status Badge (Only for Admin or Startup Owner) */}
+                  {(isAdmin || isOwner) && (
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                        <ShieldCheck size={17} className={startup.isGovernmentRegistered ? "text-emerald-500" : "text-gray-400"} />
+                        <span>Govt. Reg.</span>
+                        <TooltipInfo type="GOV_REG" size="xs" />
+                      </div>
+                      <div>
+                        {startup.isGovernmentRegistered ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 size={12} className="text-emerald-600" />
+                            {startup.registrationAgency || "Registered"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Unregistered
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {startup.isGovernmentRegistered ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 size={12} className="text-emerald-600" />
-                          {startup.registrationAgency || "Registered"}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          Unregistered
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
