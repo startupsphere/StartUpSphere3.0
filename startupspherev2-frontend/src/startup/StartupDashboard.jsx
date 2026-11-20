@@ -1809,78 +1809,94 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
               return (
                 <div className="mb-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-                    {/* Views Card - Enhanced */}
-                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                          <FaEye className="h-5 w-5 text-amber-600" />
+                  {/* Metric Cards - 6-column grid on sm/lg, 5-column on xl to eliminate orphan gaps and excessive whitespace */}
+                  <div className="grid grid-cols-1 sm:grid-cols-6 xl:grid-cols-5 gap-3.5 mb-6">
+                    {/* Views Card - Compact & Balanced */}
+                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-amber-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
+                          <FaEye className="h-4 w-4 text-amber-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200">
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-md border border-amber-200">
                           VIEWS
                         </span>
                       </div>
-                      <h3 className="text-xs font-medium text-gray-500 mb-1">
-                        Total Views
-                      </h3>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {loading ? (
-                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
-                        ) : (
-                          metrics.views.toLocaleString()
-                        )}
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                          Total Views
+                        </h3>
+                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                          {loading ? (
+                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                          ) : (
+                            metrics.views.toLocaleString()
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
+                        Platform impressions
                       </p>
                     </div>
 
-                    {/* Bookmarks Card - Enhanced */}
-                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <FaBookBookmark className="h-5 w-5 text-emerald-600" />
+                    {/* Bookmarks Card */}
+                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-emerald-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
+                          <FaBookBookmark className="h-4 w-4 text-emerald-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200">
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-md border border-emerald-200">
                           SAVED
                         </span>
                       </div>
-                      <h3 className="text-xs font-medium text-gray-500 mb-1">
-                        Bookmarks
-                      </h3>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {loading ? (
-                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
-                        ) : (
-                          metrics.bookmarks.toLocaleString()
-                        )}
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                          Bookmarks
+                        </h3>
+                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                          {loading ? (
+                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                          ) : (
+                            metrics.bookmarks.toLocaleString()
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
+                        Interested users
                       </p>
                     </div>
 
-                    {/* Likes Card - Enhanced */}
-                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <BiLike className="h-5 w-5 text-blue-600" />
+                    {/* Likes Card */}
+                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                          <BiLike className="h-4 w-4 text-blue-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-md border border-blue-200">
                           LIKES
                         </span>
                       </div>
-                      <h3 className="text-xs font-medium text-gray-500 mb-1">
-                        Platform Likes
-                      </h3>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {loading ? (
-                          <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
-                        ) : (
-                          metrics.likes.toLocaleString()
-                        )}
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                          Platform Likes
+                        </h3>
+                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                          {loading ? (
+                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                          ) : (
+                            metrics.likes.toLocaleString()
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
+                        Direct endorsements
                       </p>
                     </div>
 
                     {/* Facebook Page Engagement Card */}
-                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                          <FaFacebook className="h-5 w-5 text-[#1877F2]" />
+                    <div className="sm:col-span-3 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                          <FaFacebook className="h-4 w-4 text-[#1877F2]" />
                         </div>
                         <div className="flex items-center gap-1.5">
                           {activeStartup && (activeStartup.facebook || activeStartup.instagram) && (
@@ -1912,20 +1928,22 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           )}
                         </div>
                       </div>
-                      <h3 className="text-xs font-medium text-gray-500 mb-1">
-                        FB Followers & Likes
-                      </h3>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-bold text-gray-900">
-                          {loading ? (
-                            <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
-                          ) : (
-                            fbFollowers.toLocaleString()
-                          )}
-                        </p>
-                        <span className="text-xs text-gray-500 font-medium">followers</span>
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                          FB Followers & Likes
+                        </h3>
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                            {loading ? (
+                              <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                            ) : (
+                              fbFollowers.toLocaleString()
+                            )}
+                          </p>
+                          <span className="text-xs text-gray-400 font-medium">followers</span>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 truncate">
+                      <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">
                         {fbLikes > 0
                           ? `👍 ${fbLikes.toLocaleString()} page likes`
                           : fbUrl
@@ -1935,10 +1953,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Instagram Audience Card */}
-                    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
-                          <FaInstagram className="h-5 w-5" />
+                    <div className="sm:col-span-3 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-pink-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="w-9 h-9 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+                          <FaInstagram className="h-4 w-4" />
                         </div>
                         <div className="flex items-center gap-1.5">
                           {activeStartup && activeStartup.instagram && (
@@ -1970,20 +1988,22 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           )}
                         </div>
                       </div>
-                      <h3 className="text-xs font-medium text-gray-500 mb-1">
-                        Instagram Audience
-                      </h3>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-bold text-gray-900">
-                          {loading ? (
-                            <span className="inline-block w-16 h-7 bg-gray-200 rounded animate-pulse"></span>
-                          ) : (
-                            igFollowers.toLocaleString()
-                          )}
-                        </p>
-                        <span className="text-xs text-gray-500 font-medium">followers</span>
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                          Instagram Audience
+                        </h3>
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                            {loading ? (
+                              <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                            ) : (
+                              igFollowers.toLocaleString()
+                            )}
+                          </p>
+                          <span className="text-xs text-gray-400 font-medium">followers</span>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 truncate">
+                      <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">
                         {igUrl ? "Connected profile" : "Optional in startup form"}
                       </p>
                     </div>
@@ -2051,13 +2071,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       </div>
                     </div>
 
-                    {/* Government Registration & BIR Tax Compliance */}
+                    {/* Government Registration & Government Certified Compliance */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-1.5">
                             <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                            <h3 className="text-base font-bold text-gray-900">Govt & BIR Status</h3>
+                            <h3 className="text-base font-bold text-gray-900">Government Certified Status</h3>
                             <TooltipInfo type="GOV_REG" size="sm" />
                           </div>
                           {agency === "BIR" && (
@@ -2077,7 +2097,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">Agency:</span>
                             <span className="font-bold text-gray-800 px-2 py-0.5 rounded bg-gray-100 border border-gray-200">
-                              {agency || "BIR (Bureau of Internal Revenue)"}
+                              {agency === "BIR" ? "Government Certified" : (agency || "Government Registered")}
                             </span>
                           </div>
 
@@ -2091,7 +2111,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       </div>
 
                       <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
-                        <span>Tax & Regulatory Compliance</span>
+                        <span>Regulatory Compliance</span>
                         <span className="text-emerald-600 font-bold">Good Standing</span>
                       </div>
                     </div>

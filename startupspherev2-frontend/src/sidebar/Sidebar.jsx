@@ -4623,38 +4623,66 @@ export default function Sidebar({
                 </span>
               </div>
 
-              {/* Metric 3: Verified Certificate */}
-              <div className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs">
-                <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1 truncate max-w-full">
-                  Certificate
-                </span>
-                <div className="flex items-center justify-center my-auto w-full">
-                  {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true) ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenCertificateModal(startup)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 text-[11px] font-bold shadow-3xs transition-all cursor-pointer active:scale-95 group"
-                      title="Click to view verified certificate document"
-                    >
-                      <FileCheck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
-                      <span>View</span>
-                    </button>
-                  ) : (
-                    <div
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100/90 text-gray-400 text-[10.5px] font-medium border border-gray-200/60 select-none cursor-default"
-                      title="No certificate document submitted"
-                    >
-                      <FileX className="w-3 h-3 text-gray-400 shrink-0" />
-                      <span>None</span>
+              {/* Metric 3: Verified Certificate (Gated to Admin and Owner; Standard users see Industry) */}
+              {(() => {
+                const canViewGovCredentials = Boolean(
+                  (currentUser?.role === 'ROLE_ADMIN' || currentUser?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN') ||
+                  isBusinessOwnerOfStartup(startup)
+                );
+
+                if (canViewGovCredentials) {
+                  return (
+                    <div className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs">
+                      <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1 truncate max-w-full">
+                        Certificate
+                      </span>
+                      <div className="flex items-center justify-center my-auto w-full">
+                        {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true) ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCertificateModal(startup)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 text-[11px] font-bold shadow-3xs transition-all cursor-pointer active:scale-95 group"
+                            title="Click to view verified certificate document"
+                          >
+                            <FileCheck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+                            <span>View</span>
+                          </button>
+                        ) : (
+                          <div
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100/90 text-gray-400 text-[10.5px] font-medium border border-gray-200/60 select-none cursor-default"
+                            title="No certificate document submitted"
+                          >
+                            <FileX className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span>None</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[9.5px] text-gray-400 font-medium mt-1">
+                        {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true)
+                          ? "verified"
+                          : "unverified"}
+                      </span>
                     </div>
-                  )}
-                </div>
-                <span className="text-[9.5px] text-gray-400 font-medium mt-1">
-                  {(startup.hasRegistrationCertificate === true || certAvailability[startup.id] === true)
-                    ? "verified"
-                    : "unverified"}
-                </span>
-              </div>
+                  );
+                }
+
+                // For standard users / other accounts: display Industry
+                return (
+                  <div className="flex flex-col items-center justify-between p-2 rounded-xl bg-white/80 border border-gray-100 shadow-3xs transition-all hover:bg-white hover:shadow-2xs">
+                    <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase mb-1 truncate max-w-full">
+                      Industry
+                    </span>
+                    <div className="flex items-center justify-center my-auto w-full px-1">
+                      <span className="font-bold text-xs text-blue-900 leading-tight truncate text-center" title={startup.industry || "General"}>
+                        {startup.industry || "General"}
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] text-gray-400 font-medium mt-1">
+                      category
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* About Section - improved */}
@@ -4783,64 +4811,74 @@ export default function Sidebar({
                   </div>
                 )}
 
-                {startup.isGovernmentRegistered !== undefined && (
-                  <div className="border-t border-gray-200/50 pt-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
-                        <TooltipInfo type="GOV_REG" size="xs" />
-                      </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                        }`}>
-                        {startup.isGovernmentRegistered ? "Yes" : "No"}
-                      </span>
-                    </div>
+                {/* Government Registration & Credentials (Gated to Admin and Owner only) */}
+                {(() => {
+                  const canViewGovCredentials = Boolean(
+                    (currentUser?.role === 'ROLE_ADMIN' || currentUser?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN') ||
+                    isBusinessOwnerOfStartup(startup)
+                  );
 
-                    {startup.isGovernmentRegistered && (
-                      <div className="mt-2 bg-white rounded p-2.5 border border-gray-200/60 space-y-1.5 text-xs text-gray-600">
-                        {startup.registrationAgency && (
-                          <div className="flex justify-between items-center">
-                            <span>Agency:</span>
-                            <span className="inline-flex items-center gap-1 font-semibold text-gray-800">
-                              {startup.registrationAgency === "other" && startup.otherRegistrationAgency
-                                ? startup.otherRegistrationAgency
-                                : String(startup.registrationAgency || "").toUpperCase().includes("BIR")
-                                  ? "Government Certified"
-                                  : startup.registrationAgency}
-                              {String(startup.registrationAgency || "").toUpperCase().includes("BIR") && (
-                                <TooltipInfo type="BIR" size="xs" />
-                              )}
-                              {String(startup.registrationAgency || "").toUpperCase().includes("SEC") && (
-                                <TooltipInfo type="SEC" size="xs" />
-                              )}
-                              {String(startup.registrationAgency || "").toUpperCase().includes("DTI") && (
-                                <TooltipInfo type="DTI" size="xs" />
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {startup.registrationNumber && (
-                          <div className="flex justify-between">
-                            <span>Reg. Number:</span>
-                            <span className="font-mono font-medium text-gray-800">{startup.registrationNumber}</span>
-                          </div>
-                        )}
-                        {startup.businessLicenseNumber && (
-                          <div className="flex justify-between">
-                            <span>License Number:</span>
-                            <span className="font-mono font-medium text-gray-800">{startup.businessLicenseNumber}</span>
-                          </div>
-                        )}
-                        {startup.tin && (
-                          <div className="flex justify-between">
-                            <span>TIN:</span>
-                            <span className="font-mono font-medium text-gray-800">{startup.tin}</span>
-                          </div>
-                        )}
+                  if (!canViewGovCredentials) return null;
+
+                  return startup.isGovernmentRegistered !== undefined && (
+                    <div className="border-t border-gray-200/50 pt-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-gray-500 font-medium">Govt. Registered</span>
+                          <TooltipInfo type="GOV_REG" size="xs" />
+                        </div>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${startup.isGovernmentRegistered ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                          }`}>
+                          {startup.isGovernmentRegistered ? "Yes" : "No"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )}
+
+                      {startup.isGovernmentRegistered && (
+                        <div className="mt-2 bg-white rounded p-2.5 border border-gray-200/60 space-y-1.5 text-xs text-gray-600">
+                          {startup.registrationAgency && (
+                            <div className="flex justify-between items-center">
+                              <span>Agency:</span>
+                              <span className="inline-flex items-center gap-1 font-semibold text-gray-800">
+                                {startup.registrationAgency === "other" && startup.otherRegistrationAgency
+                                  ? startup.otherRegistrationAgency
+                                  : String(startup.registrationAgency || "").toUpperCase().includes("BIR")
+                                    ? "Government Certified"
+                                    : startup.registrationAgency}
+                                {String(startup.registrationAgency || "").toUpperCase().includes("BIR") && (
+                                  <TooltipInfo type="BIR" size="xs" />
+                                )}
+                                {String(startup.registrationAgency || "").toUpperCase().includes("SEC") && (
+                                  <TooltipInfo type="SEC" size="xs" />
+                                )}
+                                {String(startup.registrationAgency || "").toUpperCase().includes("DTI") && (
+                                  <TooltipInfo type="DTI" size="xs" />
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {startup.registrationNumber && (
+                            <div className="flex justify-between">
+                              <span>Reg. Number:</span>
+                              <span className="font-mono font-medium text-gray-800">{startup.registrationNumber}</span>
+                            </div>
+                          )}
+                          {startup.businessLicenseNumber && (
+                            <div className="flex justify-between">
+                              <span>License Number:</span>
+                              <span className="font-mono font-medium text-gray-800">{startup.businessLicenseNumber}</span>
+                            </div>
+                          )}
+                          {startup.tin && (
+                            <div className="flex justify-between">
+                              <span>TIN:</span>
+                              <span className="font-mono font-medium text-gray-800">{startup.tin}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

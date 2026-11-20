@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { getBackendUrl } from "../config/apiConfig";
 import { formatErrorMessage } from "../utils/errorUtils";
 import ForgotPassword from "./ForgotPassword";
-import { ShieldCheck, Rocket, Sparkles } from "lucide-react";
+import { ShieldCheck, Rocket, Sparkles, User, ChevronDown } from "lucide-react";
 
 export default function Signup({ closeModal, openLogin }) {
   const [firstname, setFirstname] = useState("");
@@ -338,6 +338,39 @@ export default function Signup({ closeModal, openLogin }) {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Account Type Selection */}
+            <div>
+              <label htmlFor="account-role" className="block text-sm font-medium text-gray-700 mb-1.5 ml-0.5">
+                Account Type
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  {role === "ROLE_STARTUP" ? (
+                    <Rocket className="w-5 h-5 text-indigo-600" />
+                  ) : (
+                    <User className="w-5 h-5 text-blue-600" />
+                  )}
+                </div>
+                <select
+                  id="account-role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="block w-full px-3 py-2.5 sm:py-3 pl-11 pr-10 text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base font-medium appearance-none cursor-pointer"
+                >
+                  <option value="ROLE_STARTUP">Business / Startup Account</option>
+                  <option value="ROLE_USER">Standard User Account</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5 ml-0.5">
+                {role === "ROLE_STARTUP"
+                  ? "For founders & business owners to showcase ventures, track engagement, and connect with investors."
+                  : "For explorers & community members to discover startups, save bookmarks, and view ecosystem insights."}
+              </p>
             </div>
 
             <div>

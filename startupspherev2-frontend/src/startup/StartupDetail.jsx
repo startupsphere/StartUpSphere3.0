@@ -2064,73 +2064,75 @@ export default function StartupDetail() {
                       </div>
                     </div>
 
-                    {/* Government Registration & Government Certified Compliance Details */}
-                    <div className="pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <span className="text-sm font-semibold text-gray-800">Government Registration & Government Certified Status</span>
-                        <TooltipInfo type="GOV_REG" size="sm" />
+                    {/* Government Registration & Government Certified Compliance Details (Gated to Admin and Startup Owner only) */}
+                    {(isAdmin || isOwner) && (
+                      <div className="pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <span className="text-sm font-semibold text-gray-800">Government Registration & Government Certified Status</span>
+                          <TooltipInfo type="GOV_REG" size="sm" />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          {/* Registration Status */}
+                          <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                            <p className="text-xs text-gray-500 mb-1 font-medium">Registration Status</p>
+                            <div className="flex items-center gap-1.5">
+                              {startup.isGovernmentRegistered ? (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  <span className="text-sm font-bold text-emerald-800">Officially Registered</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                                  <span className="text-sm font-semibold text-amber-700">Unregistered</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Agency */}
+                          <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs text-gray-500 font-medium">Registration Agency</p>
+                              {startup.registrationAgency === "BIR" && (
+                                <TooltipInfo type="BIR" size="xs" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {startup.registrationAgency === "BIR" ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  Government Certified
+                                </span>
+                              ) : startup.registrationAgency ? (
+                                <span className="text-sm font-bold text-gray-800">
+                                  {startup.registrationAgency}
+                                  {startup.otherRegistrationAgency && ` (${startup.otherRegistrationAgency})`}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-400 italic">None specified</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Registration Number */}
+                          <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                            <p className="text-xs text-gray-500 mb-1 font-medium">Certificate / Reg. Number</p>
+                            <p className="text-sm font-mono font-bold text-gray-800">
+                              {startup.registrationNumber || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Registration Date if present */}
+                        {startup.registrationDate && (
+                          <div className="mt-3 text-xs text-gray-600 flex items-center gap-1.5">
+                            <Calendar size={14} className="text-gray-400" />
+                            <span>Registered Date: <strong>{formatDate(startup.registrationDate)}</strong></span>
+                          </div>
+                        )}
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {/* Registration Status */}
-                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
-                          <p className="text-xs text-gray-500 mb-1 font-medium">Registration Status</p>
-                          <div className="flex items-center gap-1.5">
-                            {startup.isGovernmentRegistered ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                <span className="text-sm font-bold text-emerald-800">Officially Registered</span>
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle className="w-4 h-4 text-amber-500" />
-                                <span className="text-sm font-semibold text-amber-700">Unregistered</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Agency */}
-                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs text-gray-500 font-medium">Registration Agency</p>
-                            {startup.registrationAgency === "BIR" && (
-                              <TooltipInfo type="BIR" size="xs" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {startup.registrationAgency === "BIR" ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                Government Certified
-                              </span>
-                            ) : startup.registrationAgency ? (
-                              <span className="text-sm font-bold text-gray-800">
-                                {startup.registrationAgency}
-                                {startup.otherRegistrationAgency && ` (${startup.otherRegistrationAgency})`}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400 italic">None specified</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Registration Number */}
-                        <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50">
-                          <p className="text-xs text-gray-500 mb-1 font-medium">Certificate / Reg. Number</p>
-                          <p className="text-sm font-mono font-bold text-gray-800">
-                            {startup.registrationNumber || "N/A"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Registration Date if present */}
-                      {startup.registrationDate && (
-                        <div className="mt-3 text-xs text-gray-600 flex items-center gap-1.5">
-                          <Calendar size={14} className="text-gray-400" />
-                          <span>Registered Date: <strong>{formatDate(startup.registrationDate)}</strong></span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

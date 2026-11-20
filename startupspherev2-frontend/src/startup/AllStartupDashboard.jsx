@@ -2532,7 +2532,7 @@ export default function AllStartupDashboard() {
                                   {isBir ? (
                                     <span className="px-2.5 py-1 inline-flex items-center gap-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
                                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                      BIR Registered
+                                      Government Certified
                                     </span>
                                   ) : startup.isGovernmentRegistered || startup.registrationAgency ? (
                                     <span className="px-2.5 py-1 inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-800 border border-gray-200">
