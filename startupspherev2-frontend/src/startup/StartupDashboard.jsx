@@ -1598,8 +1598,8 @@ export default function StartupDashboard({ openAddMethodModal }) {
         )}
 
         {/* Consolidated Portfolio Filter & Focus Toolbar */}
-        <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-4">
+        <div className="mb-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/90 p-3 sm:p-4">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
               {/* Focus Startup Selector */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -1808,106 +1808,106 @@ export default function StartupDashboard({ openAddMethodModal }) {
               const igCount = startups.filter(s => s.instagram).length;
 
               return (
-                <div className="mb-8">
-                  {/* Metric Cards - 6-column grid on sm/lg, 5-column on xl to eliminate orphan gaps and excessive whitespace */}
-                  <div className="grid grid-cols-1 sm:grid-cols-6 xl:grid-cols-5 gap-3.5 mb-6">
-                    {/* Views Card - Compact & Balanced */}
-                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-amber-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
+                <div className="mb-4">
+                  {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+                    {/* Views Card */}
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-amber-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100/80">
                           <FaEye className="h-4 w-4 text-amber-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-md border border-amber-200">
-                          VIEWS
+                        <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-200/80 uppercase">
+                          Views
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Total Views
                         </h3>
-                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
                           {loading ? (
-                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                            <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
                             metrics.views.toLocaleString()
                           )}
                         </p>
                       </div>
-                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 pt-1.5 border-t border-gray-100 truncate">
                         Platform impressions
                       </p>
                     </div>
 
                     {/* Bookmarks Card */}
-                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-emerald-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-emerald-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100/80">
                           <FaBookBookmark className="h-4 w-4 text-emerald-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-md border border-emerald-200">
-                          SAVED
+                        <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded border border-emerald-200/80 uppercase">
+                          Saved
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Bookmarks
                         </h3>
-                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
                           {loading ? (
-                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                            <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
                             metrics.bookmarks.toLocaleString()
                           )}
                         </p>
                       </div>
-                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 pt-1.5 border-t border-gray-100 truncate">
                         Interested users
                       </p>
                     </div>
 
                     {/* Likes Card */}
-                    <div className="sm:col-span-2 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 sm:p-3.5 hover:shadow-sm hover:border-blue-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
                           <BiLike className="h-4 w-4 text-blue-600" />
                         </div>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-md border border-blue-200">
-                          LIKES
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-200/80 uppercase">
+                          Likes
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
                           Platform Likes
                         </h3>
-                        <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
                           {loading ? (
-                            <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                            <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                           ) : (
                             metrics.likes.toLocaleString()
                           )}
                         </p>
                       </div>
-                      <p className="text-[11px] text-gray-400 font-medium mt-2 pt-2 border-t border-gray-100">
-                        Direct endorsements
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 pt-1.5 border-t border-gray-100 truncate">
+                        Endorsements
                       </p>
                     </div>
 
                     {/* Facebook Page Engagement Card */}
-                    <div className="sm:col-span-3 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 hover:shadow-sm hover:border-blue-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
                           <FaFacebook className="h-4 w-4 text-[#1877F2]" />
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           {activeStartup && (activeStartup.facebook || activeStartup.instagram) && (
                             <button
                               onClick={() => handleSyncSocial(activeStartup)}
                               disabled={syncingSocialId === activeStartup.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold rounded-md border border-blue-200 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[10px] font-semibold rounded border border-blue-200 transition-colors"
                               title="Sync Live Metrics from Page Link"
                             >
-                              <RefreshCw className={`w-3 h-3 ${syncingSocialId === activeStartup.id ? "animate-spin text-blue-600" : ""}`} />
-                              <span>{syncingSocialId === activeStartup.id ? "Syncing..." : "Sync"}</span>
+                              <RefreshCw className={`w-2.5 h-2.5 ${syncingSocialId === activeStartup.id ? "animate-spin text-blue-600" : ""}`} />
+                              <span>{syncingSocialId === activeStartup.id ? "..." : "Sync"}</span>
                             </button>
                           )}
                           {fbUrl ? (
@@ -1915,59 +1915,59 @@ export default function StartupDashboard({ openAddMethodModal }) {
                               href={fbUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#1877F2] text-xs font-semibold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-[#1877F2] text-[10px] font-semibold rounded border border-blue-200 hover:bg-blue-100 transition-colors"
                               title="Open Facebook Page"
                             >
-                              <span>PAGE</span>
-                              <ExternalLink size={10} />
+                              <span>Page</span>
+                              <ExternalLink size={9} />
                             </a>
                           ) : (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
-                              {selectedStartup === "all" ? `${fbCount} Linked` : "OPTIONAL"}
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">
+                              {selectedStartup === "all" ? `${fbCount} Linked` : "Optional"}
                             </span>
                           )}
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
-                          FB Followers & Likes
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
+                          FB Followers
                         </h3>
-                        <div className="flex items-baseline gap-1.5">
-                          <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                        <div className="flex items-baseline gap-1">
+                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
                             {loading ? (
-                              <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                              <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
                               fbFollowers.toLocaleString()
                             )}
                           </p>
-                          <span className="text-xs text-gray-400 font-medium">followers</span>
+                          <span className="text-[10px] text-gray-400 font-medium">followers</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">
+                      <p className="text-[10px] text-gray-500 mt-1.5 pt-1.5 border-t border-gray-100 truncate">
                         {fbLikes > 0
-                          ? `👍 ${fbLikes.toLocaleString()} page likes`
+                          ? `👍 ${fbLikes.toLocaleString()} likes`
                           : fbUrl
-                          ? "Connected Facebook page"
-                          : "Optional in startup form"}
+                          ? "Page linked"
+                          : "Optional"}
                       </p>
                     </div>
 
                     {/* Instagram Audience Card */}
-                    <div className="sm:col-span-3 xl:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-4 hover:shadow-md hover:border-pink-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+                    <div className="col-span-2 sm:col-span-1 md:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 hover:shadow-sm hover:border-pink-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
                           <FaInstagram className="h-4 w-4" />
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           {activeStartup && activeStartup.instagram && (
                             <button
                               onClick={() => handleSyncSocial(activeStartup)}
                               disabled={syncingSocialId === activeStartup.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 hover:bg-pink-100 text-xs font-semibold rounded-md border border-pink-200 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-50 text-pink-700 hover:bg-pink-100 text-[10px] font-semibold rounded border border-pink-200 transition-colors"
                               title="Sync Live Metrics from Instagram Link"
                             >
-                              <RefreshCw className={`w-3 h-3 ${syncingSocialId === activeStartup.id ? "animate-spin text-pink-600" : ""}`} />
-                              <span>{syncingSocialId === activeStartup.id ? "Syncing..." : "Sync"}</span>
+                              <RefreshCw className={`w-2.5 h-2.5 ${syncingSocialId === activeStartup.id ? "animate-spin text-pink-600" : ""}`} />
+                              <span>{syncingSocialId === activeStartup.id ? "..." : "Sync"}</span>
                             </button>
                           )}
                           {igUrl ? (
@@ -1975,36 +1975,36 @@ export default function StartupDashboard({ openAddMethodModal }) {
                               href={igUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-50 text-pink-700 text-xs font-semibold rounded-md border border-pink-200 hover:bg-pink-100 transition-colors"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-50 text-pink-700 text-[10px] font-semibold rounded border border-pink-200 hover:bg-pink-100 transition-colors"
                               title="Open Instagram Profile"
                             >
                               <span>IG</span>
-                              <ExternalLink size={10} />
+                              <ExternalLink size={9} />
                             </a>
                           ) : (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md">
-                              {selectedStartup === "all" ? `${igCount} Linked` : "OPTIONAL"}
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">
+                              {selectedStartup === "all" ? `${igCount} Linked` : "Optional"}
                             </span>
                           )}
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase mb-1">
-                          Instagram Audience
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
+                          Instagram Reach
                         </h3>
-                        <div className="flex items-baseline gap-1.5">
-                          <p className="text-2xl font-extrabold text-gray-900 leading-none">
+                        <div className="flex items-baseline gap-1">
+                          <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">
                             {loading ? (
-                              <span className="inline-block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+                              <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
                               igFollowers.toLocaleString()
                             )}
                           </p>
-                          <span className="text-xs text-gray-400 font-medium">followers</span>
+                          <span className="text-[10px] text-gray-400 font-medium">followers</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">
-                        {igUrl ? "Connected profile" : "Optional in startup form"}
+                      <p className="text-[10px] text-gray-500 mt-1.5 pt-1.5 border-t border-gray-100 truncate">
+                        {igUrl ? "Profile linked" : "Optional"}
                       </p>
                     </div>
                   </div>
@@ -2025,23 +2025,23 @@ export default function StartupDashboard({ openAddMethodModal }) {
               const likeRate = metrics.views > 0 ? ((metrics.likes / metrics.views) * 100).toFixed(1) : "0.0";
 
               return (
-                <div className="mb-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="mb-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
                     {/* TRL Readiness Roadmap */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-1.5">
-                            <Layers className="w-5 h-5 text-indigo-600" />
-                            <h3 className="text-base font-bold text-gray-900">TRL Readiness</h3>
-                            <TooltipInfo type="TRL" size="sm" />
+                            <Layers className="w-4 h-4 text-indigo-600" />
+                            <h3 className="text-sm font-bold text-gray-900">TRL Readiness</h3>
+                            <TooltipInfo type="TRL" size="xs" />
                           </div>
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                             TRL Level {activeTrl} of 9
                           </span>
                         </div>
 
-                        <p className="text-xs text-gray-500 mb-3">
+                        <p className="text-[11px] text-gray-500 mb-2.5">
                           {activeTrl <= 3
                             ? "Phase 1: Basic Research & Concept Formulation"
                             : activeTrl <= 6
@@ -2050,7 +2050,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         </p>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200 mb-3">
+                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200 mb-2.5">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 transition-all duration-500"
                             style={{ width: `${Math.min(100, (activeTrl / 9) * 100)}%` }}
@@ -2072,20 +2072,20 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Government Registration & Government Certified Compliance */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                            <h3 className="text-base font-bold text-gray-900">Government Certified Status</h3>
-                            <TooltipInfo type="GOV_REG" size="sm" />
+                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            <h3 className="text-sm font-bold text-gray-900">Government Certified Status</h3>
+                            <TooltipInfo type="GOV_REG" size="xs" />
                           </div>
                           {agency === "BIR" && (
                             <TooltipInfo type="BIR" size="xs" />
                           )}
                         </div>
 
-                        <div className="space-y-2.5">
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">Registration:</span>
                             <span className={`font-semibold inline-flex items-center gap-1 ${isGovReg ? "text-emerald-700" : "text-amber-600"}`}>
@@ -2117,19 +2117,19 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Engagement & Conversion Insights */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-4.5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-1.5">
-                            <TrendingUp className="w-5 h-5 text-blue-600" />
-                            <h3 className="text-base font-bold text-gray-900">Conversion Ratios</h3>
+                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                            <h3 className="text-sm font-bold text-gray-900">Conversion Ratios</h3>
                           </div>
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
                             Efficiency
                           </span>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                           <div>
                             <div className="flex justify-between text-xs mb-1">
                               <span className="text-gray-500">View-to-Bookmark Rate:</span>
@@ -2171,18 +2171,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
             })()}
 
         {/* Enhanced Charts Section */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Donut Chart Card - Redesigned */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-5 hover:shadow-sm transition-all duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  <h3 className="text-base font-bold text-gray-900 mb-0.5">
                     Engagement Distribution
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-100 rounded-full">
-                      <span className="text-xs font-semibold text-indigo-600">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span className="inline-flex items-center justify-center w-4 h-4 bg-indigo-100 rounded-full">
+                      <span className="text-[10px] font-semibold text-indigo-600">
                         {startupIds.length}
                       </span>
                     </span>
