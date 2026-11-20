@@ -2164,10 +2164,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </div>
               );
             })()}
-                  </div>
-                </div>
-              );
-            })()}
 
         {/* Enhanced Charts Section */}
         <div className="mb-3.5">
@@ -2337,13 +2333,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         axis: "x",
                         intersect: false,
                       },
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
                     }}
                   />
                 </div>
