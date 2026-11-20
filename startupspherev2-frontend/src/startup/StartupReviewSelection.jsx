@@ -523,6 +523,22 @@ export default function EnhancedStartupReviewSection({
     toast.success("Export completed successfully");
   };
 
+  // Status viewing hierarchy: 1 = In Review, 2 = Approved, 3 = Rejected, 4 = Others
+  const getStatusHierarchyRank = (status) => {
+    if (!status) return 1;
+    const s = String(status).trim().toLowerCase();
+    if (s.includes("review") || s === "pending") {
+      return 1;
+    }
+    if (s === "approved") {
+      return 2;
+    }
+    if (s === "rejected") {
+      return 3;
+    }
+    return 4;
+  };
+
   // Sort function for data
   const handleSort = (key) => {
     let direction = "asc";
@@ -605,24 +621,60 @@ export default function EnhancedStartupReviewSection({
       });
     }
 
-    // Apply sorting
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        // Handle null values by treating them as empty strings or 0
-        const aVal =
-          a[sortConfig.key] || (typeof a[sortConfig.key] === "number" ? 0 : "");
-        const bVal =
-          b[sortConfig.key] || (typeof b[sortConfig.key] === "number" ? 0 : "");
+    // Apply sorting with hierarchy of viewing:
+    // 1st: In Review
+    // 2nd: Approved
+    // 3rd: Rejected
+    result.sort((a, b) => {
+      const rankA = getStatusHierarchyRank(a.status);
+      const rankB = getStatusHierarchyRank(b.status);
 
-        if (aVal < bVal) {
-          return sortConfig.direction === "asc" ? -1 : 1;
+      // If user specifically clicks "status" column to sort:
+      if (sortConfig.key === "status") {
+        if (rankA !== rankB) {
+          return sortConfig.direction === "asc"
+            ? rankA - rankB
+            : rankB - rankA;
         }
-        if (aVal > bVal) {
-          return sortConfig.direction === "asc" ? 1 : -1;
+      } else {
+        // Status hierarchy is always the primary viewing order
+        if (rankA !== rankB) {
+          return rankA - rankB;
         }
-        return 0;
-      });
-    }
+      }
+
+      // Secondary sort: based on sortConfig.key (default: companyName ascending)
+      const key =
+        sortConfig.key && sortConfig.key !== "status"
+          ? sortConfig.key
+          : "companyName";
+      const aRaw = a[key];
+      const bRaw = b[key];
+      const aVal =
+        aRaw !== undefined && aRaw !== null
+          ? typeof aRaw === "string"
+            ? aRaw.toLowerCase()
+            : aRaw
+          : typeof aRaw === "number"
+          ? 0
+          : "";
+      const bVal =
+        bRaw !== undefined && bRaw !== null
+          ? typeof bRaw === "string"
+            ? bRaw.toLowerCase()
+            : bRaw
+          : typeof bRaw === "number"
+          ? 0
+          : "";
+
+      if (aVal < bVal) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+      if (aVal > bVal) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
 
     return result;
   }, [startups, filters, sortConfig, externalFilteredStartups]);
@@ -883,7 +935,7 @@ export default function EnhancedStartupReviewSection({
             onKeyPress={(e) => {
               if (e.key === "Enter") handleApplyFilters();
             }}
-            className="pl-10 pr-4 py-2 text-gray-700 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+            className="pl-10 pr-4 py-2 text-black placeholder:text-gray-400 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
           />
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>

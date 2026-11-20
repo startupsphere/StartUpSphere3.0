@@ -47,6 +47,12 @@ public class StartupDTO {
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdated;
 
+    private String activityStatus;
+    private Boolean isArchived;
+    private LocalDateTime lastInactivityEmailSent;
+    private Long daysInactive;
+    private Long daysUntilArchive;
+
     private String trlLevel;
     private String verifiedCredentials;
     private String hasSupports;
@@ -107,6 +113,11 @@ public class StartupDTO {
         this.supportProgram = startup.getSupportProgram();
         this.createdAt = startup.getCreatedAt();
         this.lastUpdated = startup.getLastUpdated();
+        this.activityStatus = startup.getActivityStatus();
+        this.isArchived = startup.getIsArchived();
+        this.lastInactivityEmailSent = startup.getLastInactivityEmailSent();
+        this.daysInactive = startup.getDaysSinceLastUpdate();
+        this.daysUntilArchive = Math.max(0, 97 - this.daysInactive);
         if (includeStakeholders) {
             this.associatedStakeholders = startup.getStartupStakeholders().stream()
                     .map(ss -> new StakeholderDTO(ss.getStakeholder()))
@@ -426,6 +437,46 @@ public class StartupDTO {
 
     public void setIsDraft(Boolean isDraft) {
         this.isDraft = isDraft;
+    }
+
+    public String getActivityStatus() {
+        return activityStatus;
+    }
+
+    public void setActivityStatus(String activityStatus) {
+        this.activityStatus = activityStatus;
+    }
+
+    public Boolean getIsArchived() {
+        return isArchived;
+    }
+
+    public void setIsArchived(Boolean isArchived) {
+        this.isArchived = isArchived;
+    }
+
+    public LocalDateTime getLastInactivityEmailSent() {
+        return lastInactivityEmailSent;
+    }
+
+    public void setLastInactivityEmailSent(LocalDateTime lastInactivityEmailSent) {
+        this.lastInactivityEmailSent = lastInactivityEmailSent;
+    }
+
+    public Long getDaysInactive() {
+        return daysInactive;
+    }
+
+    public void setDaysInactive(Long daysInactive) {
+        this.daysInactive = daysInactive;
+    }
+
+    public Long getDaysUntilArchive() {
+        return daysUntilArchive;
+    }
+
+    public void setDaysUntilArchive(Long daysUntilArchive) {
+        this.daysUntilArchive = daysUntilArchive;
     }
 
     public String getRole() {

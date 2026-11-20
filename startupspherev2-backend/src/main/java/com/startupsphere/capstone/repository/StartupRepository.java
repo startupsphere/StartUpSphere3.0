@@ -57,10 +57,10 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
     @Query("SELECT s FROM Startup s WHERE s.emailVerified = true")
     List<Startup> findAllVerifiedEmailStartups();
 
-    @Query("SELECT s FROM Startup s WHERE LOWER(s.status) = 'approved' AND (s.isDraft = false OR s.isDraft IS NULL)")
+    @Query("SELECT s FROM Startup s WHERE LOWER(s.status) = 'approved' AND (s.isDraft = false OR s.isDraft IS NULL) AND (s.isArchived = false OR s.isArchived IS NULL) AND (s.activityStatus IS NULL OR s.activityStatus != 'ARCHIVED')")
     Page<Startup> findAllApprovedStartups(Pageable pageable);
     
-    @Query("SELECT s FROM Startup s WHERE LOWER(s.status) = 'approved' AND (s.isDraft = false OR s.isDraft IS NULL)")
+    @Query("SELECT s FROM Startup s WHERE LOWER(s.status) = 'approved' AND (s.isDraft = false OR s.isDraft IS NULL) AND (s.isArchived = false OR s.isArchived IS NULL) AND (s.activityStatus IS NULL OR s.activityStatus != 'ARCHIVED')")
     List<Startup> findAllApprovedStartups();
 
     @Query("SELECT s FROM Startup s WHERE " +

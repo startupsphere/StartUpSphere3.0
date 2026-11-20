@@ -751,6 +751,61 @@ public class StartupController {
         }
     }
 
+    @GetMapping("/activity-directory")
+    public ResponseEntity<Map<String, Object>> getActivityDirectory(
+            @RequestParam(defaultValue = "all") String category,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String industry,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Map<String, Object> result = startupService.getActivityDirectory(category, search, industry, page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id:[0-9]+}/archive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> archiveStartup(@PathVariable Long id) {
+        try {
+            Startup archived = startupService.archiveStartup(id);
+            return ResponseEntity.ok(Map.of("message", "Startup successfully archived and hidden from map", "startupId", id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id:[0-9]+}/reactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> reactivateStartup(@PathVariable Long id) {
+        try {
+            Startup reactivated = startupService.reactivateStartup(id);
+            return ResponseEntity.ok(Map.of("message", "Startup reactivated successfully and restored to active map", "startupId", id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id:[0-9]+}/send-inactivity-reminder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sendInactivityReminder(@PathVariable Long id) {
+        try {
+            boolean sent = startupService.sendManualInactivityReminder(id);
+            return ResponseEntity.ok(Map.of("message", "Inactivity reminder notice dispatched", "success", sent));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/check-inactivity-lifecycle")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> triggerInactivityLifecycleCheck() {
+        try {
+            startupService.processStartupInactivityLifecycle();
+            return ResponseEntity.ok(Map.of("message", "Inactivity lifecycle check executed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id:[0-9]+}/upload-registration-certificate")
     public ResponseEntity<?> uploadRegistrationCertificate(
             @PathVariable Long id,

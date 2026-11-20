@@ -135,6 +135,16 @@ public class Startup {
     @Column(name = "last_updated", nullable = true)
     private LocalDateTime lastUpdated;
 
+    // Activity & Inactivity tracking
+    @Column(name = "activity_status")
+    private String activityStatus = "ACTIVE"; // "ACTIVE", "INACTIVE", "ARCHIVED"
+
+    @Column(name = "is_archived")
+    private Boolean isArchived = false;
+
+    @Column(name = "last_inactivity_email_sent")
+    private LocalDateTime lastInactivityEmailSent;
+
     // Registration & Compliance fields
     @Column(name = "is_government_registered")
     private Boolean isGovernmentRegistered;
@@ -249,11 +259,20 @@ public class Startup {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.lastUpdated = LocalDateTime.now();
+        if (this.activityStatus == null) {
+            this.activityStatus = "ACTIVE";
+        }
+        if (this.isArchived == null) {
+            this.isArchived = false;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.lastUpdated = LocalDateTime.now();
+        this.activityStatus = "ACTIVE";
+        this.isArchived = false;
+        this.lastInactivityEmailSent = null;
     }
 
     // Getters and Setters
@@ -720,6 +739,56 @@ public class Startup {
 
     public void setLastUpdated(LocalDateTime lastUpdated) {
         this.lastUpdated = lastUpdated;
+    }
+
+    public String getActivityStatus() {
+        if (activityStatus == null) {
+            return calculateActivityStatus();
+        }
+        return activityStatus;
+    }
+
+    public void setActivityStatus(String activityStatus) {
+        this.activityStatus = activityStatus;
+    }
+
+    public Boolean getIsArchived() {
+        return isArchived != null ? isArchived : false;
+    }
+
+    public void setIsArchived(Boolean isArchived) {
+        this.isArchived = isArchived;
+        if (Boolean.TRUE.equals(isArchived)) {
+            this.activityStatus = "ARCHIVED";
+        }
+    }
+
+    public LocalDateTime getLastInactivityEmailSent() {
+        return lastInactivityEmailSent;
+    }
+
+    public void setLastInactivityEmailSent(LocalDateTime lastInactivityEmailSent) {
+        this.lastInactivityEmailSent = lastInactivityEmailSent;
+    }
+
+    public long getDaysSinceLastUpdate() {
+        LocalDateTime refDate = this.lastUpdated != null ? this.lastUpdated : this.createdAt;
+        if (refDate == null) return 0;
+        return Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(refDate, LocalDateTime.now()));
+    }
+
+    public String calculateActivityStatus() {
+        if (Boolean.TRUE.equals(this.isArchived)) {
+            return "ARCHIVED";
+        }
+        long days = getDaysSinceLastUpdate();
+        if (days > 97) {
+            return "ARCHIVED";
+        } else if (days > 90) {
+            return "INACTIVE";
+        } else {
+            return "ACTIVE";
+        }
     }
 
     public Boolean getIsGovernmentRegistered() {

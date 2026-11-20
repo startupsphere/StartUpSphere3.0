@@ -103,8 +103,15 @@ public class StartupRankingController {
     }
 
     private Map<String, Object> mapStartupToData(Startup startup) {
+        return mapStartupToData(startup, 0);
+    }
+
+    private Map<String, Object> mapStartupToData(Startup startup, int rank) {
         Map<String, Object> data = new HashMap<>();
         data.put("id", startup.getId());
+        if (rank > 0) {
+            data.put("rank", rank);
+        }
         data.put("companyName", startup.getCompanyName());
         data.put("industry", startup.getIndustry());
         data.put("trlLevel", startup.getTrlLevel());
@@ -123,6 +130,11 @@ public class StartupRankingController {
         data.put("ecosystemScore", Math.round(rankingService.calculateEcosystemScore(startup) * 100));
         data.put("engagementScore", Math.round(rankingService.calculateEngagementScore(startup) * 100));
         data.put("totalFunding", startup.getTotalStartupFundingReceived());
+        data.put("foundedDate", startup.getFoundedDate());
+        data.put("createdAt", startup.getCreatedAt());
+        data.put("registrationDate", startup.getRegistrationDate());
+        data.put("lastUpdated", startup.getLastUpdated());
+        data.put("status", startup.getStatus());
         return data;
     }
 
@@ -132,33 +144,50 @@ public class StartupRankingController {
             @RequestParam(required = false) String govReg,
             @RequestParam(required = false) String trl,
             @RequestParam(required = false, defaultValue = "overall") String metric,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         List<Startup> allStartups = startupRepository.findAll();
         List<Startup> rankedStartups = filterAndRankStartups(allStartups, industry, govReg, trl, metric);
 
+        // Assign 1-based leaderboard ranking based on the sorted order
+        List<Map<String, Object>> rankedWithIndices = new ArrayList<>();
+        for (int i = 0; i < rankedStartups.size(); i++) {
+            rankedWithIndices.add(mapStartupToData(rankedStartups.get(i), i + 1));
+        }
+
+        // Filter specifically by search query (business name, industry, etc.) if provided
+        List<Map<String, Object>> filteredList = rankedWithIndices;
+        if (search != null && !search.trim().isEmpty()) {
+            String q = search.trim().toLowerCase();
+            filteredList = rankedWithIndices.stream()
+                    .filter(s -> {
+                        String name = (String) s.get("companyName");
+                        String ind = (String) s.get("industry");
+                        return (name != null && name.toLowerCase().contains(q)) ||
+                               (ind != null && ind.toLowerCase().contains(q));
+                    })
+                    .collect(Collectors.toList());
+        }
+
         // Apply pagination
         int start = page * size;
-        int end = Math.min(start + size, rankedStartups.size());
-        List<Startup> paginatedStartups = start < rankedStartups.size()
-                ? rankedStartups.subList(start, end)
+        int end = Math.min(start + size, filteredList.size());
+        List<Map<String, Object>> paginatedStartups = start < filteredList.size()
+                ? filteredList.subList(start, end)
                 : Collections.emptyList();
 
-        List<Map<String, Object>> startupData = paginatedStartups.stream()
-                .map(this::mapStartupToData)
-                .collect(Collectors.toList());
-
         Map<String, Object> response = new HashMap<>();
-        response.put("content", startupData);
-        response.put("totalElements", rankedStartups.size());
-        response.put("totalPages", (int) Math.ceil((double) rankedStartups.size() / size));
+        response.put("content", paginatedStartups);
+        response.put("totalElements", filteredList.size());
+        response.put("totalPages", (int) Math.ceil((double) filteredList.size() / size));
         response.put("size", size);
         response.put("number", page);
-        response.put("numberOfElements", startupData.size());
+        response.put("numberOfElements", paginatedStartups.size());
         response.put("first", page == 0);
-        response.put("last", end >= rankedStartups.size());
-        response.put("empty", startupData.isEmpty());
+        response.put("last", end >= filteredList.size());
+        response.put("empty", paginatedStartups.isEmpty());
 
         double totalFundingSum = allStartups.stream()
                 .filter(s -> !Boolean.TRUE.equals(s.getIsDraft()))
@@ -268,23 +297,52 @@ public class StartupRankingController {
             @RequestParam(required = false) String govReg,
             @RequestParam(required = false) String trl) {
         List<Startup> allStartups = startupRepository.findAll();
-        List<Startup> filtered = filterAndRankStartups(allStartups, industry, govReg, trl, "overall");
-        List<Startup> dataSet = (filtered.isEmpty() && (industry == null && govReg == null && trl == null)) ? allStartups : filtered;
+        
+        // Track all listed businesses & startups (active, in review, registered) across ecosystem
+        List<Startup> dataSet = allStartups.stream()
+                .filter(s -> !Boolean.TRUE.equals(s.getIsDraft()))
+                .filter(s -> {
+                    if (industry == null || industry.trim().isEmpty() || "All".equalsIgnoreCase(industry.trim())) {
+                        return true;
+                    }
+                    return industry.equalsIgnoreCase(s.getIndustry());
+                })
+                .filter(s -> {
+                    if (govReg == null || govReg.trim().isEmpty() || "All".equalsIgnoreCase(govReg.trim())) {
+                        return true;
+                    }
+                    String regAgency = s.getRegistrationAgency() != null ? s.getRegistrationAgency().trim() : "";
+                    Boolean isGovReg = s.getIsGovernmentRegistered();
+                    if ("BIR".equalsIgnoreCase(govReg)) return "BIR".equalsIgnoreCase(regAgency);
+                    if ("SEC".equalsIgnoreCase(govReg)) return "SEC".equalsIgnoreCase(regAgency);
+                    if ("DTI".equalsIgnoreCase(govReg)) return "DTI".equalsIgnoreCase(regAgency);
+                    if ("REGISTERED".equalsIgnoreCase(govReg)) return Boolean.TRUE.equals(isGovReg) || !regAgency.isEmpty();
+                    if ("UNREGISTERED".equalsIgnoreCase(govReg)) return !Boolean.TRUE.equals(isGovReg) && regAgency.isEmpty();
+                    return true;
+                })
+                .filter(s -> {
+                    if (trl == null || trl.trim().isEmpty() || "All".equalsIgnoreCase(trl.trim())) {
+                        return true;
+                    }
+                    int lvl = parseTrlLevel(s.getTrlLevel());
+                    if ("CONCEPT".equalsIgnoreCase(trl)) return lvl >= 1 && lvl <= 3;
+                    if ("PROTOTYPE".equalsIgnoreCase(trl)) return lvl >= 4 && lvl <= 6;
+                    if ("COMMERCIAL".equalsIgnoreCase(trl)) return lvl >= 7;
+                    return true;
+                })
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
 
+        response.put("totalTrackedBusinesses", dataSet.size());
         response.put("growthData", generateGrowthData(dataSet));
         response.put("fundingData", generateFundingData(dataSet));
         response.put("locationData", generateLocationData(dataSet));
+        response.put("monthlyGrowth", generateMonthlyStartupGrowth(dataSet));
+        response.put("trlStages", generateTrlStages(dataSet));
+        response.put("govCompliance", generateGovCompliance(dataSet));
 
-        double totalFunding = allStartups.stream()
-                .filter(s -> !Boolean.TRUE.equals(s.getIsDraft()))
-                .filter(s -> {
-                    if (industry != null && !industry.trim().isEmpty() && !"All".equalsIgnoreCase(industry.trim())) {
-                        return industry.equalsIgnoreCase(s.getIndustry());
-                    }
-                    return true;
-                })
+        double totalFunding = dataSet.stream()
                 .mapToDouble(Startup::getTotalStartupFundingReceived)
                 .sum();
         response.put("totalFunding", totalFunding);
@@ -374,43 +432,181 @@ public class StartupRankingController {
                 .collect(Collectors.toList());
     }
 
+    private int parseTrlLevel(String trlLevel) {
+        if (trlLevel == null || trlLevel.trim().isEmpty()) {
+            return 0;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d+").matcher(trlLevel);
+        if (m.find()) {
+            try {
+                return Integer.parseInt(m.group());
+            } catch (Exception ignored) {}
+        }
+        return 0;
+    }
+
     private List<Map<String, Object>> generateLocationData(List<Startup> startups) {
         Map<String, Long> locationDistribution = startups.stream()
-                .filter(s -> s.getCity() != null && !s.getCity().isEmpty())
+                .filter(s -> s.getCity() != null && !s.getCity().trim().isEmpty())
                 .collect(Collectors.groupingBy(
-                        Startup::getCity,
+                        s -> s.getCity().trim(),
                         Collectors.counting()));
 
-        List<Map.Entry<String, Long>> topLocations = locationDistribution.entrySet().stream()
+        return locationDistribution.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(4)
+                .map(entry -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("name", entry.getKey());
+                    item.put("value", entry.getValue());
+                    return item;
+                })
                 .collect(Collectors.toList());
+    }
 
-        List<Map<String, Object>> result = new ArrayList<>();
+    private List<Map<String, Object>> generateTrlStages(List<Startup> startups) {
+        List<Map<String, Object>> stages = new ArrayList<>();
+        for (int lvl = 1; lvl <= 9; lvl++) {
+            final int targetLvl = lvl;
+            List<String> names = startups.stream()
+                    .filter(s -> parseTrlLevel(s.getTrlLevel()) == targetLvl)
+                    .map(Startup::getCompanyName)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-        for (Map.Entry<String, Long> entry : topLocations) {
             Map<String, Object> item = new HashMap<>();
-            item.put("name", entry.getKey());
-            item.put("value", entry.getValue());
-            result.add(item);
+            item.put("stage", "TRL " + lvl);
+            item.put("level", lvl);
+            item.put("count", names.size());
+            item.put("startups", names);
+            stages.add(item);
+        }
+        return stages;
+    }
+
+    private List<Map<String, Object>> generateGovCompliance(List<Startup> startups) {
+        long registered = startups.stream().filter(s -> Boolean.TRUE.equals(s.getIsGovernmentRegistered()) || (s.getRegistrationAgency() != null && !s.getRegistrationAgency().trim().isEmpty() && !"Unregistered".equalsIgnoreCase(s.getRegistrationAgency()))).count();
+        long funded = startups.stream().filter(s -> s.getAmountOfGovernmentGrantsOrSubsidiesReceived() > 0).count();
+        long sec = startups.stream().filter(s -> "SEC".equalsIgnoreCase(s.getRegistrationAgency())).count();
+        long dti = startups.stream().filter(s -> "DTI".equalsIgnoreCase(s.getRegistrationAgency())).count();
+        long bir = startups.stream().filter(s -> "BIR".equalsIgnoreCase(s.getRegistrationAgency())).count();
+        long otherAgc = startups.stream().filter(s -> s.getRegistrationAgency() != null && !s.getRegistrationAgency().trim().isEmpty() && !Arrays.asList("BIR", "SEC", "DTI", "Unregistered").contains(s.getRegistrationAgency())).count();
+        long unregistered = startups.stream().filter(s -> !Boolean.TRUE.equals(s.getIsGovernmentRegistered()) && (s.getRegistrationAgency() == null || s.getRegistrationAgency().trim().isEmpty() || "Unregistered".equalsIgnoreCase(s.getRegistrationAgency()))).count();
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        list.add(Map.of("name", "Gov. Registered", "count", registered, "fill", "#10b981"));
+        list.add(Map.of("name", "Gov. Funded", "count", funded, "fill", "#06b6d4"));
+        list.add(Map.of("name", "SEC (Corp)", "count", sec, "fill", "#3b82f6"));
+        list.add(Map.of("name", "DTI (Trade)", "count", dti, "fill", "#6366f1"));
+        list.add(Map.of("name", "BIR (Certified)", "count", bir, "fill", "#8b5cf6"));
+        list.add(Map.of("name", "Other Agc.", "count", otherAgc, "fill", "#ec4899"));
+        list.add(Map.of("name", "Unregistered", "count", unregistered, "fill", "#f59e0b"));
+        return list;
+    }
+
+    private LocalDate parseFlexibleDate(String raw) {
+        if (raw == null || raw.trim().isEmpty() || "N/A".equalsIgnoreCase(raw.trim())) {
+            return null;
+        }
+        String s = raw.trim();
+        if (s.contains("T")) {
+            s = s.substring(0, s.indexOf('T')).trim();
         }
 
-        long topLocationsCount = topLocations.stream()
-                .mapToLong(Map.Entry::getValue)
-                .sum();
+        try {
+            return LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (Exception ignored) {}
 
-        long totalCount = locationDistribution.values().stream()
-                .mapToLong(Long::longValue)
-                .sum();
-
-        long otherCount = totalCount - topLocationsCount;
-        if (otherCount > 0) {
-            Map<String, Object> otherItem = new HashMap<>();
-            otherItem.put("name", "Other");
-            otherItem.put("value", otherCount);
-            result.add(otherItem);
+        String[] patterns = {
+            "MMM d, yyyy", "MMMM d, yyyy", "MMM dd, yyyy", "MMMM dd, yyyy",
+            "yyyy-MM-dd", "yyyy/MM/dd", "MM/dd/yyyy", "M/d/yyyy", "dd/MM/yyyy", "d/M/yyyy"
+        };
+        for (String pattern : patterns) {
+            try {
+                return LocalDate.parse(s, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH));
+            } catch (Exception ignored) {}
         }
 
-        return result;
+        if (s.matches("^\\d{4}$")) {
+            try {
+                int y = Integer.parseInt(s);
+                return LocalDate.of(y, 1, 1);
+            } catch (Exception ignored) {}
+        }
+
+        return null;
+    }
+
+    private LocalDate extractStartupDate(Startup s) {
+        // 1. Try foundedDate first: when the startup / business was actually established
+        if (s.getFoundedDate() != null && !s.getFoundedDate().trim().isEmpty()) {
+            LocalDate parsed = parseFlexibleDate(s.getFoundedDate());
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        // 2. Try registrationDate if foundedDate was not available
+        if (s.getRegistrationDate() != null && !s.getRegistrationDate().trim().isEmpty()) {
+            LocalDate parsed = parseFlexibleDate(s.getRegistrationDate());
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        // 3. Try createdAt (platform registration / submission timestamp)
+        if (s.getCreatedAt() != null) {
+            return s.getCreatedAt().toLocalDate();
+        }
+        // 4. Try lastUpdated
+        if (s.getLastUpdated() != null) {
+            return s.getLastUpdated().toLocalDate();
+        }
+        return null;
+    }
+
+    private List<Map<String, Object>> generateMonthlyStartupGrowth(List<Startup> startups) {
+        return generateMonthlyStartupGrowth(startups, 6);
+    }
+
+    private List<Map<String, Object>> generateMonthlyStartupGrowth(List<Startup> startups, int monthsCount) {
+        List<Map<String, Object>> monthlyData = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter shortMonthFmt = DateTimeFormatter.ofPattern("MMM");
+        DateTimeFormatter fullMonthFmt = DateTimeFormatter.ofPattern("MMM yyyy");
+
+        for (int i = monthsCount - 1; i >= 0; i--) {
+            YearMonth ym = YearMonth.from(today.minusMonths(i));
+            String monthName = ym.format(shortMonthFmt);
+
+            List<String> newNames = new ArrayList<>();
+            long count = 0;
+
+            for (Startup s : startups) {
+                if (Boolean.TRUE.equals(s.getIsDraft())) continue;
+                LocalDate d = extractStartupDate(s);
+                if (d != null && YearMonth.from(d).equals(ym)) {
+                    count++;
+                    if (s.getCompanyName() != null && !s.getCompanyName().trim().isEmpty()) {
+                        newNames.add(s.getCompanyName().trim());
+                    }
+                }
+            }
+
+            long cumulative = 0;
+            for (Startup s : startups) {
+                if (Boolean.TRUE.equals(s.getIsDraft())) continue;
+                LocalDate d = extractStartupDate(s);
+                if (d == null || !YearMonth.from(d).isAfter(ym)) {
+                    cumulative++;
+                }
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("month", monthName);
+            item.put("monthYear", ym.format(fullMonthFmt));
+            item.put("newStartups", count);
+            item.put("totalStartups", cumulative);
+            item.put("newStartupNames", newNames);
+            monthlyData.add(item);
+        }
+        return monthlyData;
     }
 }

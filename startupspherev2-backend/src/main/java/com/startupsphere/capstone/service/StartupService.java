@@ -5,6 +5,7 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -780,15 +782,40 @@ public class StartupService {
             params.put("endDate", parsedEndDate);
         }
 
-        // Apply sorting
+        // Apply sorting with hierarchy: 1 = In Review, 2 = Approved, 3 = Rejected, 4 = Others
+        String statusHierarchyOrder = "CASE " +
+                "WHEN LOWER(s.status) LIKE '%review%' OR LOWER(s.status) = 'pending' THEN 1 " +
+                "WHEN LOWER(s.status) = 'approved' THEN 2 " +
+                "WHEN LOWER(s.status) = 'rejected' THEN 3 " +
+                "ELSE 4 END";
+
         if (pageable.getSort().isSorted()) {
-            jpql.append(" ORDER BY ");
-            pageable.getSort().forEach(order -> {
-                jpql.append("s.").append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
-            });
-            jpql.setLength(jpql.length() - 2);
+            boolean hasStatusSort = false;
+            for (Sort.Order order : pageable.getSort()) {
+                if ("status".equalsIgnoreCase(order.getProperty())) {
+                    hasStatusSort = true;
+                    break;
+                }
+            }
+            if (hasStatusSort) {
+                jpql.append(" ORDER BY ");
+                pageable.getSort().forEach(order -> {
+                    if ("status".equalsIgnoreCase(order.getProperty())) {
+                        jpql.append(statusHierarchyOrder).append(" ").append(order.getDirection().name()).append(", ");
+                    } else {
+                        jpql.append("s.").append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
+                    }
+                });
+                jpql.setLength(jpql.length() - 2);
+            } else {
+                jpql.append(" ORDER BY ").append(statusHierarchyOrder).append(" ASC, ");
+                pageable.getSort().forEach(order -> {
+                    jpql.append("s.").append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
+                });
+                jpql.setLength(jpql.length() - 2);
+            }
         } else {
-            jpql.append(" ORDER BY s.companyName ASC");
+            jpql.append(" ORDER BY ").append(statusHierarchyOrder).append(" ASC, s.companyName ASC");
         }
 
         TypedQuery<Startup> query = entityManager.createQuery(jpql.toString(), Startup.class);
@@ -855,7 +882,12 @@ public class StartupService {
             params.put("endDate", parsedEndDate);
         }
 
-        jpql.append(" ORDER BY s.companyName ASC");
+        String statusHierarchyOrder = "CASE " +
+                "WHEN LOWER(s.status) LIKE '%review%' OR LOWER(s.status) = 'pending' THEN 1 " +
+                "WHEN LOWER(s.status) = 'approved' THEN 2 " +
+                "WHEN LOWER(s.status) = 'rejected' THEN 3 " +
+                "ELSE 4 END";
+        jpql.append(" ORDER BY ").append(statusHierarchyOrder).append(" ASC, s.companyName ASC");
 
         TypedQuery<Startup> query = entityManager.createQuery(jpql.toString(), Startup.class);
         for (Map.Entry<String, Object> entry : params.entrySet()) {
@@ -867,5 +899,229 @@ public class StartupService {
 
     public List<String> getDistinctIndustries() {
         return startupRepository.findDistinctIndustries();
+    }
+
+    @Scheduled(cron = "0 0 9 * * ?") // Daily at 9:00 AM
+    @Transactional
+    public void processStartupInactivityLifecycle() {
+        logger.info("Executing daily startup inactivity & archiving lifecycle check...");
+        List<Startup> allStartups = startupRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Startup startup : allStartups) {
+            if (Boolean.TRUE.equals(startup.getIsDraft())) continue;
+            if (!"Approved".equalsIgnoreCase(startup.getStatus())) continue;
+
+            LocalDateTime refDate = startup.getLastUpdated() != null ? startup.getLastUpdated() : startup.getCreatedAt();
+            if (refDate == null) continue;
+
+            long daysInactive = java.time.temporal.ChronoUnit.DAYS.between(refDate, now);
+
+            if (daysInactive > 97) {
+                // Moved to archive and hidden in the map after 7 days of inactivity
+                if (!Boolean.TRUE.equals(startup.getIsArchived()) || !"ARCHIVED".equalsIgnoreCase(startup.getActivityStatus())) {
+                    startup.setIsArchived(true);
+                    startup.setActivityStatus("ARCHIVED");
+                    startupRepository.save(startup);
+                    logger.info("Archived inactive startup '{}' ({} days inactive). Hidden from map.",
+                            startup.getCompanyName(), daysInactive);
+                }
+            } else if (daysInactive > 90) {
+                // Categorize as inactive
+                boolean modified = false;
+                if (!"INACTIVE".equalsIgnoreCase(startup.getActivityStatus())) {
+                    startup.setActivityStatus("INACTIVE");
+                    startup.setIsArchived(false);
+                    modified = true;
+                }
+
+                // Email weekly reminder
+                boolean sendEmail = false;
+                if (startup.getLastInactivityEmailSent() == null) {
+                    sendEmail = true;
+                } else {
+                    long daysSinceLastEmail = java.time.temporal.ChronoUnit.DAYS.between(startup.getLastInactivityEmailSent(), now);
+                    if (daysSinceLastEmail >= 7) {
+                        sendEmail = true;
+                    }
+                }
+
+                if (sendEmail && startup.getContactEmail() != null && !startup.getContactEmail().isBlank()) {
+                    long daysRemaining = Math.max(0, 97 - daysInactive);
+                    try {
+                        emailService.sendInactivityWarningEmail(
+                                startup.getContactEmail(),
+                                startup.getCompanyName(),
+                                (int) daysInactive,
+                                (int) daysRemaining
+                        );
+                        startup.setLastInactivityEmailSent(now);
+                        modified = true;
+                    } catch (Exception e) {
+                        logger.error("Failed to email inactivity notice to {}: {}", startup.getContactEmail(), e.getMessage());
+                    }
+                }
+
+                if (modified) {
+                    startupRepository.save(startup);
+                }
+            } else {
+                // Active business (updated within 90 days)
+                if (!"ACTIVE".equalsIgnoreCase(startup.getActivityStatus()) || Boolean.TRUE.equals(startup.getIsArchived())) {
+                    startup.setActivityStatus("ACTIVE");
+                    startup.setIsArchived(false);
+                    startupRepository.save(startup);
+                }
+            }
+        }
+    }
+
+    public Map<String, Object> getActivityDirectory(String category, String search, String industry, int page, int size) {
+        List<Startup> allStartups = startupRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Map<String, Object>> evaluated = new ArrayList<>();
+        int activeCount = 0;
+        int inactiveCount = 0;
+        int archivedCount = 0;
+
+        for (Startup s : allStartups) {
+            if (Boolean.TRUE.equals(s.getIsDraft())) continue;
+            if (!"Approved".equalsIgnoreCase(s.getStatus())) continue;
+
+            LocalDateTime refDate = s.getLastUpdated() != null ? s.getLastUpdated() : s.getCreatedAt();
+            long daysInactive = refDate != null ? Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(refDate, now)) : 0;
+
+            String status;
+            if (Boolean.TRUE.equals(s.getIsArchived()) || daysInactive > 97) {
+                status = "ARCHIVED";
+                archivedCount++;
+            } else if (daysInactive > 90) {
+                status = "INACTIVE";
+                inactiveCount++;
+            } else {
+                status = "ACTIVE";
+                activeCount++;
+            }
+
+            // Filter by category
+            if (category != null && !category.trim().isEmpty() && !"all".equalsIgnoreCase(category.trim())) {
+                if (!status.equalsIgnoreCase(category.trim())) {
+                    continue;
+                }
+            }
+
+            // Filter by industry
+            if (industry != null && !industry.trim().isEmpty() && !"all".equalsIgnoreCase(industry.trim())) {
+                if (!industry.equalsIgnoreCase(s.getIndustry())) {
+                    continue;
+                }
+            }
+
+            // Filter by search
+            if (search != null && !search.trim().isEmpty()) {
+                String q = search.trim().toLowerCase();
+                String name = s.getCompanyName() != null ? s.getCompanyName().toLowerCase() : "";
+                String ind = s.getIndustry() != null ? s.getIndustry().toLowerCase() : "";
+                String email = s.getContactEmail() != null ? s.getContactEmail().toLowerCase() : "";
+                if (!name.contains(q) && !ind.contains(q) && !email.contains(q)) {
+                    continue;
+                }
+            }
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", s.getId());
+            item.put("companyName", s.getCompanyName());
+            item.put("companyDescription", s.getCompanyDescription());
+            item.put("industry", s.getIndustry());
+            item.put("contactEmail", s.getContactEmail());
+            item.put("phoneNumber", s.getPhoneNumber());
+            item.put("city", s.getCity());
+            item.put("province", s.getProvince());
+            item.put("trlLevel", s.getTrlLevel());
+            item.put("registrationAgency", s.getRegistrationAgency());
+            item.put("isGovernmentRegistered", s.getIsGovernmentRegistered());
+            item.put("status", s.getStatus());
+            item.put("activityStatus", status);
+            item.put("isArchived", "ARCHIVED".equalsIgnoreCase(status));
+            item.put("hiddenFromMap", "ARCHIVED".equalsIgnoreCase(status));
+            item.put("daysInactive", daysInactive);
+            item.put("daysUntilArchive", Math.max(0, 97 - daysInactive));
+            item.put("lastUpdated", refDate);
+            item.put("lastInactivityEmailSent", s.getLastInactivityEmailSent());
+            evaluated.add(item);
+        }
+
+        evaluated.sort((a, b) -> {
+            Long daysA = (Long) a.get("daysInactive");
+            Long daysB = (Long) b.get("daysInactive");
+            return daysB.compareTo(daysA);
+        });
+
+        int totalElements = evaluated.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        List<Map<String, Object>> paginated = start < totalElements ? evaluated.subList(start, end) : Collections.emptyList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", paginated);
+        response.put("totalElements", totalElements);
+        response.put("totalPages", totalPages);
+        response.put("size", size);
+        response.put("number", page);
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("activeCount", activeCount);
+        summary.put("inactiveCount", inactiveCount);
+        summary.put("archivedCount", archivedCount);
+        summary.put("totalApproved", activeCount + inactiveCount + archivedCount);
+        response.put("summary", summary);
+
+        return response;
+    }
+
+    @Transactional
+    public Startup archiveStartup(Long id) {
+        Startup startup = startupRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Startup not found with id: " + id));
+        startup.setIsArchived(true);
+        startup.setActivityStatus("ARCHIVED");
+        return startupRepository.save(startup);
+    }
+
+    @Transactional
+    public Startup reactivateStartup(Long id) {
+        Startup startup = startupRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Startup not found with id: " + id));
+        startup.setIsArchived(false);
+        startup.setActivityStatus("ACTIVE");
+        startup.setLastUpdated(LocalDateTime.now());
+        startup.setLastInactivityEmailSent(null);
+        return startupRepository.save(startup);
+    }
+
+    @Transactional
+    public boolean sendManualInactivityReminder(Long id) {
+        Startup startup = startupRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Startup not found with id: " + id));
+        if (startup.getContactEmail() == null || startup.getContactEmail().isBlank()) {
+            throw new RuntimeException("Startup does not have a contact email configured.");
+        }
+        LocalDateTime refDate = startup.getLastUpdated() != null ? startup.getLastUpdated() : startup.getCreatedAt();
+        long daysInactive = refDate != null ? java.time.temporal.ChronoUnit.DAYS.between(refDate, LocalDateTime.now()) : 91;
+        long daysRemaining = Math.max(0, 97 - daysInactive);
+
+        boolean sent = emailService.sendInactivityWarningEmail(
+                startup.getContactEmail(),
+                startup.getCompanyName(),
+                (int) daysInactive,
+                (int) daysRemaining
+        );
+        if (sent) {
+            startup.setLastInactivityEmailSent(LocalDateTime.now());
+            startupRepository.save(startup);
+        }
+        return sent;
     }
 }

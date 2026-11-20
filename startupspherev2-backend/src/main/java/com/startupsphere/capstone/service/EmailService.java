@@ -831,6 +831,76 @@ public class EmailService {
         return false;
     }
 
+    public boolean sendInactivityWarningEmail(String toEmail, String companyName, int daysInactive, int daysRemaining) {
+        String subject = "Action Required: Inactivity Notice for " + (companyName != null ? companyName : "Your Business") + " - StartupSphere";
+        String htmlBody = "<div style=\"font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;\">"
+                + "<h2 style=\"color: #b45309;\">Inactivity Notice: Keep Your Business Active</h2>"
+                + "<p>Dear <strong>" + (companyName != null ? companyName : "Startup Team") + "</strong>,</p>"
+                + "<p>Your startup profile on StartupSphere has had no recorded updates for <strong>" + daysInactive + " days</strong>.</p>"
+                + "<p>Per StartupSphere ecosystem guidelines, businesses inactive for 90 days receive weekly reminders. "
+                + "If no updates (such as new investors, updated contacts, or government credibility) are recorded within the next <strong>" + daysRemaining + " days</strong>, your business will be moved to the <strong>Archive</strong> and <strong>hidden from the interactive public map</strong>.</p>"
+                + "<div style=\"background-color: #fef3c7; padding: 14px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;\">"
+                + "<strong>How to remain active:</strong> Log in to your StartupSphere dashboard and update any details about your startup to restore full active status immediately."
+                + "</div>"
+                + "<p style=\"margin-top: 32px; font-size: 13px; color: #64748b;\">Best regards,<br/>The StartupSphere Platform Administration</p>"
+                + "</div>";
+
+        String textBody = "Dear " + (companyName != null ? companyName : "Startup Team") + ",\n\n"
+                + "Your startup profile has had no recorded updates for " + daysInactive + " days.\n"
+                + "If no updates are made within " + daysRemaining + " days, your business will be archived and hidden from the map.\n\n"
+                + "Please log in and update your business profile to maintain active status.\n\n"
+                + "Thank you,\nStartupSphere Platform Administration";
+
+        // Try Brevo first
+        String brevoKey = getEffectiveBrevoKey();
+        if (brevoKey != null && !brevoKey.isBlank()) {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+                Map<String, Object> map = new HashMap<>();
+                map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+                map.put("to", List.of(Map.of("email", toEmail, "name", companyName != null ? companyName : "Business Owner")));
+                map.put("subject", subject);
+                map.put("htmlContent", htmlBody);
+                String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                        .header("api-key", brevoKey)
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(10))
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    logger.info("Inactivity warning delivered via Brevo to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to send inactivity warning via Brevo: {}", e.getMessage());
+            }
+        }
+
+        // Try Gmail SMTP
+        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
+                helper.setFrom(senderAddress, "StartupSphere");
+                helper.setTo(toEmail);
+                helper.setSubject(subject);
+                helper.setText(textBody, htmlBody);
+                mailSender.send(message);
+                return true;
+            } catch (Exception e) {
+                logger.error("Failed to send inactivity warning email via Gmail SMTP: {}", e.getMessage(), e);
+            }
+        }
+
+        return false;
+    }
+
     private String escapeHtml(String input) {
         if (input == null) return "";
         return input.replace("&", "&amp;")
