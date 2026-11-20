@@ -212,12 +212,69 @@ export const TOOLTIP_PRESETS = {
     summary:
       "Verification that the entity is officially registered with Philippine regulatory agencies (BIR for taxes, SEC for corporations, DTI for sole proprietorships, or CDA for cooperatives).",
   },
+  CHART_MONTHLY_GROWTH: {
+    title: "Monthly Startup Growth",
+    badge: "Growth Velocity",
+    summary:
+      "Tracks the monthly momentum and volume of new startups, businesses, and research initiatives created and registered over time. Shows both monthly additions and cumulative ecosystem expansion.",
+    guidance:
+      "Use this graph to identify trends, seasonal incubation influxes, and the overall trajectory of startup adoption.",
+  },
+  CHART_GEOGRAPHICAL: {
+    title: "Geographical Distribution",
+    badge: "Regional Footprint",
+    summary:
+      "Visualizes the geographic dispersion of active startups across Philippine cities and provinces, identifying primary innovation centers and emerging regional hubs.",
+    guidance:
+      "Highlights regional adoption and helps identify areas that may benefit from decentralization initiatives and regional incubation hubs.",
+  },
+  CHART_AVERAGE_SCORES: {
+    title: "Average Scores by Industry",
+    badge: "Sector Benchmark",
+    summary:
+      "Compares overall ecosystem readiness and composite performance scores across industry verticals, factoring in growth, funding, ecosystem enablers, and market engagement.",
+    guidance:
+      "Identifies the highest performing and most mature industry sectors within the national ecosystem.",
+  },
+  CHART_GROWTH_SCORE: {
+    title: "Growth Score by Industry",
+    badge: "TRL & Scaling",
+    summary:
+      "Measures technology maturity and expansion potential across Technology Readiness Levels (TRL 1–9) by industry vertical.",
+    guidance:
+      "Higher industry averages indicate that ventures have validated prototypes and are closer to commercial scaling.",
+  },
+  CHART_ECOSYSTEM_SCORE: {
+    title: "Ecosystem Score by Industry",
+    badge: "Partnerships & Backing",
+    summary:
+      "Evaluates collaborative network integration, including public-private partnerships (PPPs) and investor connections per industry sector.",
+    guidance:
+      "Reflects institutional support, corporate engagement, and investor interest in specific domains.",
+  },
+  CHART_GOV_COMPLIANCE: {
+    title: "Government Certified & Compliance Status",
+    badge: "Governance & Grants",
+    summary:
+      "Displays the number of startups, businesses, and research initiatives that are officially registered with government agencies (SEC, DTI, BIR) or funded through government grants and subsidies.",
+    guidance:
+      "Assesses formal legal compliance, enterprise legitimacy, and access to state-backed support programs.",
+  },
+  CHART_TRL_STAGES: {
+    title: "Technology Readiness (TRL) Stages",
+    badge: "Maturity Spectrum",
+    summary:
+      "Detailed breakdown of startups, businesses, and research spin-offs across all 9 Technology Readiness Levels (from TRL 1 Concept to TRL 9 Commercial Market Deployment).",
+    guidance:
+      "Click to view full definitions and qualification requirements for each TRL phase.",
+  },
 };
 
 export default function TooltipInfo({
   type,
   title,
   content,
+  description,
   children,
   className = "",
   size = "sm",
@@ -233,7 +290,7 @@ export default function TooltipInfo({
 
   const preset = type && TOOLTIP_PRESETS[type] ? TOOLTIP_PRESETS[type] : null;
   const resolvedTitle = title || preset?.title || "Information";
-  const resolvedSummary = content || preset?.summary;
+  const resolvedSummary = content || description || preset?.summary;
   const hasLevels = Boolean(preset?.levels);
 
   // Close when pressing Escape key
@@ -302,12 +359,6 @@ export default function TooltipInfo({
     <div
       ref={containerRef}
       className={`relative inline-flex items-center align-middle ${className}`}
-      {...(!hasLevels
-        ? {
-            onMouseEnter: () => setIsOpen(true),
-            onMouseLeave: () => setIsOpen(false),
-          }
-        : {})}
     >
       {/* Clickable Help Button with Question-Mark Icon */}
       <button
@@ -320,15 +371,15 @@ export default function TooltipInfo({
         }}
         className={`inline-flex items-center justify-center ${
           buttonPadSizes[size] || buttonPadSizes.sm
-        } text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 ${
+        } text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200 ${
           size === "xs"
             ? "bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
-            : "bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 shadow-xs"
+            : "bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 shadow-xs"
         } rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 cursor-pointer`}
         aria-label={resolvedTitle || "More information"}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        title={`Click for guide: ${resolvedTitle}`}
+        title={`Click to view purpose: ${resolvedTitle}`}
       >
         <HelpCircle
           className={`${
@@ -499,25 +550,25 @@ export default function TooltipInfo({
           )
         : null}
 
-      {/* RENDER MODE 2: Compact Inline Popover for Simple Indicators (IDI, SI, BIR, SEC, etc.) */}
+      {/* RENDER MODE 2: Compact Inline Popover for Simple Indicators (IDI, SI, Charts, etc.) */}
       {isOpen && !hasLevels && (
         <div
           role="tooltip"
-          className={`fixed sm:absolute z-[99999] sm:z-[9999] inset-x-3 sm:inset-x-auto sm:w-80 p-4 bg-white/95 backdrop-blur-md text-gray-800 text-xs rounded-2xl shadow-xl border border-gray-200/90 pointer-events-auto transition-all animate-fadeIn ${
+          className={`fixed sm:absolute z-[99999] sm:z-[9999] inset-x-3 sm:inset-x-auto sm:w-80 p-4 bg-white text-black text-xs rounded-2xl shadow-2xl border border-gray-300 pointer-events-auto transition-all animate-fadeIn ${
             positionClasses[position] || positionClasses.top
           }`}
           style={{ maxWidth: "min(340px, calc(100vw - 24px))" }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-2 pb-2.5 mb-2 border-b border-gray-100">
-            <span className="font-bold text-gray-900 text-xs tracking-wide">
+          <div className="flex items-start justify-between gap-2 pb-2.5 mb-2 border-b border-gray-200">
+            <span className="font-bold text-black text-xs tracking-wide">
               {resolvedTitle}
             </span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors cursor-pointer"
+              className="text-gray-500 hover:text-black p-0.5 rounded transition-colors cursor-pointer"
               aria-label="Close tooltip"
             >
               <X className="h-3.5 w-3.5" />
@@ -525,24 +576,24 @@ export default function TooltipInfo({
           </div>
 
           {/* Body Content */}
-          <p className="text-gray-600 leading-relaxed text-xs">
+          <p className="text-black font-normal leading-relaxed text-xs">
             {resolvedSummary}
           </p>
 
           {/* Sections if present */}
           {preset?.sections && (
-            <div className="mt-2.5 pt-2 border-t border-gray-100 space-y-1.5">
+            <div className="mt-2.5 pt-2 border-t border-gray-200 space-y-1.5">
               {preset.sections.map((sec, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100"
+                  className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200"
                 >
                   <span className={`h-2 w-2 rounded-full mt-1 flex-shrink-0 ${sec.color}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-gray-800 text-[11px] leading-tight">
+                    <p className="font-semibold text-black text-[11px] leading-tight">
                       {sec.stage}
                     </p>
-                    <p className="text-gray-500 text-[10px] leading-normal mt-0.5">
+                    <p className="text-gray-800 text-[10px] leading-normal mt-0.5">
                       {sec.desc}
                     </p>
                   </div>
@@ -552,12 +603,12 @@ export default function TooltipInfo({
           )}
 
           {preset?.guidance && (
-            <p className="mt-2 text-[11px] text-blue-600 font-medium border-t border-gray-100 pt-1.5">
+            <p className="mt-2 text-[11px] text-indigo-950 font-medium border-t border-gray-200 pt-1.5">
               {preset.guidance}
             </p>
           )}
 
-          {children && <div className="mt-2 pt-2 border-t border-gray-100">{children}</div>}
+          {children && <div className="mt-2 pt-2 border-t border-gray-200 text-black">{children}</div>}
         </div>
       )}
     </div>

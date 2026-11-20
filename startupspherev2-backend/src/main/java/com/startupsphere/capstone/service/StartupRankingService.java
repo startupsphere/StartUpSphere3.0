@@ -6,6 +6,8 @@ import org.springframework.cache.annotation.Cacheable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -14,25 +16,24 @@ import java.util.stream.Collectors;
 @Service
 public class StartupRankingService {
 
-    // Score component weights based on specified percentages
-    private static final double GROWTH_WEIGHT = 0.30;
-    private static final double INVESTMENT_WEIGHT = 0.30;
-    private static final double ECOSYSTEM_WEIGHT = 0.20;
-    private static final double ENGAGEMENT_WEIGHT = 0.20;
+    // Score component weights: balanced composite overall performance (25% each)
+    private static final double GROWTH_WEIGHT = 0.25;
+    private static final double INVESTMENT_WEIGHT = 0.25;
+    private static final double ECOSYSTEM_WEIGHT = 0.25;
+    private static final double ENGAGEMENT_WEIGHT = 0.25;
 
-    // Additional normalization factors
-    private static final double MAX_ANNUAL_REVENUE = 500000000.0; // 500M PHP as max benchmark
-    private static final double MAX_GROWTH_RATE = 100.0; // 100% as max benchmark
+    // Normalization factors & benchmarks
     private static final double MAX_FUNDING = 100000000.0; // 100M PHP as max benchmark
-    private static final double MAX_GOVT_GRANT = 50000000.0; // 50M PHP as max benchmark
-    private static final int MAX_FUNDING_ROUNDS = 10; // Series D+ as max benchmark
-    private static final int MAX_MENTORS = 50; // Arbitrary max
-    private static final int MAX_PARTNERSHIPS = 20; // Arbitrary max
-    private static final int MAX_VIEWS = 10000; // Arbitrary max for platform engagement
-    private static final int MAX_SOCIAL_MEDIA_SCORE = 5; // Count of social media platforms
+    private static final double MAX_PARTNERSHIPS = 10.0; // 10 public-private partnerships benchmark
+    private static final double MAX_INVESTORS = 10.0; // 10 investors / funding rounds benchmark
+    private static final double MAX_VIEWS = 10000.0; // 10,000 views benchmark
+    private static final double MAX_LIKES = 50.0; // 50 likes benchmark
+    private static final double MAX_BOOKMARKS = 30.0; // 30 bookmarks benchmark
+
+    private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d+");
 
     /**
-     * Calculate overall score for a startup
+     * Calculate overall score for a startup based on growth, investment, ecosystem and engagement
      * 
      * @param startup The startup entity to score
      * @return Normalized score between 0-100
@@ -47,212 +48,68 @@ public class StartupRankingService {
         return (growthScore * GROWTH_WEIGHT +
                 investmentScore * INVESTMENT_WEIGHT +
                 ecosystemScore * ECOSYSTEM_WEIGHT +
-                engagementScore * ENGAGEMENT_WEIGHT) * 100;
+                engagementScore * ENGAGEMENT_WEIGHT) * 100.0;
     }
 
     /**
-     * Calculate growth & performance score (30% of total)
+     * Calculate growth score based on the TRL level of the startup/business (TRL 1-9)
+     * Normalized between 0.0 and 1.0
      */
     public double calculateGrowthScore(Startup startup) {
-        // Revenue component (normalized)
-        double revenueScore = 0.0;
-        if (startup.getAnnualRevenue() != null) {
-            revenueScore = Math.min(startup.getAnnualRevenue() / MAX_ANNUAL_REVENUE, 1.0);
+        if (startup.getTrlLevel() == null || startup.getTrlLevel().trim().isEmpty()) {
+            return 0.0;
         }
-
-        // Growth rate component (already percentage but cap at 100%)
-        double growthRateScore = Math.min(startup.getAverageStartupGrowthRate() / MAX_GROWTH_RATE, 1.0);
-
-        // Survival rate (already percentage)
-        double survivalRateScore = startup.getStartupSurvivalRate() / 100.0;
-
-        // Combine with equal weights within this category
-        return (revenueScore + growthRateScore + survivalRateScore) / 3.0;
+        Matcher m = DIGIT_PATTERN.matcher(startup.getTrlLevel());
+        if (m.find()) {
+            int level = Integer.parseInt(m.group());
+            return Math.min(Math.max((double) level, 0.0) / 9.0, 1.0);
+        }
+        return 0.0;
     }
 
     /**
-     * Calculate investment & funding score (30% of total)
+     * Calculate investment score based on the Total fundings a specific startup/business has
+     * Normalized between 0.0 and 1.0
      */
     public double calculateInvestmentScore(Startup startup) {
-        // Capital metrics
-        double capitalScore = 0.0;
-        if (startup.getPaidUpCapital() != null) {
-            capitalScore = Math.min(startup.getPaidUpCapital() / MAX_FUNDING, 1.0);
+        double funding = startup.getTotalStartupFundingReceived();
+        if (funding <= 0 && startup.getPaidUpCapital() != null) {
+            funding = startup.getPaidUpCapital();
         }
-
-        double fundingScore = Math.min(startup.getTotalStartupFundingReceived() / MAX_FUNDING, 1.0);
-
-        // Funding rounds
-        double fundingRoundsScore = Math.min((double) startup.getNumberOfFundingRounds() / MAX_FUNDING_ROUNDS, 1.0);
-
-        // Foreign investment (binary: has/doesn't have)
-        double foreignInvestmentScore = startup.getNumberOfStartupsWithForeignInvestment() > 0 ? 1.0 : 0.0;
-
-        // Government support
-        double govtSupportScore = Math.min(
-                startup.getAmountOfGovernmentGrantsOrSubsidiesReceived() / MAX_GOVT_GRANT, 1.0);
-
-        // Combine with equal weights within this category
-        return (capitalScore + fundingScore + fundingRoundsScore + foreignInvestmentScore + govtSupportScore) / 5.0;
+        if (funding <= 0) {
+            return 0.0;
+        }
+        return Math.min(funding / MAX_FUNDING, 1.0);
     }
 
     /**
-     * Calculate ecosystem integration score (20% of total)
+     * Calculate ecosystem score based on the number of public-private partnerships
+     * and number of investors of a startup/business
+     * Normalized between 0.0 and 1.0
      */
     public double calculateEcosystemScore(Startup startup) {
-        // Incubator participation (binary: is/isn't in an incubator)
-        double incubatorScore = startup.getNumberOfStartupsInIncubationPrograms() > 0 ? 1.0 : 0.0;
+        // Public-Private Partnerships
+        double pppScore = Math.min((double) Math.max(startup.getPublicPrivatePartnershipsInvolvingStartups(), 0) / MAX_PARTNERSHIPS, 1.0);
 
-        // Mentorship
-        double mentorshipScore = Math.min(
-                (double) startup.getNumberOfMentorsOrAdvisorsInvolved() / MAX_MENTORS, 1.0);
+        // Number of investors (derived from funding rounds + foreign investment)
+        int investorCount = Math.max(startup.getNumberOfFundingRounds(), 0) + Math.max(startup.getNumberOfStartupsWithForeignInvestment(), 0);
+        double investorScore = Math.min((double) investorCount / MAX_INVESTORS, 1.0);
 
-        // Partnerships
-        double partnershipScore = Math.min(
-                (double) startup.getPublicPrivatePartnershipsInvolvingStartups() / MAX_PARTNERSHIPS, 1.0);
-
-        // Combine with equal weights within this category
-        return (incubatorScore + mentorshipScore + partnershipScore) / 3.0;
+        return (pppScore + investorScore) / 2.0;
     }
 
     /**
-     * Calculate engagement score (20% of total)
+     * Calculate engagement score based on likes, views, and bookmarks of the startup/business
+     * Normalized between 0.0 and 1.0
      */
     public double calculateEngagementScore(Startup startup) {
-        // Profile completeness score
-        double profileScore = calculateProfileCompleteness(startup);
+        double viewsScore = Math.min(startup.getViewsCount() != null ? (double) Math.max(startup.getViewsCount(), 0) / MAX_VIEWS : 0.0, 1.0);
+        int likesCount = startup.getLikes() != null ? startup.getLikes().size() : 0;
+        double likesScore = Math.min((double) likesCount / MAX_LIKES, 1.0);
+        int bookmarksCount = startup.getBookmarks() != null ? startup.getBookmarks().size() : 0;
+        double bookmarksScore = Math.min((double) bookmarksCount / MAX_BOOKMARKS, 1.0);
 
-        // Social media presence score
-        double socialMediaScore = calculateSocialMediaPresence(startup);
-
-        // Platform engagement (views, likes, bookmarks)
-        double viewsScore = Math.min((double) startup.getViewsCount() / MAX_VIEWS, 1.0);
-        double likesScore = Math.min(startup.getLikes() != null ? (double) startup.getLikes().size() / 100.0 : 0.0,
-                1.0);
-        double bookmarksScore = Math
-                .min(startup.getBookmarks() != null ? (double) startup.getBookmarks().size() / 50.0 : 0.0, 1.0);
-        double platformEngagementScore = (viewsScore + likesScore + bookmarksScore) / 3.0;
-
-        // Combine with equal weights within this category
-        return (profileScore + socialMediaScore + platformEngagementScore) / 3.0;
-    }
-
-    /**
-     * Calculate profile completeness score
-     */
-    private double calculateProfileCompleteness(Startup startup) {
-        int totalFields = 0;
-        int filledFields = 0;
-
-        // Check each field and count if it's filled
-        if (startup.getCompanyName() != null && !startup.getCompanyName().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getCompanyDescription() != null && !startup.getCompanyDescription().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getFoundedDate() != null && !startup.getFoundedDate().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getTypeOfCompany() != null && !startup.getTypeOfCompany().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getNumberOfEmployees() != null && !startup.getNumberOfEmployees().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getPhoneNumber() != null && !startup.getPhoneNumber().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getContactEmail() != null && !startup.getContactEmail().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getStreetAddress() != null && !startup.getStreetAddress().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getCity() != null && !startup.getCity().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getProvince() != null && !startup.getProvince().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getPostalCode() != null && !startup.getPostalCode().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getIndustry() != null && !startup.getIndustry().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getBusinessActivity() != null && !startup.getBusinessActivity().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getFundingStage() != null && !startup.getFundingStage().trim().isEmpty()) {
-            filledFields++;
-        }
-        totalFields++;
-
-        if (startup.getPhoto() != null && startup.getPhoto().length > 0) {
-            filledFields++;
-        }
-        totalFields++;
-
-        // Calculate completeness percentage
-        return (double) filledFields / totalFields;
-    }
-
-    /**
-     * Calculate social media presence score
-     */
-    private double calculateSocialMediaPresence(Startup startup) {
-        int socialMediaCount = 0;
-
-        // Count how many social media profiles are filled
-        if (startup.getWebsite() != null && !startup.getWebsite().trim().isEmpty()) {
-            socialMediaCount++;
-        }
-
-        if (startup.getFacebook() != null && !startup.getFacebook().trim().isEmpty()) {
-            socialMediaCount++;
-        }
-
-        if (startup.getTwitter() != null && !startup.getTwitter().trim().isEmpty()) {
-            socialMediaCount++;
-        }
-
-        if (startup.getInstagram() != null && !startup.getInstagram().trim().isEmpty()) {
-            socialMediaCount++;
-        }
-
-        if (startup.getLinkedIn() != null && !startup.getLinkedIn().trim().isEmpty()) {
-            socialMediaCount++;
-        }
-
-        // Calculate social media presence score
-        return (double) socialMediaCount / MAX_SOCIAL_MEDIA_SCORE;
+        return (viewsScore + likesScore + bookmarksScore) / 3.0;
     }
 
     /**
