@@ -69,6 +69,13 @@ export async function sendGroqChat({
   temperature = 0.7,
   maxTokens,
 }) {
+  // Check internet connectivity before attempting any network request
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    const err = new Error("No internet connection. Please check your network and try again.");
+    err.code = "NETWORK_OFFLINE";
+    throw err;
+  }
+
   const apiKey = getGroqApiKey();
   if (!apiKey) {
     throw new Error(
@@ -135,14 +142,31 @@ export async function sendGroqChat({
       });
     }
   } catch (networkError) {
-    // If proxy failed due to network error and primary was relative, try direct
-    if (primaryEndpoint.startsWith("/")) {
+    // Check if the error is a connectivity/network failure
+    const isOffline = !navigator.onLine ||
+      networkError.name === "TypeError" ||
+      networkError.message?.toLowerCase().includes("failed to fetch") ||
+      networkError.message?.toLowerCase().includes("network") ||
+      networkError.message?.toLowerCase().includes("load failed");
+
+    // If proxy failed due to network error and primary was relative, try direct Groq endpoint
+    if (primaryEndpoint.startsWith("/") && !isOffline) {
       console.warn("Groq proxy network error, trying direct Groq endpoint...", networkError);
-      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
+      try {
+        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } catch (directErr) {
+        const offlineErr = new Error("Internet connection lost. Please check your connection and try again.");
+        offlineErr.code = "NETWORK_OFFLINE";
+        throw offlineErr;
+      }
+    } else if (isOffline) {
+      const offlineErr = new Error("Internet connection lost. Please check your connection and try again.");
+      offlineErr.code = "NETWORK_OFFLINE";
+      throw offlineErr;
     } else {
       throw networkError;
     }
