@@ -1570,6 +1570,16 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const handleFilterClick = (filter) => {
     setActiveFilter(filter);
 
+    if (filter === "Likes") {
+      setSelectedMetrics({ likes: true, bookmarks: false, views: false });
+    } else if (filter === "Bookmarks") {
+      setSelectedMetrics({ likes: false, bookmarks: true, views: false });
+    } else if (filter === "Views") {
+      setSelectedMetrics({ likes: false, bookmarks: false, views: true });
+    } else if (filter === "All") {
+      setSelectedMetrics({ likes: true, bookmarks: true, views: true });
+    }
+
     if (selectedStartup === "all") {
       fetchAllStartupsData();
     } else {
@@ -2073,7 +2083,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                   {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                     {/* Views Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-amber-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className={`group bg-white rounded-xl shadow-xs border p-3 hover:shadow-sm transition-all flex flex-col justify-between ${
+                      activeFilter === "Views"
+                        ? "border-amber-400 ring-2 ring-amber-300/80 shadow-xs"
+                        : "border-gray-200/90 hover:border-amber-300"
+                    }`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100/80">
                           <FaEye className="h-3.5 w-3.5 text-amber-600" />
@@ -2100,7 +2114,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Bookmarks Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-emerald-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className={`group bg-white rounded-xl shadow-xs border p-3 hover:shadow-sm transition-all flex flex-col justify-between ${
+                      activeFilter === "Bookmarks"
+                        ? "border-emerald-400 ring-2 ring-emerald-300/80 shadow-xs"
+                        : "border-gray-200/90 hover:border-emerald-300"
+                    }`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100/80">
                           <FaBookBookmark className="h-3.5 w-3.5 text-emerald-600" />
@@ -2127,7 +2145,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Likes Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className={`group bg-white rounded-xl shadow-xs border p-3 hover:shadow-sm transition-all flex flex-col justify-between ${
+                      activeFilter === "Likes"
+                        ? "border-blue-400 ring-2 ring-blue-300/80 shadow-xs"
+                        : "border-gray-200/90 hover:border-blue-300"
+                    }`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
                           <BiLike className="h-4 w-4 text-blue-600" />
@@ -2154,7 +2176,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Facebook Page Engagement Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className={`group bg-white rounded-xl shadow-xs border p-3 hover:shadow-sm transition-all flex flex-col justify-between ${
+                      activeFilter === "Likes"
+                        ? "border-blue-300 ring-1 ring-blue-200/70 shadow-2xs"
+                        : "border-gray-200/90 hover:border-blue-300"
+                    }`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100/80">
                           <FaFacebook className="h-3.5 w-3.5 text-[#1877F2]" />
@@ -2214,7 +2240,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Instagram Audience Card */}
-                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-pink-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className="col-span-2 sm:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-pink-300 hover:shadow-sm transition-all flex flex-col justify-between">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
                           <FaInstagram className="h-3.5 w-3.5" />

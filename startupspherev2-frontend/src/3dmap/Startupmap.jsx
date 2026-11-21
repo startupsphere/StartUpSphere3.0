@@ -699,6 +699,39 @@ export default function Startupmap({
         }
       });
     }
+
+    // Immediately synchronize the active engagement legend filter on freshly rendered engagement layers
+    const engagementLayers = [
+      "engagement-heatmap-circle",
+      "engagement-heatmap-glow",
+      "engagement-heatmap-center"
+    ];
+    let filterExpr = null;
+    if (engagementFilter === "RED") {
+      filterExpr = [">=", ["get", "engagementScore"], 31];
+    } else if (engagementFilter === "ORANGE") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 21], ["<=", ["get", "engagementScore"], 30]];
+    } else if (engagementFilter === "YELLOW") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 11], ["<=", ["get", "engagementScore"], 20]];
+    } else if (engagementFilter === "CYAN") {
+      filterExpr = ["all", [">=", ["get", "engagementScore"], 1], ["<=", ["get", "engagementScore"], 10]];
+    } else if (engagementFilter === "BLUE") {
+      filterExpr = ["==", ["get", "engagementScore"], 0];
+    }
+    engagementLayers.forEach((layer) => {
+      if (map.getLayer(layer)) {
+        try {
+          if (!filterExpr || engagementFilter === "ALL") {
+            map.setFilter(layer, null);
+          } else {
+            map.setFilter(layer, filterExpr);
+          }
+        } catch (e) {
+          console.warn(`Could not set initial filter on ${layer}`, e);
+        }
+      }
+    });
+    try { map.triggerRepaint(); } catch (e) {}
   };
 
   const renderStartupMarkers = (map, startupsWithLocation) => {
@@ -3953,37 +3986,63 @@ export default function Startupmap({
   // Filter engagement layers based on legend engagement filter
   useEffect(() => {
     const map = mapInstanceRef?.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map) return;
 
-    const engagementLayers = [
-      "engagement-heatmap-circle",
-      "engagement-heatmap-glow",
-      "engagement-heatmap-center"
-    ];
+    const applyEngagementFilter = () => {
+      try {
+        const engagementLayers = [
+          "engagement-heatmap-circle",
+          "engagement-heatmap-glow",
+          "engagement-heatmap-center"
+        ];
 
-    let filterExpr = null;
-    if (engagementFilter === "RED") {
-      filterExpr = [">=", ["get", "engagementScore"], 31];
-    } else if (engagementFilter === "ORANGE") {
-      filterExpr = ["all", [">=", ["get", "engagementScore"], 21], ["<=", ["get", "engagementScore"], 30]];
-    } else if (engagementFilter === "YELLOW") {
-      filterExpr = ["all", [">=", ["get", "engagementScore"], 11], ["<=", ["get", "engagementScore"], 20]];
-    } else if (engagementFilter === "CYAN") {
-      filterExpr = ["all", [">=", ["get", "engagementScore"], 1], ["<=", ["get", "engagementScore"], 10]];
-    } else if (engagementFilter === "BLUE") {
-      filterExpr = ["==", ["get", "engagementScore"], 0];
-    }
-
-    engagementLayers.forEach((layer) => {
-      if (map.getLayer(layer)) {
-        try {
-          map.setFilter(layer, filterExpr);
-        } catch (e) {
-          console.warn(`Could not set filter on ${layer}`, e);
+        let filterExpr = null;
+        if (engagementFilter === "RED") {
+          filterExpr = [">=", ["get", "engagementScore"], 31];
+        } else if (engagementFilter === "ORANGE") {
+          filterExpr = ["all", [">=", ["get", "engagementScore"], 21], ["<=", ["get", "engagementScore"], 30]];
+        } else if (engagementFilter === "YELLOW") {
+          filterExpr = ["all", [">=", ["get", "engagementScore"], 11], ["<=", ["get", "engagementScore"], 20]];
+        } else if (engagementFilter === "CYAN") {
+          filterExpr = ["all", [">=", ["get", "engagementScore"], 1], ["<=", ["get", "engagementScore"], 10]];
+        } else if (engagementFilter === "BLUE") {
+          filterExpr = ["==", ["get", "engagementScore"], 0];
         }
+
+        engagementLayers.forEach((layer) => {
+          if (map.getLayer(layer)) {
+            try {
+              if (!filterExpr || engagementFilter === "ALL") {
+                // Completely reset the filter so all heatmap circles and glows are visible
+                map.setFilter(layer, null);
+              } else {
+                map.setFilter(layer, filterExpr);
+              }
+
+              if (heatmapMode === "ENGAGEMENT" && showHeatmap) {
+                map.setLayoutProperty(layer, "visibility", "visible");
+              }
+            } catch (e) {
+              console.warn(`Could not set filter on ${layer}`, e);
+            }
+          }
+        });
+
+        // Immediately force Mapbox to repaint stationary canvas
+        try {
+          map.triggerRepaint();
+        } catch (e) {}
+      } catch (err) {
+        console.warn("Could not apply engagement filter:", err);
       }
-    });
-  }, [engagementFilter]);
+    };
+
+    if (map.isStyleLoaded()) {
+      applyEngagementFilter();
+    } else {
+      map.once("styledata", applyEngagementFilter);
+    }
+  }, [engagementFilter, heatmapMode, showHeatmap, mapInstanceRef]);
 
   return (
     <div className="relative w-full h-full overflow-hidden map-container-relative" style={{ position: 'relative', width: '100%', height: '100%' }}>
