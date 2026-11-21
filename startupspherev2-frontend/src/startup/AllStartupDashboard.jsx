@@ -90,6 +90,59 @@ export default function AllStartupDashboard() {
   const [fundingData, setFundingData] = useState([]);
   const [locationData, setLocationData] = useState([]);
   const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [geoViewMode, setGeoViewMode] = useState("bar"); // "bar" | "donut"
+  const [geoShowAll, setGeoShowAll] = useState(false);
+
+  const GEO_PALETTE = useMemo(
+    () => [
+      "#3b82f6",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#ec4899",
+      "#06b6d4",
+      "#f97316",
+      "#6366f1",
+      "#14b8a6",
+      "#84cc16",
+    ],
+    []
+  );
+
+  const sortedLocationData = useMemo(() => {
+    if (!locationData || !Array.isArray(locationData)) return [];
+    return [...locationData]
+      .filter((item) => item && item.name && (item.value || 0) > 0)
+      .sort((a, b) => (b.value || 0) - (a.value || 0));
+  }, [locationData]);
+
+  const totalGeoStartups = useMemo(() => {
+    return sortedLocationData.reduce((sum, item) => sum + (item.value || 0), 0);
+  }, [sortedLocationData]);
+
+  const barChartLocationData = useMemo(() => {
+    if (geoShowAll || sortedLocationData.length <= 8) {
+      return sortedLocationData;
+    }
+    const top7 = sortedLocationData.slice(0, 7);
+    const otherSum = sortedLocationData.slice(7).reduce((acc, c) => acc + (c.value || 0), 0);
+    return [
+      ...top7,
+      { name: `Others (${sortedLocationData.length - 7})`, value: otherSum, isOther: true },
+    ];
+  }, [sortedLocationData, geoShowAll]);
+
+  const donutLocationData = useMemo(() => {
+    if (sortedLocationData.length <= 5) {
+      return sortedLocationData;
+    }
+    const top4 = sortedLocationData.slice(0, 4);
+    const otherSum = sortedLocationData.slice(4).reduce((acc, c) => acc + (c.value || 0), 0);
+    return [
+      ...top4,
+      { name: `Other Cities (${sortedLocationData.length - 4})`, value: otherSum, isOther: true },
+    ];
+  }, [sortedLocationData]);
 
   // New state for chart filtering and interaction
   const [selectedChartIndustry, setSelectedChartIndustry] = useState(null);
@@ -2332,38 +2385,204 @@ export default function AllStartupDashboard() {
 
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-semibold mb-4 text-blue-900">
-                Geographical Distribution
-              </h2>
-              <div className="h-64">
-                {dashboardLoading ? (
-                  <div className="text-center py-6">
-                    Loading location data...
+            <div className="bg-white p-6 rounded-lg shadow flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-indigo-600" />
+                      <h2 className="text-lg font-semibold text-blue-900">
+                        Geographical Distribution
+                      </h2>
+                      <TooltipInfo type="CHART_GEOGRAPHICAL" size="xs" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {sortedLocationData.length} active cities across {totalGeoStartups} startups
+                    </p>
                   </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={locationData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label
+
+                  {/* Toggle View Mode & Expand Controls */}
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    {geoViewMode === "bar" && sortedLocationData.length > 8 && (
+                      <button
+                        type="button"
+                        onClick={() => setGeoShowAll((prev) => !prev)}
+                        className="px-2 py-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors cursor-pointer"
+                        title={geoShowAll ? "Show Top 8 Cities" : "Show All Cities"}
                       >
-                        {locationData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
+                        {geoShowAll ? "Top 8" : `All (${sortedLocationData.length})`}
+                      </button>
+                    )}
+                    <div className="inline-flex items-center p-0.5 bg-gray-100 rounded-lg border border-gray-200 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setGeoViewMode("bar")}
+                        className={`px-2.5 py-0.5 rounded font-semibold text-xs transition-all cursor-pointer ${
+                          geoViewMode === "bar"
+                            ? "bg-white text-indigo-700 shadow-2xs font-bold"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Ranked
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGeoViewMode("donut")}
+                        className={`px-2.5 py-0.5 rounded font-semibold text-xs transition-all cursor-pointer ${
+                          geoViewMode === "donut"
+                            ? "bg-white text-indigo-700 shadow-2xs font-bold"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Donut
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-72">
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center h-full text-sm text-gray-500">
+                      Loading location data...
+                    </div>
+                  ) : sortedLocationData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-sm text-gray-400">
+                      No location data available
+                    </div>
+                  ) : geoViewMode === "bar" ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={barChartLocationData}
+                        margin={{ top: 5, right: 35, left: 10, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                        <XAxis
+                          type="number"
+                          allowDecimals={false}
+                          tickLine={false}
+                          axisLine={{ stroke: "#e2e8f0" }}
+                          tick={{ fontSize: 11, fill: "#64748b" }}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={115}
+                          tickLine={false}
+                          axisLine={{ stroke: "#e2e8f0" }}
+                          tick={{ fontSize: 11, fill: "#334155", fontWeight: 500 }}
+                        />
+                        <Tooltip
+                          formatter={(val) => [
+                            `${val} startup${val > 1 ? "s" : ""} (${totalGeoStartups > 0 ? ((val / totalGeoStartups) * 100).toFixed(1) : 0}%)`,
+                            "Startups",
+                          ]}
+                          contentStyle={{
+                            backgroundColor: "rgba(15, 23, 42, 0.92)",
+                            borderRadius: "8px",
+                            border: "none",
+                            color: "#fff",
+                            fontSize: "12px",
+                            padding: "8px 12px",
+                          }}
+                          itemStyle={{ color: "#fff" }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          radius={[0, 6, 6, 0]}
+                          barSize={18}
+                        >
+                          {barChartLocationData.map((entry, index) => (
+                            <Cell
+                              key={`cell-bar-${index}`}
+                              fill={entry.isOther ? "#94a3b8" : GEO_PALETTE[index % GEO_PALETTE.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 h-full">
+                      {/* Donut Chart */}
+                      <div className="w-full sm:w-1/2 h-48 sm:h-full relative flex items-center justify-center shrink-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={donutLocationData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={52}
+                              outerRadius={78}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {donutLocationData.map((entry, index) => (
+                                <Cell
+                                  key={`donut-cell-${index}`}
+                                  fill={entry.isOther ? "#94a3b8" : GEO_PALETTE[index % GEO_PALETTE.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(val, name) => [
+                                `${val} startup${val > 1 ? "s" : ""} (${totalGeoStartups > 0 ? ((val / totalGeoStartups) * 100).toFixed(1) : 0}%)`,
+                                name,
+                              ]}
+                              contentStyle={{
+                                backgroundColor: "rgba(15, 23, 42, 0.92)",
+                                borderRadius: "8px",
+                                border: "none",
+                                color: "#fff",
+                                fontSize: "12px",
+                                padding: "8px 12px",
+                              }}
+                              itemStyle={{ color: "#fff" }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <span className="text-xl font-black text-gray-900 leading-none">
+                            {totalGeoStartups}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">
+                            Startups
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Clean Legend Breakdown List */}
+                      <div className="w-full sm:w-1/2 overflow-y-auto max-h-56 pr-1 space-y-1.5 text-xs">
+                        {donutLocationData.map((item, idx) => {
+                          const pct = totalGeoStartups > 0 ? ((item.value / totalGeoStartups) * 100).toFixed(1) : 0;
+                          return (
+                            <div
+                              key={item.name}
+                              className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-gray-50/80 hover:bg-gray-100 transition-colors border border-gray-100"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{
+                                    backgroundColor: item.isOther
+                                      ? "#94a3b8"
+                                      : GEO_PALETTE[idx % GEO_PALETTE.length],
+                                  }}
+                                />
+                                <span className="truncate text-gray-700 font-medium" title={item.name}>
+                                  {item.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                <span className="font-bold text-gray-900">{item.value}</span>
+                                <span className="text-[10px] text-gray-400">({pct}%)</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
