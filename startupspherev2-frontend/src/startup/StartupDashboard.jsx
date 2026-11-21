@@ -286,6 +286,263 @@ export default function StartupDashboard({ openAddMethodModal }) {
     return [...filteredStartups, ...drafts];
   }, [startups, drafts, searchQuery]);
 
+  const [rawEngagement, setRawEngagement] = useState({
+    views: {},
+    bookmarks: {},
+    likes: {},
+  });
+  const [selectedEngagementMonths, setSelectedEngagementMonths] = useState(months);
+  const [selectedMetrics, setSelectedMetrics] = useState({
+    likes: true,
+    bookmarks: true,
+    views: true,
+  });
+  const [leftChartTab, setLeftChartTab] = useState("growth");
+
+  const monthShortMap = useMemo(() => ({
+    January: "Jan",
+    February: "Feb",
+    March: "Mar",
+    April: "Apr",
+    May: "May",
+    June: "Jun",
+    July: "Jul",
+    August: "Aug",
+    September: "Sep",
+    October: "Oct",
+    November: "Nov",
+    December: "Dec",
+  }), []);
+
+  const handleSelectAllMonths = () => setSelectedEngagementMonths([...months]);
+  const handleSelectQ1 = () => setSelectedEngagementMonths(["January", "February", "March"]);
+  const handleSelectQ2 = () => setSelectedEngagementMonths(["April", "May", "June"]);
+  const handleSelectQ3 = () => setSelectedEngagementMonths(["July", "August", "September"]);
+  const handleSelectQ4 = () => setSelectedEngagementMonths(["October", "November", "December"]);
+  const handleSelectH1 = () => setSelectedEngagementMonths(["January", "February", "March", "April", "May", "June"]);
+  const handleSelectH2 = () => setSelectedEngagementMonths(["July", "August", "September", "October", "November", "December"]);
+  const handleToggleMonth = (m) => {
+    setSelectedEngagementMonths((prev) => {
+      if (prev.includes(m)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((item) => item !== m);
+      } else {
+        return [...prev, m];
+      }
+    });
+  };
+
+  const handleToggleMetric = (metricKey) => {
+    setSelectedMetrics((prev) => {
+      const activeCount = Object.values(prev).filter(Boolean).length;
+      if (prev[metricKey] && activeCount === 1) return prev;
+      return { ...prev, [metricKey]: !prev[metricKey] };
+    });
+  };
+  const handleSelectAllMetrics = () => {
+    setSelectedMetrics({ likes: true, bookmarks: true, views: true });
+  };
+
+  // Grouped Column Chart Data for Monthly Engagement
+  const groupedChartData = useMemo(() => {
+    const activeMonths = months.filter((m) => selectedEngagementMonths.includes(m));
+    const labels = activeMonths.map((m) => monthShortMap[m] || m);
+    const datasets = [];
+
+    if (selectedMetrics.views) {
+      datasets.push({
+        label: "Views",
+        data: activeMonths.map((m) => Number(rawEngagement.views?.[m] || 0)),
+        backgroundColor: "#f59e0b",
+        hoverBackgroundColor: "#d97706",
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.8,
+      });
+    }
+
+    if (selectedMetrics.bookmarks) {
+      datasets.push({
+        label: "Bookmarks",
+        data: activeMonths.map((m) => Number(rawEngagement.bookmarks?.[m] || 0)),
+        backgroundColor: "#10b981",
+        hoverBackgroundColor: "#059669",
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.8,
+      });
+    }
+
+    if (selectedMetrics.likes) {
+      datasets.push({
+        label: "Likes",
+        data: activeMonths.map((m) => Number(rawEngagement.likes?.[m] || 0)),
+        backgroundColor: "#3b82f6",
+        hoverBackgroundColor: "#2563eb",
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.8,
+      });
+    }
+
+    return { labels, datasets };
+  }, [rawEngagement, selectedEngagementMonths, selectedMetrics, months, monthShortMap]);
+
+  // Options for Grouped Column Chart
+  const groupedChartOptions = useMemo(() => ({
+    maintainAspectRatio: false,
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top",
+        align: "end",
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 8,
+          font: {
+            size: 11,
+            weight: "600",
+          },
+        },
+      },
+      tooltip: {
+        mode: "index",
+        intersect: false,
+        backgroundColor: "rgba(0, 0, 0, 0.85)",
+        padding: 10,
+        cornerRadius: 6,
+        titleFont: {
+          size: 12,
+          weight: "bold",
+        },
+        bodyFont: {
+          size: 11,
+        },
+        callbacks: {
+          label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toLocaleString()}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: { size: 10, weight: "600" },
+          color: "#475569",
+        },
+      },
+      y: {
+        grid: {
+          color: "rgba(0, 0, 0, 0.05)",
+        },
+        ticks: {
+          font: { size: 10 },
+          color: "#64748b",
+        },
+        beginAtZero: true,
+      },
+    },
+    interaction: {
+      mode: "nearest",
+      axis: "x",
+      intersect: false,
+    },
+  }), []);
+
+  // Growth Rate Bar Chart Data
+  const growthRateData = useMemo(() => {
+    if (selectedStartup !== "all") {
+      const target = startups.find((s) => s.id === selectedStartup);
+      if (target) {
+        const rate = Number(target.averageStartupGrowthRate ?? target.growthScore ?? 0);
+        return {
+          labels: [target.companyName || "Selected", "Ecosystem Avg"],
+          datasets: [
+            {
+              label: "Growth Rate (%)",
+              data: [rate, 15],
+              backgroundColor: ["#6366f1", "#cbd5e1"],
+              hoverBackgroundColor: ["#4f46e5", "#94a3b8"],
+              borderRadius: 6,
+              barPercentage: 0.5,
+            },
+          ],
+        };
+      }
+    }
+
+    if (startups && startups.length > 0) {
+      const displayed = startups.slice(0, 8);
+      const labels = displayed.map((s) => s.companyName || "Startup");
+      const data = displayed.map((s) => {
+        const val = s.averageStartupGrowthRate ?? s.growthScore;
+        return val !== null && val !== undefined ? Number(val) : 10;
+      });
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Growth Rate (%)",
+            data,
+            backgroundColor: "#6366f1",
+            hoverBackgroundColor: "#4f46e5",
+            borderRadius: 6,
+            barPercentage: 0.6,
+          },
+        ],
+      };
+    }
+
+    return {
+      labels: ["Target", "Baseline"],
+      datasets: [
+        {
+          label: "Growth Rate (%)",
+          data: [20, 10],
+          backgroundColor: ["#6366f1", "#cbd5e1"],
+          borderRadius: 6,
+          barPercentage: 0.5,
+        },
+      ],
+    };
+  }, [startups, selectedStartup]);
+
+  const growthRateOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: "rgba(0, 0, 0, 0.85)",
+        padding: 8,
+        cornerRadius: 6,
+        callbacks: {
+          label: (context) => ` ${context.dataset.label}: ${context.parsed.y}%`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10, weight: "600" }, maxRotation: 20 },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: "rgba(0, 0, 0, 0.05)" },
+        ticks: {
+          font: { size: 10 },
+          callback: (value) => `${value}%`,
+        },
+      },
+    },
+  }), []);
+
   const [engagementData, setEngagementData] = useState({
     labels: months,
     datasets: [
@@ -448,6 +705,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
             borderWidth: 0,
           },
         ],
+      });
+      setRawEngagement({
+        views: {},
+        bookmarks: {},
+        likes: {},
       });
       setEngagementData({
         labels: months,
@@ -1198,6 +1460,12 @@ export default function StartupDashboard({ openAddMethodModal }) {
     const normalizedBookmarksData =
       typeof bookmarksData === "object" ? bookmarksData : {};
     const normalizedLikesData = typeof likesData === "object" ? likesData : {};
+
+    setRawEngagement({
+      views: normalizedViewsData,
+      bookmarks: normalizedBookmarksData,
+      likes: normalizedLikesData,
+    });
 
     const viewsValues = months.map((month) => normalizedViewsData[month] || 0);
     const bookmarksValues = months.map(
@@ -2168,28 +2436,56 @@ export default function StartupDashboard({ openAddMethodModal }) {
         {/* Enhanced Charts Section */}
         <div className="mb-3.5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
-            {/* Donut Chart Card - Redesigned Compact */}
+            {/* Left Card: Growth Rate Bar Chart with Distribution Donut Toggle */}
             <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 sm:p-4 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
-              <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <div>
                   <h3 className="text-xs sm:text-sm font-bold text-gray-900">
-                    Engagement Distribution
+                    {leftChartTab === "growth" ? "Portfolio Growth Rate" : "Engagement Distribution"}
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    Proportion across portfolio activity
+                    {leftChartTab === "growth"
+                      ? "Annual startup growth rate (%) by venture"
+                      : "Proportion across portfolio activity"}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[10.5px] font-semibold text-indigo-700">
-                  <span>{startupIds.length} Startups</span>
+                {/* Segmented Switch */}
+                <div className="inline-flex items-center p-0.5 bg-gray-100 rounded-lg border border-gray-200/70 text-[10.5px]">
+                  <button
+                    type="button"
+                    onClick={() => setLeftChartTab("growth")}
+                    className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer ${
+                      leftChartTab === "growth"
+                        ? "bg-white text-indigo-700 shadow-2xs font-bold"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Growth Rate (Bar)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLeftChartTab("distribution")}
+                    className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer ${
+                      leftChartTab === "distribution"
+                        ? "bg-white text-indigo-700 shadow-2xs font-bold"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Distribution (Donut)
+                  </button>
                 </div>
               </div>
 
               {loading ? (
-                <div className="flex justify-center items-center h-48">
+                <div className="flex justify-center items-center h-52">
                   <div className="relative w-12 h-12">
                     <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
                   </div>
+                </div>
+              ) : leftChartTab === "growth" ? (
+                <div className="w-full h-52 sm:h-56 py-1">
+                  <Bar data={growthRateData} options={growthRateOptions} />
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-around gap-3 py-1">
@@ -2209,9 +2505,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                             padding: 8,
                             cornerRadius: 6,
                             callbacks: {
-                              title: (tooltipItems) => {
-                                return donutData.labels[tooltipItems[0].dataIndex];
-                              },
+                              title: (tooltipItems) => donutData.labels[tooltipItems[0].dataIndex],
                               label: (context) => {
                                 const label = donutData.labels[context.dataIndex];
                                 const value = donutData.datasets[0].data[context.dataIndex];
@@ -2258,16 +2552,151 @@ export default function StartupDashboard({ openAddMethodModal }) {
               )}
             </div>
 
-            {/* Line Chart Card - Enhanced Compact */}
+            {/* Right Card: Grouped Column Chart for Monthly Engagement with Multi-Month & Metric Filters */}
             <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 p-3.5 sm:p-4 hover:shadow-sm transition-all duration-200 flex flex-col justify-between">
-              <div className="mb-2">
-                <h2 className="text-xs sm:text-sm font-bold text-gray-900 mb-0.5">
-                  Engagement Over Time
-                </h2>
-                <p className="text-[11px] text-gray-500">
-                  Monthly trend for views, likes, and bookmarks
-                </p>
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                  <div>
+                    <h2 className="text-xs sm:text-sm font-bold text-gray-900 mb-0.5">
+                      Monthly Engagement (Grouped Columns)
+                    </h2>
+                    <p className="text-[11px] text-gray-500">
+                      Likes, bookmarks, and views grouped per month
+                    </p>
+                  </div>
+
+                  {/* Metric Filter Controls */}
+                  <div className="flex items-center gap-1 self-start sm:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllMetrics}
+                      className="px-2 py-0.5 text-[10px] font-bold rounded border border-gray-200 hover:bg-gray-100 text-gray-700 transition-colors cursor-pointer"
+                      title="Show all metrics"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMetric("views")}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-colors cursor-pointer ${
+                        selectedMetrics.views
+                          ? "bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-300"
+                          : "bg-gray-50 text-gray-400 border-gray-200"
+                      }`}
+                      title="Toggle Views column"
+                    >
+                      Views
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMetric("bookmarks")}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-colors cursor-pointer ${
+                        selectedMetrics.bookmarks
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-300"
+                          : "bg-gray-50 text-gray-400 border-gray-200"
+                      }`}
+                      title="Toggle Bookmarks column"
+                    >
+                      Bookmarks
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMetric("likes")}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-colors cursor-pointer ${
+                        selectedMetrics.likes
+                          ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-300"
+                          : "bg-gray-50 text-gray-400 border-gray-200"
+                      }`}
+                      title="Toggle Likes column"
+                    >
+                      Likes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Multi-Month Filter Toolbar */}
+                <div className="mb-2 p-1.5 bg-gray-50/90 rounded-lg border border-gray-200/70 flex flex-col gap-1 text-[10px]">
+                  <div className="flex items-center justify-between gap-1 flex-wrap">
+                    <span className="font-semibold text-gray-600">
+                      Months ({selectedEngagementMonths.length}/12):
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllMonths}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectQ1}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        Q1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectQ2}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        Q2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectQ3}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        Q3
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectQ4}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        Q4
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectH1}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        H1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectH2}
+                        className="px-1.5 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-semibold cursor-pointer"
+                      >
+                        H2
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Month Selection Pills (Multi-Select) */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                    {months.map((m) => {
+                      const isSelected = selectedEngagementMonths.includes(m);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleToggleMonth(m)}
+                          className={`px-1.5 py-0.5 rounded font-bold text-[9.5px] transition-all cursor-pointer whitespace-nowrap ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "bg-white text-gray-500 hover:bg-gray-200/70 border border-gray-200/60"
+                          }`}
+                          title={`Click to ${isSelected ? "remove" : "include"} ${m}`}
+                        >
+                          {monthShortMap[m] || m}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
               {loading ? (
                 <div className="flex justify-center items-center h-48">
                   <div className="relative w-12 h-12">
@@ -2277,63 +2706,9 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </div>
               ) : (
                 <div className="w-full h-44 sm:h-48">
-                  <Line
-                    data={engagementData}
-                    options={{
-                      maintainAspectRatio: false,
-                      responsive: true,
-                      plugins: {
-                        legend: {
-                          position: "top",
-                          labels: {
-                            usePointStyle: true,
-                            padding: 10,
-                            font: {
-                              size: 11,
-                              weight: "600",
-                            },
-                          },
-                        },
-                        tooltip: {
-                          mode: "index",
-                          intersect: false,
-                          backgroundColor: "rgba(0, 0, 0, 0.8)",
-                          padding: 10,
-                          cornerRadius: 6,
-                          titleFont: {
-                            size: 12,
-                            weight: "bold",
-                          },
-                          bodyFont: {
-                            size: 11,
-                          },
-                        },
-                      },
-                      scales: {
-                        x: {
-                          grid: {
-                            display: false,
-                          },
-                          ticks: {
-                            font: { size: 10 },
-                          },
-                        },
-                        y: {
-                          grid: {
-                            color: "rgba(0, 0, 0, 0.05)",
-                          },
-                          ticks: {
-                            font: { size: 10 },
-                          },
-                          beginAtZero: true,
-                        },
-                      },
-                      interaction: {
-                        mode: "nearest",
-                        axis: "x",
-                        intersect: false,
-                      },
-                    }}
+                  <Bar
+                    data={groupedChartData}
+                    options={groupedChartOptions}
                   />
                 </div>
               )}

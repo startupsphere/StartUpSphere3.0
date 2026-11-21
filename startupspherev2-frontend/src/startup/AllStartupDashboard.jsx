@@ -2105,13 +2105,7 @@ export default function AllStartupDashboard() {
                     </div>
                   ) : growthData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={growthData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
+                      <BarChart data={growthData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                           dataKey="name"
@@ -2132,24 +2126,20 @@ export default function AllStartupDashboard() {
                         />
                         <Legend
                           wrapperStyle={{ paddingTop: '20px' }}
-                          iconType="line"
                         />
                         {growthData.length > 0 &&
                           Object.keys(growthData[0])
                             .filter((key) => key !== "name")
                             .map((industry, index) => (
-                              <Line
+                              <Bar
                                 key={industry}
-                                type="monotone"
                                 dataKey={industry}
-                                stroke={COLORS[index % COLORS.length]}
-                                strokeWidth={2.5}
-                                dot={{ fill: COLORS[index % COLORS.length], r: 4 }}
-                                activeDot={{ r: 6 }}
+                                fill={COLORS[index % COLORS.length]}
+                                radius={[4, 4, 0, 0]}
                                 isAnimationActive={true}
                               />
                             ))}
-                      </LineChart>
+                      </BarChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full">
@@ -2887,7 +2877,7 @@ export default function AllStartupDashboard() {
                       </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={growthData}>
+                        <BarChart data={growthData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
@@ -2898,15 +2888,14 @@ export default function AllStartupDashboard() {
                               .filter((key) => key !== "name")
                               .slice(0, 3) // Limit to first 3 industries for clarity
                               .map((industry, index) => (
-                                <Line
+                                <Bar
                                   key={industry}
-                                  type="monotone"
                                   dataKey={industry}
-                                  stroke={COLORS[index % COLORS.length]}
-                                  activeDot={{ r: 8 }}
+                                  fill={COLORS[index % COLORS.length]}
+                                  radius={[4, 4, 0, 0]}
                                 />
                               ))}
-                        </LineChart>
+                        </BarChart>
                       </ResponsiveContainer>
                     )}
                   </div>
