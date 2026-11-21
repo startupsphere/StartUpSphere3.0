@@ -1,4 +1,4 @@
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   LineChart,
@@ -132,6 +132,10 @@ export default function AllStartupDashboard() {
     ];
   }, [sortedLocationData, geoShowAll]);
 
+  const [govComplianceData, setGovComplianceData] = useState([]);
+  const [trlStagesData, setTrlStagesData] = useState([]);
+  const [industryScoresData, setIndustryScoresData] = useState([]);
+
   const donutLocationData = useMemo(() => {
     if (sortedLocationData.length <= 5) {
       return sortedLocationData;
@@ -143,6 +147,129 @@ export default function AllStartupDashboard() {
       { name: `Other Cities (${sortedLocationData.length - 4})`, value: otherSum, isOther: true },
     ];
   }, [sortedLocationData]);
+
+  const computedIndustryScores = useMemo(() => {
+    if (industryScoresData && industryScoresData.length > 0) {
+      return industryScoresData;
+    }
+    const sourceList = (topStartups && topStartups.length > 0) ? topStartups : rankedStartups;
+    if (!sourceList || sourceList.length === 0) return [];
+
+    const uniqueInds = [...new Set(sourceList.map((s) => s.industry).filter(Boolean))];
+    return uniqueInds
+      .map((ind, index) => {
+        const matched = sourceList.filter((s) => s.industry === ind);
+        const avgOverall =
+          matched.reduce((sum, s) => sum + (Number(s.overallScore) || 0), 0) /
+          matched.length;
+        const avgGrowth =
+          matched.reduce((sum, s) => sum + (Number(s.growthScore) || 0), 0) /
+          matched.length;
+        const avgEco =
+          matched.reduce((sum, s) => sum + (Number(s.ecosystemScore) || 0), 0) /
+          matched.length;
+        return {
+          name: ind,
+          industry: ind,
+          score: Math.round(avgOverall),
+          overallScore: Math.round(avgOverall),
+          growthScore: Math.round(avgGrowth),
+          ecosystemScore: Math.round(avgEco),
+          count: matched.length,
+          color: GEO_PALETTE[index % GEO_PALETTE.length],
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [industryScoresData, topStartups, rankedStartups, GEO_PALETTE]);
+
+  const computedGovCompliance = useMemo(() => {
+    if (govComplianceData && govComplianceData.length > 0) {
+      return govComplianceData;
+    }
+    const sourceList = (topStartups && topStartups.length > 0) ? topStartups : rankedStartups;
+    const registered = sourceList.filter(
+      (s) =>
+        Boolean(s.isGovernmentRegistered) ||
+        (s.registrationAgency && !["Unregistered", ""].includes(s.registrationAgency))
+    ).length;
+    const sec = sourceList.filter(
+      (s) => String(s.registrationAgency || "").toUpperCase() === "SEC"
+    ).length;
+    const dti = sourceList.filter(
+      (s) => String(s.registrationAgency || "").toUpperCase() === "DTI"
+    ).length;
+    const bir = sourceList.filter((s) =>
+      String(s.registrationAgency || "").toUpperCase().includes("BIR")
+    ).length;
+    const otherAgc = sourceList.filter(
+      (s) =>
+        s.registrationAgency &&
+        !["BIR", "SEC", "DTI", "UNREGISTERED"].includes(
+          String(s.registrationAgency).toUpperCase()
+        )
+    ).length;
+    const unregistered = sourceList.filter(
+      (s) =>
+        !s.isGovernmentRegistered &&
+        (!s.registrationAgency ||
+          String(s.registrationAgency).toUpperCase() === "UNREGISTERED")
+    ).length;
+
+    return [
+      { name: "Gov. Registered", count: registered, fill: "#10b981" },
+      { name: "SEC (Corp)", count: sec, fill: "#3b82f6" },
+      { name: "DTI (Trade)", count: dti, fill: "#6366f1" },
+      { name: "BIR (Certified)", count: bir, fill: "#8b5cf6" },
+      { name: "Other Agc.", count: otherAgc, fill: "#ec4899" },
+      { name: "Unregistered", count: unregistered, fill: "#f59e0b" },
+    ];
+  }, [govComplianceData, topStartups, rankedStartups]);
+
+  const computedTrlStages = useMemo(() => {
+    if (trlStagesData && trlStagesData.length > 0) {
+      const concept = trlStagesData
+        .filter((s) => s.level >= 1 && s.level <= 3)
+        .reduce((acc, c) => acc + (c.count || 0), 0);
+      const prototype = trlStagesData
+        .filter((s) => s.level >= 4 && s.level <= 6)
+        .reduce((acc, c) => acc + (c.count || 0), 0);
+      const commercial = trlStagesData
+        .filter((s) => s.level >= 7 && s.level <= 9)
+        .reduce((acc, c) => acc + (c.count || 0), 0);
+      return [
+        { stage: "TRL 1-3 (Concept)", startups: concept, fill: "#10b981" },
+        { stage: "TRL 4-6 (Prototype)", startups: prototype, fill: "#eab308" },
+        { stage: "TRL 7-9 (Commercial)", startups: commercial, fill: "#ef4444" },
+      ];
+    }
+    const sourceList = (topStartups && topStartups.length > 0) ? topStartups : rankedStartups;
+    return [
+      {
+        stage: "TRL 1-3 (Concept)",
+        startups: sourceList.filter((s) => {
+          const num = parseInt(String(s.trlLevel || "").match(/\d/)?.[0] || "0", 10);
+          return num >= 1 && num <= 3;
+        }).length,
+        fill: "#10b981",
+      },
+      {
+        stage: "TRL 4-6 (Prototype)",
+        startups: sourceList.filter((s) => {
+          const num = parseInt(String(s.trlLevel || "").match(/\d/)?.[0] || "0", 10);
+          return num >= 4 && num <= 6;
+        }).length,
+        fill: "#eab308",
+      },
+      {
+        stage: "TRL 7-9 (Commercial)",
+        startups: sourceList.filter((s) => {
+          const num = parseInt(String(s.trlLevel || "").match(/\d/)?.[0] || "0", 10);
+          return num >= 7;
+        }).length,
+        fill: "#ef4444",
+      },
+    ];
+  }, [trlStagesData, topStartups, rankedStartups]);
 
   // New state for chart filtering and interaction
   const [selectedChartIndustry, setSelectedChartIndustry] = useState(null);
@@ -259,6 +386,7 @@ export default function AllStartupDashboard() {
         const response = await fetch(
           `${getBackendUrl()}/api/rankings/dashboard-analytics${queryStr}`,
           {
+            headers: getAuthHeaders(),
             credentials: "include",
           }
         );
@@ -268,9 +396,14 @@ export default function AllStartupDashboard() {
         }
 
         const data = await response.json();
-        setGrowthData(data.growthData);
-        setFundingData(data.fundingData);
-        setLocationData(data.locationData);
+        setGrowthData(data.growthData || []);
+        setFundingData(data.fundingData || []);
+        setLocationData(data.locationData || []);
+        setGovComplianceData(data.govCompliance || []);
+        setTrlStagesData(data.trlStages || []);
+        if (data.industryScores) {
+          setIndustryScoresData(data.industryScores);
+        }
         if (data.totalFunding !== undefined && data.totalFunding !== null) {
           setEcosystemTotalFunding(Number(data.totalFunding));
         }
@@ -333,6 +466,7 @@ export default function AllStartupDashboard() {
         let response = await fetch(
           `${getBackendUrl()}/api/rankings?${params.toString()}`,
           {
+            headers: getAuthHeaders(),
             credentials: "include",
           }
         );
@@ -341,6 +475,7 @@ export default function AllStartupDashboard() {
           response = await fetch(
             `${getBackendUrl()}/api/rankings/top?${params.toString()}`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           );
@@ -423,14 +558,16 @@ export default function AllStartupDashboard() {
         const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
 
         // Parallel fetch: rankings + location cache (only if not cached)
-        const fetchPromises = [fetch(url, { credentials: "include" })];
+        const fetchPromises = [
+          fetch(url, { credentials: "include", headers: getAuthHeaders() }),
+        ];
 
         // Only fetch locations if not already cached
         if (!startupLocationsCache) {
           fetchPromises.push(
             fetch(
               `${getBackendUrl()}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
-              { credentials: "include" }
+              { credentials: "include", headers: getAuthHeaders() }
             )
           );
         }
@@ -2590,36 +2727,31 @@ export default function AllStartupDashboard() {
               <h2 className="text-lg font-semibold mb-4 text-blue-900">
                 Average Scores by Industry
               </h2>
-              {loading ? (
-                <div className="text-center py-6">Loading data...</div>
+              {computedIndustryScores.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  {dashboardLoading || topStartupsLoading ? "Loading data..." : "No industry score data available"}
+                </div>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={industries.map((industry) => {
-                        const startups = rankedStartups.filter(
-                          (s) => s.industry === industry
-                        );
-                        const avgScore =
-                          startups.length > 0
-                            ? startups.reduce(
-                              (sum, s) => sum + s.overallScore,
-                              0
-                            ) / startups.length
-                            : 0;
-                        return {
-                          name: industry,
-                          score: Math.round(avgScore),
-                        };
-                      })}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="score" fill="#8884d8">
-                        {industryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                    <BarChart data={computedIndustryScores} margin={{ top: 5, right: 15, left: -10, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: "#475569" }}
+                        interval={0}
+                        angle={-20}
+                        textAnchor="end"
+                        height={40}
+                      />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <Tooltip
+                        formatter={(val) => [`${val} / 100`, "Avg Score"]}
+                        contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.92)", borderRadius: "8px", border: "none", color: "#fff", fontSize: "12px" }}
+                      />
+                      <Bar dataKey="overallScore" fill="#8884d8" radius={[4, 4, 0, 0]}>
+                        {computedIndustryScores.map((entry, index) => (
+                          <Cell key={`cell-ov-${index}`} fill={entry.color || "#8884d8"} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2632,36 +2764,31 @@ export default function AllStartupDashboard() {
               <h2 className="text-lg font-semibold mb-4 text-blue-900">
                 Growth Score by Industry
               </h2>
-              {loading ? (
-                <div className="text-center py-6">Loading data...</div>
+              {computedIndustryScores.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  {dashboardLoading || topStartupsLoading ? "Loading data..." : "No industry score data available"}
+                </div>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={industries.map((industry) => {
-                        const startups = rankedStartups.filter(
-                          (s) => s.industry === industry
-                        );
-                        const avgScore =
-                          startups.length > 0
-                            ? startups.reduce(
-                              (sum, s) => sum + s.growthScore,
-                              0
-                            ) / startups.length
-                            : 0;
-                        return {
-                          name: industry,
-                          score: Math.round(avgScore),
-                        };
-                      })}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="score" fill="#00C49F">
-                        {industryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                    <BarChart data={computedIndustryScores} margin={{ top: 5, right: 15, left: -10, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: "#475569" }}
+                        interval={0}
+                        angle={-20}
+                        textAnchor="end"
+                        height={40}
+                      />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <Tooltip
+                        formatter={(val) => [`${val} / 100`, "Growth Score"]}
+                        contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.92)", borderRadius: "8px", border: "none", color: "#fff", fontSize: "12px" }}
+                      />
+                      <Bar dataKey="growthScore" fill="#00C49F" radius={[4, 4, 0, 0]}>
+                        {computedIndustryScores.map((entry, index) => (
+                          <Cell key={`cell-gw-${index}`} fill={entry.color || "#00C49F"} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2674,36 +2801,31 @@ export default function AllStartupDashboard() {
               <h2 className="text-lg font-semibold mb-4 text-blue-900">
                 Ecosystem Score by Industry
               </h2>
-              {loading ? (
-                <div className="text-center py-6">Loading data...</div>
+              {computedIndustryScores.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  {dashboardLoading || topStartupsLoading ? "Loading data..." : "No industry score data available"}
+                </div>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={industries.map((industry) => {
-                        const startups = rankedStartups.filter(
-                          (s) => s.industry === industry
-                        );
-                        const avgScore =
-                          startups.length > 0
-                            ? startups.reduce(
-                              (sum, s) => sum + s.ecosystemScore,
-                              0
-                            ) / startups.length
-                            : 0;
-                        return {
-                          name: industry,
-                          score: Math.round(avgScore),
-                        };
-                      })}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="score" fill="#FFBB28">
-                        {industryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                    <BarChart data={computedIndustryScores} margin={{ top: 5, right: 15, left: -10, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: "#475569" }}
+                        interval={0}
+                        angle={-20}
+                        textAnchor="end"
+                        height={40}
+                      />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <Tooltip
+                        formatter={(val) => [`${val} / 100`, "Ecosystem Score"]}
+                        contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.92)", borderRadius: "8px", border: "none", color: "#fff", fontSize: "12px" }}
+                      />
+                      <Bar dataKey="ecosystemScore" fill="#FFBB28" radius={[4, 4, 0, 0]}>
+                        {computedIndustryScores.map((entry, index) => (
+                          <Cell key={`cell-eco-${index}`} fill={entry.color || "#FFBB28"} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2729,48 +2851,17 @@ export default function AllStartupDashboard() {
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      {
-                        name: "Gov. Certified",
-                        count: rankedStartups.filter(s => s.registrationAgency === "BIR").length,
-                        fill: "#10b981",
-                      },
-                      {
-                        name: "SEC (Corp)",
-                        count: rankedStartups.filter(s => s.registrationAgency === "SEC").length,
-                        fill: "#3b82f6",
-                      },
-                      {
-                        name: "DTI (Trade)",
-                        count: rankedStartups.filter(s => s.registrationAgency === "DTI").length,
-                        fill: "#6366f1",
-                      },
-                      {
-                        name: "Other Agc.",
-                        count: rankedStartups.filter(s => s.registrationAgency && !["BIR", "SEC", "DTI"].includes(s.registrationAgency)).length,
-                        fill: "#8b5cf6",
-                      },
-                      {
-                        name: "Unregistered",
-                        count: rankedStartups.filter(s => !s.isGovernmentRegistered && !s.registrationAgency).length,
-                        fill: "#f59e0b",
-                      },
-                    ]}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip formatter={(value) => [`${value} Startups`, "Count"]} />
+                  <BarChart data={computedGovCompliance} margin={{ top: 5, right: 15, left: -10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#475569" }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                    <Tooltip
+                      formatter={(value) => [`${value} Startups`, "Count"]}
+                      contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.92)", borderRadius: "8px", border: "none", color: "#fff", fontSize: "12px" }}
+                    />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {[
-                        "#10b981",
-                        "#3b82f6",
-                        "#6366f1",
-                        "#8b5cf6",
-                        "#f59e0b",
-                      ].map((col, idx) => (
-                        <Cell key={`bar-${idx}`} fill={col} />
+                      {computedGovCompliance.map((entry, idx) => (
+                        <Cell key={`gov-bar-${idx}`} fill={entry.fill || "#3b82f6"} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -2794,44 +2885,17 @@ export default function AllStartupDashboard() {
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      {
-                        stage: "TRL 1-3 (Concept)",
-                        startups: rankedStartups.filter(s => {
-                          const raw = String(s.trlLevel || "");
-                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
-                          return num >= 1 && num <= 3;
-                        }).length,
-                        fill: "#10b981",
-                      },
-                      {
-                        stage: "TRL 4-6 (Prototype)",
-                        startups: rankedStartups.filter(s => {
-                          const raw = String(s.trlLevel || "");
-                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
-                          return num >= 4 && num <= 6;
-                        }).length,
-                        fill: "#eab308",
-                      },
-                      {
-                        stage: "TRL 7-9 (Commercial)",
-                        startups: rankedStartups.filter(s => {
-                          const raw = String(s.trlLevel || "");
-                          const num = parseInt(raw.match(/\d/)?.[0] || "0", 10);
-                          return num >= 7;
-                        }).length,
-                        fill: "#ef4444",
-                      },
-                    ]}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="stage" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip formatter={(value) => [`${value} Startups`, "Ecosystem Startups"]} />
+                  <BarChart data={computedTrlStages} margin={{ top: 5, right: 15, left: -10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="stage" tick={{ fontSize: 10, fill: "#475569" }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                    <Tooltip
+                      formatter={(value) => [`${value} Startups`, "Ecosystem Startups"]}
+                      contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.92)", borderRadius: "8px", border: "none", color: "#fff", fontSize: "12px" }}
+                    />
                     <Bar dataKey="startups" radius={[6, 6, 0, 0]}>
-                      {["#10b981", "#eab308", "#ef4444"].map((col, idx) => (
-                        <Cell key={`trl-${idx}`} fill={col} />
+                      {computedTrlStages.map((entry, idx) => (
+                        <Cell key={`trl-${idx}`} fill={entry.fill || "#10b981"} />
                       ))}
                     </Bar>
                   </BarChart>
