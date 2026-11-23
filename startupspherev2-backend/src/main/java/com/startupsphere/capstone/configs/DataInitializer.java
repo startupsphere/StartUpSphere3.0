@@ -53,10 +53,11 @@ public class DataInitializer {
                 log.warn("Users sequence repair skipped: {}", ex.getMessage());
             }
 
-            // Check if an admin account already exists
-            if (userRepository.findFirstByEmailIgnoreCase(adminEmail)
-                    .or(() -> userRepository.findFirstByEmail(adminEmail))
-                    .isEmpty()) {
+            // Ensure admin account exists and password is set to admin123
+            java.util.Optional<User> existingAdmin = userRepository.findFirstByEmailIgnoreCase(adminEmail)
+                    .or(() -> userRepository.findFirstByEmail(adminEmail));
+
+            if (existingAdmin.isEmpty()) {
                 User admin = new User()
                         .setFirstname("Admin")
                         .setLastname("User")
@@ -67,7 +68,11 @@ public class DataInitializer {
                 userRepository.save(admin);
                 log.info("Admin account created with email: {}", adminEmail);
             } else {
-                log.info("Admin account already exists.");
+                User admin = existingAdmin.get();
+                admin.setPassword(passwordEncoder.encode("admin123"));
+                admin.setRole("ROLE_ADMIN");
+                userRepository.save(admin);
+                log.info("Admin account password reset to admin123 with ROLE_ADMIN.");
             }
         } catch (Exception e) {
             // Likely database/table not yet present; log and skip initialization so app can continue
