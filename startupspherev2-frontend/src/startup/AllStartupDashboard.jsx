@@ -424,8 +424,12 @@ export default function AllStartupDashboard() {
     };
 
     fetchDashboardAnalytics();
-    fetchRole();
   }, [selectedIndustry, selectedGovReg, selectedTrlStage, refreshTrigger]);
+
+  // Fetch role only once on mount
+  useEffect(() => {
+    fetchRole();
+  }, []);
 
   useEffect(() => {
     const fetchTopStartups = async () => {
@@ -491,14 +495,14 @@ export default function AllStartupDashboard() {
 
         // Normalize startup data to ensure all score fields are properly set
         const normalizedStartups = startups.map(startup => {
-          // Get overall score from various possible field names
           const overallScore = startup.overallScore ?? startup.score ?? 0;
           const growthRate = startup.growthScore ?? startup.growthRate ?? 0;
 
           return {
             ...startup,
             overallScore: Number(overallScore),
-            growthScore: Number(growthRate)
+            growthScore: Number(growthRate),
+            locationName: startup.locationName || startup.city || "Unknown"
           };
         });
 
@@ -509,6 +513,33 @@ export default function AllStartupDashboard() {
 
         setTopStartups(normalizedStartups);
         setTopStartupsError(null);
+
+        // Derive industries breakdown & location cache directly from normalizedStartups (avoids extra network calls)
+        if (!isFiltered && normalizedStartups.length > 0) {
+          const uniqueIndustries = [
+            ...new Set(normalizedStartups.map((s) => s.industry)),
+          ].filter(Boolean);
+
+          const industryBreakdown = uniqueIndustries.map((ind, idx) => {
+            const count = normalizedStartups.filter((s) => s.industry === ind).length;
+            return {
+              name: ind,
+              value: count,
+              color: COLORS[idx % COLORS.length],
+            };
+          });
+
+          setIndustries(uniqueIndustries);
+          setIndustryData(industryBreakdown);
+          setIndustriesCache(true);
+          setTotalStartups(normalizedStartups.length);
+
+          const locMap = {};
+          normalizedStartups.forEach((s) => {
+            locMap[s.id] = s.city || s.locationName || "Unknown";
+          });
+          setStartupLocationsCache(locMap);
+        }
 
         // Cache the result only for non-filtered requests
         if (!isFiltered) {
@@ -537,11 +568,8 @@ export default function AllStartupDashboard() {
       // Set loading to true at the start of fetching
       setLoading(true);
 
-      // Scroll to top when page changes for better UX
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
       try {
-        // Get rankings with pagination
+        // Get rankings with pagination (only request current page items)
         const params = new URLSearchParams({
           page: currentPage.toString(),
           size: itemsPerPage.toString(),
@@ -559,121 +587,27 @@ export default function AllStartupDashboard() {
         }
 
         const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
+        const response = await fetch(url, { credentials: "include", headers: getAuthHeaders() });
 
-        // Parallel fetch: rankings + location cache (only if not cached)
-        const fetchPromises = [
-          fetch(url, { credentials: "include", headers: getAuthHeaders() }),
-        ];
-
-        // Only fetch locations if not already cached
-        if (!startupLocationsCache) {
-          fetchPromises.push(
-            fetch(
-              `${getBackendUrl()}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
-              { credentials: "include", headers: getAuthHeaders() }
-            )
-          );
-        }
-
-        const responses = await Promise.all(fetchPromises);
-
-        if (!responses[0].ok) {
+        if (!response.ok) {
           throw new Error("Failed to fetch rankings");
         }
 
-        const data = await responses[0].json();
+        const data = await response.json();
         if (data.totalFunding !== undefined && data.totalFunding !== null) {
           setEcosystemTotalFunding(Number(data.totalFunding));
         }
 
-        // Cache locations if fetched
-        if (responses[1]) {
-          if (responses[1].ok) {
-            const locationsData = await responses[1].json();
-            const startUpList = locationsData.content || [];
-            const locationsMap = {};
-            let fundingFromAll = 0;
-            startUpList.forEach(startup => {
-              locationsMap[startup.id] = startup.city || "Unknown";
-              fundingFromAll += Number(startup.totalStartupFundingReceived || startup.totalFunding || 0);
-            });
-            setStartupLocationsCache(locationsMap);
-            setTotalStartups(locationsData.totalElements || 0);
-            if (fundingFromAll > 0) {
-              setEcosystemTotalFunding(prev => Math.max(prev, fundingFromAll));
-            }
-
-            // Cache available regions
-            const uniqueCities = [...new Set(Object.values(locationsMap))].filter(Boolean);
-            setAvailableRegions(uniqueCities);
-          }
-        }
-
         // Extract rankings from paginated response
         const rankings = data.content || [];
-
-        // Process startups with city information using cache
-        const processedStartups = rankings.map((startup) => {
-          return {
-            ...startup,
-            locationName: startupLocationsCache ? startupLocationsCache[startup.id] || "Unknown" : "Unknown",
-          };
-        });
+        const processedStartups = rankings.map((startup) => ({
+          ...startup,
+          locationName: startup.locationName || startup.city || (startupLocationsCache ? startupLocationsCache[startup.id] || "Unknown" : "Unknown"),
+        }));
 
         setRankedStartups(processedStartups);
-
-        // Update pagination state from API response
         setTotalPagesState(data.totalPages || 0);
         setTotalElements(data.totalElements || 0);
-
-        // Update industries only if we're fetching all industries AND not cached
-        if (selectedIndustry === "All" && selectedGovReg === "All" && selectedTrlStage === "All" && !industriesCache) {
-          // Fetch all rankings to get complete industry list (only once)
-          const allRankingsResponse = await fetch(
-            `${getBackendUrl()}/api/rankings?page=0&size=1000&metric=${rankingMetric}`,
-            { credentials: "include" }
-          );
-
-          if (allRankingsResponse.ok) {
-            const allRankingsData = await allRankingsResponse.json();
-            const allRankings = allRankingsData.content || [];
-
-            const uniqueIndustries = [
-              ...new Set(allRankings.map((startup) => startup.industry)),
-            ].filter(Boolean);
-
-            const industryBreakdown = uniqueIndustries.map((industry, index) => {
-              const count = allRankings.filter(
-                (startup) => startup.industry === industry
-              ).length;
-              return {
-                name: industry,
-                value: count,
-                color: COLORS[index % COLORS.length],
-              };
-            });
-
-            setIndustries(uniqueIndustries);
-            setIndustryData(industryBreakdown);
-            setIndustriesCache(true); // Mark as cached
-
-            // Also cache all startups from this data to avoid separate API call
-            const allRankedStartups = allRankings
-              .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
-            setTopStartups(allRankedStartups);
-            setTopStartupsCache({
-              industry: "All",
-              govReg: "All",
-              trl: "All",
-              metric: rankingMetric,
-              data: allRankedStartups
-            });
-          }
-        } else if (industriesCache && industries.length === 0) {
-          // If cache flag is set but industries array is empty, refetch
-          setIndustriesCache(null);
-        }
-
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);

@@ -12,22 +12,36 @@ export async function loadImageAsDataUrl(src) {
     return src;
   }
   return new Promise((resolve) => {
+    let resolved = false;
+    const safeResolve = (val) => {
+      if (!resolved) {
+        resolved = true;
+        resolve(val);
+      }
+    };
+
+    const timeout = setTimeout(() => safeResolve(null), 1500);
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      clearTimeout(timeout);
       try {
         const canvas = document.createElement("canvas");
         canvas.width = img.naturalWidth || img.width || 200;
         canvas.height = img.naturalHeight || img.height || 100;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
+        safeResolve(canvas.toDataURL("image/png"));
       } catch (e) {
         console.warn("Failed to convert image to data URL:", e);
-        resolve(null);
+        safeResolve(null);
       }
     };
-    img.onerror = () => resolve(null);
+    img.onerror = () => {
+      clearTimeout(timeout);
+      safeResolve(null);
+    };
     img.src = src;
   });
 }
@@ -49,10 +63,10 @@ export async function captureElementAsPng(elementOrId) {
     return null;
   }
 
-  // 1. Try html2canvas
+  // 1. Try html2canvas with a 3.5s safety timeout
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2, // High-DPI for crisp PDF rendering
+    const canvasPromise = html2canvas(element, {
+      scale: 1.5, // Crisp rendering with optimal rendering speed and memory usage
       backgroundColor: "#ffffff",
       useCORS: true,
       logging: false,
@@ -66,13 +80,19 @@ export async function captureElementAsPng(elementOrId) {
         );
       },
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("html2canvas capture timeout")), 3500)
+    );
+
+    const canvas = await Promise.race([canvasPromise, timeoutPromise]);
     return {
       dataUrl: canvas.toDataURL("image/png"),
-      width: canvas.width / 2,
-      height: canvas.height / 2,
+      width: canvas.width / 1.5,
+      height: canvas.height / 1.5,
     };
   } catch (err) {
-    console.warn("html2canvas capture failed, attempting native SVG capture fallback:", err);
+    console.warn("html2canvas capture failed or timed out, attempting native SVG capture fallback:", err);
   }
 
   // 2. Fallback: Direct SVG capture
