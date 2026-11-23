@@ -52,19 +52,45 @@ public class StartupRankingService {
     }
 
     /**
-     * Calculate growth score based on the TRL level of the startup/business (TRL 1-9)
-     * Normalized between 0.0 and 1.0
+     * Calculate growth score based on the TRL readiness level of the startup/business (TRL 1-9)
+     * Normalized between 0.0 and 1.0 (e.g. TRL 1 = 11%, TRL 9 = 100%)
      */
     public double calculateGrowthScore(Startup startup) {
-        if (startup.getTrlLevel() == null || startup.getTrlLevel().trim().isEmpty()) {
+        if (startup == null) {
             return 0.0;
         }
-        Matcher m = DIGIT_PATTERN.matcher(startup.getTrlLevel());
-        if (m.find()) {
-            int level = Integer.parseInt(m.group());
-            return Math.min(Math.max((double) level, 0.0) / 9.0, 1.0);
+
+        if (startup.getTrlLevel() != null && !startup.getTrlLevel().trim().isEmpty()) {
+            Matcher m = DIGIT_PATTERN.matcher(startup.getTrlLevel());
+            if (m.find()) {
+                int level = Integer.parseInt(m.group());
+                return Math.min(Math.max((double) level, 1.0) / 9.0, 1.0);
+            }
+            String raw = startup.getTrlLevel().trim().toLowerCase();
+            if (raw.contains("concept") || raw.contains("idea") || raw.contains("research")) return 2.0 / 9.0;
+            if (raw.contains("prototype") || raw.contains("validation") || raw.contains("dev")) return 5.0 / 9.0;
+            if (raw.contains("commercial") || raw.contains("market") || raw.contains("scale")) return 8.0 / 9.0;
         }
-        return 0.0;
+
+        // Fallback: infer maturity from funding stage if TRL is not explicitly specified
+        String stage = startup.getFundingStage();
+        if (stage != null && !stage.trim().isEmpty()) {
+            String s = stage.trim().toLowerCase();
+            if (s.contains("series b") || s.contains("series c") || s.contains("growth") || s.contains("ipo")) return 8.0 / 9.0;
+            if (s.contains("series a")) return 6.0 / 9.0;
+            if (s.contains("seed") || s.contains("angel")) return 4.0 / 9.0;
+            if (s.contains("pre-seed") || s.contains("idea")) return 2.0 / 9.0;
+        }
+
+        if (startup.getAnnualRevenue() != null && startup.getAnnualRevenue() > 0) {
+            return 7.0 / 9.0;
+        }
+        if (startup.getAverageStartupGrowthRate() > 0) {
+            return 5.0 / 9.0;
+        }
+
+        // Base entry level readiness for registered startup/business (TRL 1)
+        return 1.0 / 9.0;
     }
 
     /**

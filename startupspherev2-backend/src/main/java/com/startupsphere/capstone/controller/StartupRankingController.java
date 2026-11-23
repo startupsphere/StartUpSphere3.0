@@ -79,27 +79,32 @@ public class StartupRankingController {
                 })
                 .collect(Collectors.toList());
 
-        Comparator<Startup> comparator;
         String m = metric != null ? metric.toLowerCase() : "overall";
-        switch (m) {
-            case "growth":
-                comparator = Comparator.comparingDouble(rankingService::calculateGrowthScore);
-                break;
-            case "investment":
-                comparator = Comparator.comparingDouble(rankingService::calculateInvestmentScore);
-                break;
-            case "ecosystem":
-                comparator = Comparator.comparingDouble(rankingService::calculateEcosystemScore);
-                break;
-            case "engagement":
-                comparator = Comparator.comparingDouble(rankingService::calculateEngagementScore);
-                break;
-            case "overall":
-            default:
-                comparator = Comparator.comparingDouble(rankingService::calculateOverallScore);
+        Map<Long, Double> scoreCache = new HashMap<>(filtered.size());
+        for (Startup s : filtered) {
+            double score;
+            switch (m) {
+                case "growth":
+                    score = rankingService.calculateGrowthScore(s);
+                    break;
+                case "investment":
+                    score = rankingService.calculateInvestmentScore(s);
+                    break;
+                case "ecosystem":
+                    score = rankingService.calculateEcosystemScore(s);
+                    break;
+                case "engagement":
+                    score = rankingService.calculateEngagementScore(s);
+                    break;
+                case "overall":
+                default:
+                    score = rankingService.calculateOverallScore(s);
+            }
+            scoreCache.put(s.getId(), score);
         }
 
-        return filtered.stream().sorted(comparator.reversed()).collect(Collectors.toList());
+        filtered.sort((a, b) -> Double.compare(scoreCache.getOrDefault(b.getId(), 0.0), scoreCache.getOrDefault(a.getId(), 0.0)));
+        return filtered;
     }
 
     private Map<String, Object> mapStartupToData(Startup startup) {
@@ -117,18 +122,28 @@ public class StartupRankingController {
         data.put("trlLevel", startup.getTrlLevel());
         data.put("isGovernmentRegistered", startup.getIsGovernmentRegistered());
         data.put("registrationAgency", startup.getRegistrationAgency());
+        data.put("city", startup.getCity() != null ? startup.getCity() : "Unknown");
+        data.put("locationName", startup.getLocationName() != null ? startup.getLocationName() : (startup.getCity() != null ? startup.getCity() : "Unknown"));
         data.put("facebook", startup.getFacebook());
         data.put("instagram", startup.getInstagram());
         data.put("facebookFollowers", startup.getFacebookFollowers());
         data.put("facebookLikes", startup.getFacebookLikes());
         data.put("instagramFollowers", startup.getInstagramFollowers());
-        data.put("overallScore", Math.round(rankingService.calculateOverallScore(startup)));
-        data.put("score", Math.round(rankingService.calculateOverallScore(startup)));
-        data.put("growthScore", Math.round(rankingService.calculateGrowthScore(startup) * 100));
+
+        double growth = rankingService.calculateGrowthScore(startup);
+        double investment = rankingService.calculateInvestmentScore(startup);
+        double ecosystem = rankingService.calculateEcosystemScore(startup);
+        double engagement = rankingService.calculateEngagementScore(startup);
+        double overall = (growth * 0.25 + investment * 0.25 + ecosystem * 0.25 + engagement * 0.25) * 100.0;
+        long overallRound = Math.round(overall);
+
+        data.put("overallScore", overallRound);
+        data.put("score", overallRound);
+        data.put("growthScore", Math.round(growth * 100));
         data.put("growthRate", startup.getAverageStartupGrowthRate());
-        data.put("investmentScore", Math.round(rankingService.calculateInvestmentScore(startup) * 100));
-        data.put("ecosystemScore", Math.round(rankingService.calculateEcosystemScore(startup) * 100));
-        data.put("engagementScore", Math.round(rankingService.calculateEngagementScore(startup) * 100));
+        data.put("investmentScore", Math.round(investment * 100));
+        data.put("ecosystemScore", Math.round(ecosystem * 100));
+        data.put("engagementScore", Math.round(engagement * 100));
         data.put("totalFunding", startup.getTotalStartupFundingReceived());
         data.put("foundedDate", startup.getFoundedDate());
         data.put("createdAt", startup.getCreatedAt());
@@ -151,20 +166,14 @@ public class StartupRankingController {
         List<Startup> allStartups = startupRepository.findAll();
         List<Startup> rankedStartups = filterAndRankStartups(allStartups, industry, govReg, trl, metric);
 
-        // Assign 1-based leaderboard ranking based on the sorted order
-        List<Map<String, Object>> rankedWithIndices = new ArrayList<>();
-        for (int i = 0; i < rankedStartups.size(); i++) {
-            rankedWithIndices.add(mapStartupToData(rankedStartups.get(i), i + 1));
-        }
-
         // Filter specifically by search query (business name, industry, etc.) if provided
-        List<Map<String, Object>> filteredList = rankedWithIndices;
+        List<Startup> filteredList = rankedStartups;
         if (search != null && !search.trim().isEmpty()) {
             String q = search.trim().toLowerCase();
-            filteredList = rankedWithIndices.stream()
+            filteredList = rankedStartups.stream()
                     .filter(s -> {
-                        String name = (String) s.get("companyName");
-                        String ind = (String) s.get("industry");
+                        String name = s.getCompanyName();
+                        String ind = s.getIndustry();
                         return (name != null && name.toLowerCase().contains(q)) ||
                                (ind != null && ind.toLowerCase().contains(q));
                     })
@@ -174,14 +183,22 @@ public class StartupRankingController {
         // Apply pagination
         int start = page * size;
         int end = Math.min(start + size, filteredList.size());
-        List<Map<String, Object>> paginatedStartups = start < filteredList.size()
+        List<Startup> pageSlice = (start < filteredList.size() && start >= 0)
                 ? filteredList.subList(start, end)
                 : Collections.emptyList();
+
+        // Assign 1-based leaderboard ranking and map ONLY the paginated slice
+        List<Map<String, Object>> paginatedStartups = new ArrayList<>(pageSlice.size());
+        for (int i = 0; i < pageSlice.size(); i++) {
+            Startup s = pageSlice.get(i);
+            int rank = rankedStartups.indexOf(s) + 1;
+            paginatedStartups.add(mapStartupToData(s, rank > 0 ? rank : start + i + 1));
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", paginatedStartups);
         response.put("totalElements", filteredList.size());
-        response.put("totalPages", (int) Math.ceil((double) filteredList.size() / size));
+        response.put("totalPages", size > 0 ? (int) Math.ceil((double) filteredList.size() / size) : 0);
         response.put("size", size);
         response.put("number", page);
         response.put("numberOfElements", paginatedStartups.size());
@@ -341,9 +358,10 @@ public class StartupRankingController {
         response.put("monthlyGrowth", generateMonthlyStartupGrowth(dataSet));
         response.put("trlStages", generateTrlStages(dataSet));
         response.put("govCompliance", generateGovCompliance(dataSet));
+        response.put("industryScores", generateIndustryScores(dataSet));
 
         double totalFunding = dataSet.stream()
-                .mapToDouble(Startup::getTotalStartupFundingReceived)
+                .mapToDouble(s -> s.getTotalStartupFundingReceived() + s.getAmountOfGovernmentGrantsOrSubsidiesReceived())
                 .sum();
         response.put("totalFunding", totalFunding);
 
@@ -501,6 +519,60 @@ public class StartupRankingController {
         list.add(Map.of("name", "Other Agc.", "count", otherAgc, "fill", "#ec4899"));
         list.add(Map.of("name", "Unregistered", "count", unregistered, "fill", "#f59e0b"));
         return list;
+    }
+
+    private List<Map<String, Object>> generateIndustryScores(List<Startup> startups) {
+        Map<String, List<Startup>> byIndustry = startups.stream()
+                .filter(s -> s.getIndustry() != null && !s.getIndustry().trim().isEmpty())
+                .collect(Collectors.groupingBy(s -> s.getIndustry().trim()));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        String[] colors = {"#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#F97316", "#06B6D4", "#84CC16"};
+        int colorIdx = 0;
+
+        for (Map.Entry<String, List<Startup>> entry : byIndustry.entrySet()) {
+            String industry = entry.getKey();
+            List<Startup> list = entry.getValue();
+            if (list.isEmpty()) continue;
+
+            double avgOverall = list.stream()
+                    .mapToDouble(rankingService::calculateOverallScore)
+                    .average()
+                    .orElse(0.0);
+
+            // TRL stage readiness per business (0 to 100 scale)
+            double avgGrowth = list.stream()
+                    .mapToDouble(s -> rankingService.calculateGrowthScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            double avgEco = list.stream()
+                    .mapToDouble(s -> rankingService.calculateEcosystemScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            double avgInvestment = list.stream()
+                    .mapToDouble(s -> rankingService.calculateInvestmentScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("name", industry);
+            item.put("industry", industry);
+            item.put("score", Math.round(avgOverall));
+            item.put("overallScore", Math.round(avgOverall));
+            item.put("growthScore", Math.round(avgGrowth));
+            item.put("ecosystemScore", Math.round(avgEco));
+            item.put("investmentScore", Math.round(avgInvestment));
+            item.put("count", list.size());
+            item.put("color", colors[colorIdx % colors.length]);
+            colorIdx++;
+
+            result.add(item);
+        }
+
+        result.sort((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")));
+        return result;
     }
 
     private LocalDate parseFlexibleDate(String raw) {

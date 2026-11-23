@@ -42,6 +42,8 @@ import {
   X,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
+import ChartExportButton from "../components/ChartExportButton";
+import ExportReportModal from "../modals/ExportReportModal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -112,6 +114,7 @@ export default function AllStartupDashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [geoViewMode, setGeoViewMode] = useState("bar"); // "bar" | "donut"
   const [geoShowAll, setGeoShowAll] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const GEO_PALETTE = useMemo(
     () => [
@@ -430,8 +433,12 @@ export default function AllStartupDashboard() {
     };
 
     fetchDashboardAnalytics();
-    fetchRole();
   }, [selectedIndustry, selectedGovReg, selectedTrlStage, refreshTrigger]);
+
+  // Fetch role only once on mount
+  useEffect(() => {
+    fetchRole();
+  }, []);
 
   useEffect(() => {
     const fetchTopStartups = async () => {
@@ -497,14 +504,14 @@ export default function AllStartupDashboard() {
 
         // Normalize startup data to ensure all score fields are properly set
         const normalizedStartups = startups.map(startup => {
-          // Get overall score from various possible field names
           const overallScore = startup.overallScore ?? startup.score ?? 0;
           const growthRate = startup.growthScore ?? startup.growthRate ?? 0;
 
           return {
             ...startup,
             overallScore: Number(overallScore),
-            growthScore: Number(growthRate)
+            growthScore: Number(growthRate),
+            locationName: startup.locationName || startup.city || "Unknown"
           };
         });
 
@@ -515,6 +522,33 @@ export default function AllStartupDashboard() {
 
         setTopStartups(normalizedStartups);
         setTopStartupsError(null);
+
+        // Derive industries breakdown & location cache directly from normalizedStartups (avoids extra network calls)
+        if (!isFiltered && normalizedStartups.length > 0) {
+          const uniqueIndustries = [
+            ...new Set(normalizedStartups.map((s) => s.industry)),
+          ].filter(Boolean);
+
+          const industryBreakdown = uniqueIndustries.map((ind, idx) => {
+            const count = normalizedStartups.filter((s) => s.industry === ind).length;
+            return {
+              name: ind,
+              value: count,
+              color: COLORS[idx % COLORS.length],
+            };
+          });
+
+          setIndustries(uniqueIndustries);
+          setIndustryData(industryBreakdown);
+          setIndustriesCache(true);
+          setTotalStartups(normalizedStartups.length);
+
+          const locMap = {};
+          normalizedStartups.forEach((s) => {
+            locMap[s.id] = s.city || s.locationName || "Unknown";
+          });
+          setStartupLocationsCache(locMap);
+        }
 
         // Cache the result only for non-filtered requests
         if (!isFiltered) {
@@ -543,11 +577,8 @@ export default function AllStartupDashboard() {
       // Set loading to true at the start of fetching
       setLoading(true);
 
-      // Scroll to top when page changes for better UX
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
       try {
-        // Get rankings with pagination
+        // Get rankings with pagination (only request current page items)
         const params = new URLSearchParams({
           page: currentPage.toString(),
           size: itemsPerPage.toString(),
@@ -565,122 +596,27 @@ export default function AllStartupDashboard() {
         }
 
         const url = `${getBackendUrl()}/api/rankings?${params.toString()}`;
+        const response = await fetch(url, { credentials: "include", headers: getAuthHeaders() });
 
-        // Parallel fetch: rankings + location cache (only if not cached)
-        const fetchPromises = [
-          fetch(url, { credentials: "include", headers: getAuthHeaders() }),
-        ];
-
-        // Only fetch locations if not already cached
-        if (!startupLocationsCache) {
-          fetchPromises.push(
-            fetch(
-              `${getBackendUrl()}/startups?page=0&size=1000&sortBy=companyName&sortDir=ASC`,
-              { credentials: "include", headers: getAuthHeaders() }
-            )
-          );
-        }
-
-        const responses = await Promise.all(fetchPromises);
-
-        if (!responses[0].ok) {
+        if (!response.ok) {
           throw new Error("Failed to fetch rankings");
         }
 
-        const data = await responses[0].json();
+        const data = await response.json();
         if (data.totalFunding !== undefined && data.totalFunding !== null) {
           setEcosystemTotalFunding(Number(data.totalFunding));
         }
 
-        // Cache locations if fetched
-        if (responses[1]) {
-          if (responses[1].ok) {
-            const locationsData = await responses[1].json();
-            const startUpList = locationsData.content || [];
-            setEcosystemAllBusinesses(startUpList);
-            const locationsMap = {};
-            let fundingFromAll = 0;
-            startUpList.forEach(startup => {
-              locationsMap[startup.id] = startup.city || "Unknown";
-              fundingFromAll += Number(startup.totalStartupFundingReceived || startup.totalFunding || 0);
-            });
-            setStartupLocationsCache(locationsMap);
-            setTotalStartups(locationsData.totalElements || 0);
-            if (fundingFromAll > 0) {
-              setEcosystemTotalFunding(prev => Math.max(prev, fundingFromAll));
-            }
-
-            // Cache available regions
-            const uniqueCities = [...new Set(Object.values(locationsMap))].filter(Boolean);
-            setAvailableRegions(uniqueCities);
-          }
-        }
-
         // Extract rankings from paginated response
         const rankings = data.content || [];
-
-        // Process startups with city information using cache
-        const processedStartups = rankings.map((startup) => {
-          return {
-            ...startup,
-            locationName: startupLocationsCache ? startupLocationsCache[startup.id] || "Unknown" : "Unknown",
-          };
-        });
+        const processedStartups = rankings.map((startup) => ({
+          ...startup,
+          locationName: startup.locationName || startup.city || (startupLocationsCache ? startupLocationsCache[startup.id] || "Unknown" : "Unknown"),
+        }));
 
         setRankedStartups(processedStartups);
-
-        // Update pagination state from API response
         setTotalPagesState(data.totalPages || 0);
         setTotalElements(data.totalElements || 0);
-
-        // Update industries only if we're fetching all industries AND not cached
-        if (selectedIndustry === "All" && selectedGovReg === "All" && selectedTrlStage === "All" && !industriesCache) {
-          // Fetch all rankings to get complete industry list (only once)
-          const allRankingsResponse = await fetch(
-            `${getBackendUrl()}/api/rankings?page=0&size=1000&metric=${rankingMetric}`,
-            { credentials: "include" }
-          );
-
-          if (allRankingsResponse.ok) {
-            const allRankingsData = await allRankingsResponse.json();
-            const allRankings = allRankingsData.content || [];
-
-            const uniqueIndustries = [
-              ...new Set(allRankings.map((startup) => startup.industry)),
-            ].filter(Boolean);
-
-            const industryBreakdown = uniqueIndustries.map((industry, index) => {
-              const count = allRankings.filter(
-                (startup) => startup.industry === industry
-              ).length;
-              return {
-                name: industry,
-                value: count,
-                color: COLORS[index % COLORS.length],
-              };
-            });
-
-            setIndustries(uniqueIndustries);
-            setIndustryData(industryBreakdown);
-            setIndustriesCache(true); // Mark as cached
-
-            // Also cache all startups from this data to avoid separate API call
-            const allRankedStartups = allRankings
-              .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
-            setTopStartups(allRankedStartups);
-            setTopStartupsCache({
-              industry: "All",
-              govReg: "All",
-              trl: "All",
-              metric: rankingMetric,
-              data: allRankedStartups
-            });
-          }
-        } else if (industriesCache && industries.length === 0) {
-          // If cache flag is set but industries array is empty, refetch
-          setIndustriesCache(null);
-        }
-
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -1297,6 +1233,15 @@ export default function AllStartupDashboard() {
                 <span>Reset All Filters</span>
               </button>
             )}
+
+            {/* Export Report Button */}
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors cursor-pointer shadow-sm shadow-indigo-500/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Report</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1648,13 +1593,30 @@ export default function AllStartupDashboard() {
             {/* Charts Grid Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Industry Distribution */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
+              <div id="chart-industry-distribution" className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
                 <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-blue-50 to-purple-50 px-6 py-5">
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                    Industry Distribution
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">Startup count across {industries.length} industries • Total: <span className="font-bold text-indigo-700">{industryData.reduce((sum, ind) => sum + ind.value, 0)}</span> startups</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                        Industry Distribution
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Startup count across {industries.length} industries • Total: <span className="font-bold text-indigo-700">{industryData.reduce((sum, ind) => sum + ind.value, 0)}</span> startups</p>
+                    </div>
+                    <ChartExportButton
+                      chartId="chart-industry-distribution"
+                      chartTitle="Industry Distribution"
+                      buttonSize="xs"
+                      data={industryData}
+                      columns={[
+                        { header: "Industry", dataKey: "name" },
+                        { header: "Startups", dataKey: "value" },
+                        { header: "Share %", dataKey: "value", format: (val) => { const t = industryData.reduce((s, i) => s + i.value, 0); return t > 0 ? `${((val / t) * 100).toFixed(1)}%` : "0%"; } },
+                      ]}
+                      summaryText={`${industryData.length} sectors with ${industryData.reduce((s, i) => s + i.value, 0)} total startups`}
+                      activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                    />
+                  </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
                   {loading ? (
@@ -1771,13 +1733,30 @@ export default function AllStartupDashboard() {
               </div>
 
               {/* Funding Stages */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col ">
+              <div id="chart-funding-stages" className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col ">
                 <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 via-pink-50 to-indigo-50 px-6 py-5">
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600 mr-3"><path d="M6 9c0-1 1-2 2-2s2 1 2 2M18 9c0-1-1-2-2-2s-2 1-2 2M6 15c0 1 1 2 2 2s2-1 2-2M18 15c0 1-1 2-2 2s-2-1-2-2"></path><path d="M12 3v3m0 12v3M3 12h3m12 0h3"></path></svg>
-                    Funding Stages
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">Funding distribution • Total: <span className="font-bold text-purple-700">{fundingData.reduce((sum, stage) => sum + stage.value, 0)}</span> startups</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600 mr-3"><path d="M6 9c0-1 1-2 2-2s2 1 2 2M18 9c0-1-1-2-2-2s-2 1-2 2M6 15c0 1 1 2 2 2s2-1 2-2M18 15c0 1-1 2-2 2s-2-1-2-2"></path><path d="M12 3v3m0 12v3M3 12h3m12 0h3"></path></svg>
+                        Funding Stages
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Funding distribution • Total: <span className="font-bold text-purple-700">{fundingData.reduce((sum, stage) => sum + stage.value, 0)}</span> startups</p>
+                    </div>
+                    <ChartExportButton
+                      chartId="chart-funding-stages"
+                      chartTitle="Funding Stages Distribution"
+                      buttonSize="xs"
+                      data={fundingData}
+                      columns={[
+                        { header: "Stage", dataKey: "name" },
+                        { header: "Startups", dataKey: "value" },
+                        { header: "Share %", dataKey: "value", format: (val) => { const t = fundingData.reduce((s, i) => s + i.value, 0); return t > 0 ? `${((val / t) * 100).toFixed(1)}%` : "0%"; } },
+                      ]}
+                      summaryText="Startup distribution across funding lifecycle stages"
+                      activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                    />
+                  </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
                   {dashboardLoading ? (
@@ -1899,13 +1878,28 @@ export default function AllStartupDashboard() {
             </div>
 
             {/* Growth Trends */}
-            <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+            <div id="chart-growth-trends" className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
               <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-                  Growth Trends by Industry
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">Year-over-year growth analysis across all industries</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-3"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                      Growth Trends by Industry
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">Year-over-year growth analysis across all industries</p>
+                  </div>
+                  <ChartExportButton
+                    chartId="chart-growth-trends"
+                    chartTitle="Growth Trends by Industry"
+                    buttonSize="xs"
+                    data={growthData}
+                    columns={[
+                      { header: "Period", dataKey: "name" },
+                    ]}
+                    summaryText="Year-over-year startup growth trends by industry sector"
+                    activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                  />
+                </div>
               </div>
               <div className="p-6">
                 <div className="h-72">
@@ -2292,7 +2286,7 @@ export default function AllStartupDashboard() {
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Monthly Startup Growth & Averaging Chart */}
-            <div className="bg-white p-6 rounded-lg shadow lg:col-span-2">
+            <div id="chart-monthly-growth" className="bg-white p-6 rounded-lg shadow lg:col-span-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <div>
                   <div className="flex items-center gap-1.5">
@@ -2334,7 +2328,7 @@ export default function AllStartupDashboard() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow flex flex-col justify-between">
+            <div id="chart-geo-distribution" className="bg-white p-6 rounded-lg shadow flex flex-col justify-between">
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                   <div>
@@ -2352,6 +2346,19 @@ export default function AllStartupDashboard() {
 
                   {/* Toggle View Mode & Expand Controls */}
                   <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <ChartExportButton
+                      chartId="chart-geo-distribution"
+                      chartTitle="Geographical Distribution"
+                      buttonSize="xs"
+                      data={sortedLocationData}
+                      columns={[
+                        { header: "City / Region", dataKey: "name" },
+                        { header: "Startups", dataKey: "value" },
+                        { header: "Share %", dataKey: "value", format: (val) => totalGeoStartups > 0 ? `${((val / totalGeoStartups) * 100).toFixed(1)}%` : "0%" },
+                      ]}
+                      summaryText={`${sortedLocationData.length} cities, ${totalGeoStartups} total startups mapped`}
+                      activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                    />
                     {geoViewMode === "bar" && sortedLocationData.length > 8 && (
                       <button
                         type="button"
@@ -2533,12 +2540,29 @@ export default function AllStartupDashboard() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center gap-1.5 mb-4">
-                <h2 className="text-lg font-semibold text-blue-900">
-                  Average Scores by Industry
-                </h2>
-                <TooltipInfo type="CHART_AVERAGE_SCORES" size="xs" />
+            <div id="chart-avg-industry" className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Average Scores by Industry
+                  </h2>
+                  <TooltipInfo type="CHART_AVERAGE_SCORES" size="xs" />
+                </div>
+                <ChartExportButton
+                  chartId="chart-avg-industry"
+                  chartTitle="Average Scores by Industry"
+                  buttonSize="xs"
+                  data={computedIndustryScores}
+                  columns={[
+                    { header: "Industry", dataKey: "name" },
+                    { header: "Count", dataKey: "count" },
+                    { header: "Overall Score", dataKey: "overallScore", format: (v) => `${v} / 100` },
+                    { header: "Growth Score", dataKey: "growthScore", format: (v) => `${v} / 100` },
+                    { header: "Ecosystem Score", dataKey: "ecosystemScore", format: (v) => `${v} / 100` },
+                  ]}
+                  summaryText="Average performance scores across all industries"
+                  activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                />
               </div>
               {computedIndustryScores.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
@@ -2573,7 +2597,7 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div id="chart-growth-industry" className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <Zap className="w-5 h-5 text-emerald-600" />
@@ -2582,9 +2606,24 @@ export default function AllStartupDashboard() {
                   </h2>
                   <TooltipInfo type="CHART_GROWTH_SCORE" size="xs" />
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-                  TRL Readiness Basis
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                    TRL Readiness Basis
+                  </span>
+                  <ChartExportButton
+                    chartId="chart-growth-industry"
+                    chartTitle="Growth Score by Industry"
+                    buttonSize="xs"
+                    data={computedIndustryScores}
+                    columns={[
+                      { header: "Industry", dataKey: "name" },
+                      { header: "Count", dataKey: "count" },
+                      { header: "Growth Score", dataKey: "growthScore", format: (v) => `${v} / 100` },
+                    ]}
+                    summaryText="Growth performance benchmark scores by industry sector"
+                    activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                  />
+                </div>
               </div>
               <p className="text-xs text-gray-500 mb-4">
                 Based on TRL stage readiness of all {totalStartups || allBusinesses.length || 50} businesses
@@ -2622,12 +2661,27 @@ export default function AllStartupDashboard() {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center gap-1.5 mb-4">
-                <h2 className="text-lg font-semibold text-blue-900">
-                  Ecosystem Score by Industry
-                </h2>
-                <TooltipInfo type="CHART_ECOSYSTEM_SCORE" size="xs" />
+            <div id="chart-ecosystem-industry" className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    Ecosystem Score by Industry
+                  </h2>
+                  <TooltipInfo type="CHART_ECOSYSTEM_SCORE" size="xs" />
+                </div>
+                <ChartExportButton
+                  chartId="chart-ecosystem-industry"
+                  chartTitle="Ecosystem Score by Industry"
+                  buttonSize="xs"
+                  data={computedIndustryScores}
+                  columns={[
+                    { header: "Industry", dataKey: "name" },
+                    { header: "Count", dataKey: "count" },
+                    { header: "Ecosystem Score", dataKey: "ecosystemScore", format: (v) => `${v} / 100` },
+                  ]}
+                  summaryText="Ecosystem health scores across industry sectors"
+                  activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                />
               </div>
               {computedIndustryScores.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
@@ -2663,7 +2717,7 @@ export default function AllStartupDashboard() {
             </div>
 
             {/* Government Registration & Compliance Distribution Chart */}
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div id="chart-gov-compliance" className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -2672,9 +2726,23 @@ export default function AllStartupDashboard() {
                   </h2>
                   <TooltipInfo type="CHART_GOV_COMPLIANCE" size="xs" />
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Agencies
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Agencies
+                  </span>
+                  <ChartExportButton
+                    chartId="chart-gov-compliance"
+                    chartTitle="Government Compliance Status"
+                    buttonSize="xs"
+                    data={computedGovCompliance}
+                    columns={[
+                      { header: "Agency / Status", dataKey: "name" },
+                      { header: "Startups", dataKey: "count" },
+                    ]}
+                    summaryText="Distribution of government registration and compliance certifications"
+                    activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                  />
+                </div>
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -2697,7 +2765,7 @@ export default function AllStartupDashboard() {
             </div>
 
             {/* Technology Readiness Level (TRL) Breakdown Chart */}
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div id="chart-trl-stages" className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-5 h-5 text-indigo-600" />
@@ -2706,9 +2774,23 @@ export default function AllStartupDashboard() {
                   </h2>
                   <TooltipInfo type="CHART_TRL_STAGES" size="xs" />
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Levels 1 - 9 · Click bar to view list
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Levels 1 - 9 · Click bar to view list
+                  </span>
+                  <ChartExportButton
+                    chartId="chart-trl-stages"
+                    chartTitle="Technology Readiness Stages"
+                    buttonSize="xs"
+                    data={computedTrlStages}
+                    columns={[
+                      { header: "TRL Stage", dataKey: "stage" },
+                      { header: "Startups", dataKey: "startups" },
+                    ]}
+                    summaryText="Distribution of startups across TRL maturity stages (Concept → Commercial)"
+                    activeFilters={{ industry: selectedIndustry, govReg: selectedGovReg, trl: selectedTrlStage, metric: rankingMetric }}
+                  />
+                </div>
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -3250,6 +3332,45 @@ export default function AllStartupDashboard() {
         draggable
         pauseOnHover
         theme="colored"
+      />
+
+      {/* Export Report Modal */}
+      <ExportReportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        activeFilters={{
+          industry: selectedIndustry !== "All" ? selectedIndustry : undefined,
+          govReg: selectedGovReg !== "All" ? selectedGovReg : undefined,
+          trl: selectedTrlStage !== "All" ? selectedTrlStage : undefined,
+          metric: rankingMetric,
+        }}
+        kpis={{
+          totalStartups,
+          formattedFunding: formatFundingAmount(calculatedTotalFunding),
+          avgScore: rankedStartups.length > 0
+            ? Math.round(rankedStartups.reduce((s, r) => s + (r.overallScore || 0), 0) / rankedStartups.length)
+            : 0,
+          complianceRate: topStartups.length > 0
+            ? Math.round(
+                (topStartups.filter(s =>
+                  Boolean(s.isGovernmentRegistered) ||
+                  (s.registrationAgency && !["Unregistered", ""].includes(s.registrationAgency))
+                ).length / topStartups.length) * 100
+              )
+            : 0,
+        }}
+        geoData={sortedLocationData}
+        industryScores={computedIndustryScores}
+        govCompliance={computedGovCompliance}
+        trlStages={computedTrlStages}
+        topStartups={topStartups}
+        chartContainerIds={{
+          geo: "chart-geo-distribution",
+          avgIndustry: "chart-avg-industry",
+          growthIndustry: "chart-growth-industry",
+          govReg: "chart-gov-compliance",
+          trl: "chart-trl-stages",
+        }}
       />
     </div>
   );

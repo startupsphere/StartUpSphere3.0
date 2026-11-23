@@ -576,7 +576,7 @@ export default function TooltipInfo({
           </div>
 
           {/* Body Content */}
-          <p className="text-black font-normal leading-relaxed text-xs">
+          <p className="text-black font-medium leading-relaxed text-xs">
             {resolvedSummary}
           </p>
 
@@ -590,10 +590,10 @@ export default function TooltipInfo({
                 >
                   <span className={`h-2 w-2 rounded-full mt-1 flex-shrink-0 ${sec.color}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-black text-[11px] leading-tight">
+                    <p className="font-bold text-black text-[11px] leading-tight">
                       {sec.stage}
                     </p>
-                    <p className="text-gray-800 text-[10px] leading-normal mt-0.5">
+                    <p className="text-black text-[10px] leading-normal mt-0.5">
                       {sec.desc}
                     </p>
                   </div>
@@ -603,12 +603,12 @@ export default function TooltipInfo({
           )}
 
           {preset?.guidance && (
-            <p className="mt-2 text-[11px] text-indigo-950 font-medium border-t border-gray-200 pt-1.5">
+            <p className="mt-2 text-[11px] text-black font-semibold border-t border-gray-200 pt-1.5">
               {preset.guidance}
             </p>
           )}
 
-          {children && <div className="mt-2 pt-2 border-t border-gray-200 text-black">{children}</div>}
+          {children && <div className="mt-2 pt-2 border-t border-gray-200 text-black font-medium">{children}</div>}
         </div>
       )}
     </div>

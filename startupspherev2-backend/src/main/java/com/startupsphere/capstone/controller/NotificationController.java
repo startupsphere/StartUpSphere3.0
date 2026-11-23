@@ -288,8 +288,10 @@ public class NotificationController {
                     "approved",
                     request.getComments()
             );
+            boolean isInvestor = startup.getRole() != null && startup.getRole().equalsIgnoreCase("ROLE_INVESTOR");
+            String message = isInvestor ? "Investor approved successfully" : "Startup approved successfully";
             return ResponseEntity.ok()
-                    .body(new ApiResponse(true, "Startup approved successfully", startup));
+                    .body(new ApiResponse(true, message, startup));
         } catch (Exception e) {
             logger.error("Error approving startup: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -302,8 +304,10 @@ public class NotificationController {
         try {
             Startup startup = startupService.rejectStartup(id);
             Notifications notifications = notificationService.createStartupApprovalNotification(startup, "rejected", request.getComments());
+            boolean isInvestor = startup.getRole() != null && startup.getRole().equalsIgnoreCase("ROLE_INVESTOR");
+            String message = isInvestor ? "Investor rejected successfully" : "Startup rejected successfully";
             return ResponseEntity.ok()
-                    .body(new ApiResponse(true, "Startup rejected successfully", startup));
+                    .body(new ApiResponse(true, message, startup));
         } catch (Exception e) {
             logger.error("Error rejecting startup: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

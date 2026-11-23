@@ -1,9 +1,12 @@
 package com.startupsphere.capstone.controller;
 
+import com.startupsphere.capstone.dtos.NotificationRequest;
 import com.startupsphere.capstone.entity.Investor;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.repository.InvestorRepository;
+import com.startupsphere.capstone.responses.ApiResponse;
 import com.startupsphere.capstone.service.InvestorService;
+import com.startupsphere.capstone.service.NotificationService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,13 +26,14 @@ import java.util.Optional;
 public class InvestorController {
 
     private final InvestorService investorService;
-    private final InvestorRepository investorRepository; // Add this line
+    private final InvestorRepository investorRepository;
+    private final NotificationService notificationService;
 
-    // Modify the constructor to inject InvestorRepository as well
     @Autowired
-    public InvestorController(InvestorService investorService, InvestorRepository investorRepository) {
+    public InvestorController(InvestorService investorService, InvestorRepository investorRepository, NotificationService notificationService) {
         this.investorService = investorService;
-        this.investorRepository = investorRepository; // Assign it in the constructor
+        this.investorRepository = investorRepository;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -100,5 +104,44 @@ public class InvestorController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse> approveInvestor(@PathVariable Integer id, @RequestBody(required = false) NotificationRequest request) {
+        try {
+            Investor investor = investorService.approveInvestor(id);
+            String comments = request != null && request.getComments() != null ? request.getComments() : "";
+            if (investor.getUserId() != null) {
+                notificationService.createInvestorApprovalNotification(investor, "approved", comments);
+            }
+            return ResponseEntity.ok(new ApiResponse(true, "Investor approved successfully", investor));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiResponse(false, "Error approving investor: " + e.getMessage(), null));
+        }
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse> rejectInvestor(@PathVariable Integer id, @RequestBody(required = false) NotificationRequest request) {
+        try {
+            String comments = request != null && request.getComments() != null ? request.getComments() : "";
+            Investor investor = investorService.rejectInvestor(id, comments);
+            if (investor.getUserId() != null) {
+                notificationService.createInvestorApprovalNotification(investor, "rejected", comments);
+            }
+            return ResponseEntity.ok(new ApiResponse(true, "Investor rejected successfully", investor));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiResponse(false, "Error rejecting investor: " + e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/submitted")
+    public ResponseEntity<Page<Investor>> getSubmittedInvestors(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "investorId") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("ASC") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return ResponseEntity.ok(investorService.getAllSubmittedInvestors(pageable));
     }
 }

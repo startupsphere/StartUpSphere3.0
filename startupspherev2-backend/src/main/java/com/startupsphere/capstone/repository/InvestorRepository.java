@@ -30,4 +30,8 @@ public interface InvestorRepository extends JpaRepository<Investor, Integer> {
 
     @Query("SELECT i FROM Investor i WHERE i.user_id.id = :userId")
     Optional<Investor> findByUserId(@Param("userId") Integer userId);
+
+    Page<Investor> findByStatus(String status, Pageable pageable);
+
+    List<Investor> findByStatus(String status);
 }
