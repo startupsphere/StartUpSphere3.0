@@ -337,8 +337,20 @@ export default function Startupmap({
       );
       const data = await response.json();
 
-      // Extract startups from paginated response
-      const startups = data.content || [];
+      // Extract startups from paginated response and filter out inactive (> 90 days) & archived businesses
+      const rawStartups = data.content || [];
+      const now = new Date();
+      const startups = rawStartups.filter((s) => {
+        if (s.isArchived || s.activityStatus === "ARCHIVED" || s.activityStatus === "INACTIVE") {
+          return false;
+        }
+        if (s.lastUpdated || s.createdAt) {
+          const refDate = new Date(s.lastUpdated || s.createdAt);
+          const diffDays = (now - refDate) / (1000 * 60 * 60 * 24);
+          if (diffDays > 90) return false;
+        }
+        return true;
+      });
       setStartupMarkers(startups);
       setFilteredStartups(startups);
 
