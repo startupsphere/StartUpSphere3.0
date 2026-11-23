@@ -341,9 +341,10 @@ public class StartupRankingController {
         response.put("monthlyGrowth", generateMonthlyStartupGrowth(dataSet));
         response.put("trlStages", generateTrlStages(dataSet));
         response.put("govCompliance", generateGovCompliance(dataSet));
+        response.put("industryScores", generateIndustryScores(dataSet));
 
         double totalFunding = dataSet.stream()
-                .mapToDouble(Startup::getTotalStartupFundingReceived)
+                .mapToDouble(s -> s.getTotalStartupFundingReceived() + s.getAmountOfGovernmentGrantsOrSubsidiesReceived())
                 .sum();
         response.put("totalFunding", totalFunding);
 
@@ -501,6 +502,60 @@ public class StartupRankingController {
         list.add(Map.of("name", "Other Agc.", "count", otherAgc, "fill", "#ec4899"));
         list.add(Map.of("name", "Unregistered", "count", unregistered, "fill", "#f59e0b"));
         return list;
+    }
+
+    private List<Map<String, Object>> generateIndustryScores(List<Startup> startups) {
+        Map<String, List<Startup>> byIndustry = startups.stream()
+                .filter(s -> s.getIndustry() != null && !s.getIndustry().trim().isEmpty())
+                .collect(Collectors.groupingBy(s -> s.getIndustry().trim()));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        String[] colors = {"#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#F97316", "#06B6D4", "#84CC16"};
+        int colorIdx = 0;
+
+        for (Map.Entry<String, List<Startup>> entry : byIndustry.entrySet()) {
+            String industry = entry.getKey();
+            List<Startup> list = entry.getValue();
+            if (list.isEmpty()) continue;
+
+            double avgOverall = list.stream()
+                    .mapToDouble(rankingService::calculateOverallScore)
+                    .average()
+                    .orElse(0.0);
+
+            // TRL stage readiness per business (0 to 100 scale)
+            double avgGrowth = list.stream()
+                    .mapToDouble(s -> rankingService.calculateGrowthScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            double avgEco = list.stream()
+                    .mapToDouble(s -> rankingService.calculateEcosystemScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            double avgInvestment = list.stream()
+                    .mapToDouble(s -> rankingService.calculateInvestmentScore(s) * 100.0)
+                    .average()
+                    .orElse(0.0);
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("name", industry);
+            item.put("industry", industry);
+            item.put("score", Math.round(avgOverall));
+            item.put("overallScore", Math.round(avgOverall));
+            item.put("growthScore", Math.round(avgGrowth));
+            item.put("ecosystemScore", Math.round(avgEco));
+            item.put("investmentScore", Math.round(avgInvestment));
+            item.put("count", list.size());
+            item.put("color", colors[colorIdx % colors.length]);
+            colorIdx++;
+
+            result.add(item);
+        }
+
+        result.sort((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")));
+        return result;
     }
 
     private LocalDate parseFlexibleDate(String raw) {
