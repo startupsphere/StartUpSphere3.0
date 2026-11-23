@@ -67,6 +67,9 @@ public class Investor {
     @Column(nullable = false)
     private int views;
 
+    @Column(name = "status")
+    private String status = "In Review";
+
     /*
      * @ManyToOne
      * 
@@ -296,6 +299,14 @@ public class Investor {
     
     public void setViews(int views) {
         this.views = views;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
 }
