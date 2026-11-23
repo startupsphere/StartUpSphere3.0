@@ -32,6 +32,10 @@ const ACTOR_LABELS = {
   ROLE_GOVERNMENT: {
     name: "Government / Funding Agency",
     prefix: "Add Government Agency",
+  },
+  ROLE_INVESTOR: {
+    name: "Investor / Venture Capital",
+    prefix: "Add Investor",
   }
 };
 

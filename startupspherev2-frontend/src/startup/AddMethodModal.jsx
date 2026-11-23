@@ -6,6 +6,7 @@ import {
   Rocket,
   GraduationCap,
   FlaskConical,
+  TrendingUp,
   ArrowLeft,
   X
 } from 'lucide-react';
@@ -42,6 +43,16 @@ const ECOSYSTEM_ACTORS = [
     gradStart: "#9333ea",
     gradEnd: "#db2777",
     bgLight: "bg-purple-50/70 hover:bg-purple-50"
+  },
+  {
+    id: "ROLE_INVESTOR",
+    name: "Investor / Venture Capital",
+    desc: "Angel investors, VCs, and funds investing in startups",
+    icon: TrendingUp,
+    color: "from-amber-500 to-orange-600",
+    gradStart: "#f59e0b",
+    gradEnd: "#ea580c",
+    bgLight: "bg-amber-50/70 hover:bg-amber-50"
   }
 ];
 
@@ -59,6 +70,11 @@ const AddMethodModal = ({ isOpen, onClose }) => {
   };
 
   const selectActor = (actor) => {
+    if (actor.id === 'ROLE_INVESTOR') {
+      handleClose();
+      navigate(`/add-startup?actor=ROLE_INVESTOR`);
+      return;
+    }
     setSelectedActor(actor);
     setStep(2);
   };
@@ -77,7 +93,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto p-4 sm:p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[92dvh] my-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-auto p-4 sm:p-6 md:p-8 border border-gray-100 relative overflow-hidden flex flex-col max-h-[92dvh] my-auto">
 
         {/* Header decoration */}
         <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(90deg, #2563eb, #4f46e5)' }}></div>
@@ -102,7 +118,7 @@ const AddMethodModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Actors Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 p-1 sm:p-2 overflow-y-auto max-h-[60dvh] flex-1 max-w-4xl mx-auto w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-1 sm:p-2 overflow-y-auto max-h-[60dvh] flex-1 max-w-5xl mx-auto w-full">
               {ECOSYSTEM_ACTORS.map((actor) => {
                 const IconComponent = actor.icon;
                 return (
@@ -172,21 +188,23 @@ const AddMethodModal = ({ isOpen, onClose }) => {
                 </span>
               </button>
 
-              <button
-                onClick={handleCsvFile}
-                className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"
-              >
-                <div
-                  className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
-                  style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
+              {selectedActor?.id !== 'ROLE_INVESTOR' && (
+                <button
+                  onClick={handleCsvFile}
+                  className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 border border-gray-200 text-gray-900 bg-white rounded-xl hover:shadow-lg hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 cursor-pointer group h-full min-h-[140px] sm:min-h-[260px]"
                 >
-                  <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
-                </div>
-                <span className="text-lg sm:text-2xl font-bold mb-1 sm:mb-3">CSV File Upload</span>
-                <span className="text-xs sm:text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
-                  Bulk import many records at once using our Excel or CSV spreadsheet templates
-                </span>
-              </button>
+                  <div
+                    className="p-3 sm:p-5 rounded-full text-white mb-2.5 sm:mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
+                    style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
+                  >
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </div>
+                  <span className="text-lg sm:text-2xl font-bold mb-1 sm:mb-3">CSV File Upload</span>
+                  <span className="text-xs sm:text-base text-gray-500 text-center font-medium leading-relaxed max-w-sm">
+                    Bulk import many records at once using our Excel or CSV spreadsheet templates
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         )}

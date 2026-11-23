@@ -106,7 +106,14 @@ export const useToast = () => {
 
   const addToast = (message, type = 'info', duration = 3000) => {
     const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
+    setToasts((prev) => {
+      // If error, replace existing error toasts so they never stack up
+      if (type === 'error') {
+        const withoutErrors = prev.filter((t) => t.type !== 'error');
+        return [...withoutErrors, { id, message, type, duration }];
+      }
+      return [...prev, { id, message, type, duration }];
+    });
   };
 
   const removeToast = (id) => {

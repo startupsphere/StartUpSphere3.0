@@ -237,6 +237,23 @@ const ACTOR_LABELS = {
     activityPlaceholder: "e.g., Science Grants, SME Registration, Digitization Support",
     basicHeader: "Basic Government Agency Details",
     basicSub: "Tell us about your government agency and help the community discover your funding programs"
+  },
+  ROLE_INVESTOR: {
+    name: "Investor",
+    prefix: "Add Investor",
+    companyLabel: "Investor / Fund / Firm Name",
+    companyDescLabel: "Investment Profile & Thesis",
+    companyDescPlaceholder: "Describe your organization's investment thesis, mandate, ticket sizes, and vision...",
+    typeLabel: "Investor Type",
+    typePlaceholder: "Select investor type",
+    industryLabel: "Target Investment Sectors",
+    industryPlaceholder: "Select target industry / sector",
+    foundedLabel: "Established / Investing Since",
+    operatingLabel: "Office & Consultation Hours",
+    activityLabel: "Investment Focus & Value Proposition",
+    activityPlaceholder: "Explains how your organization supports startups (e.g., smart capital, active mentoring, strategic market access, follow-on syndication)...",
+    basicHeader: "Investor & Firm Information",
+    basicSub: "Tell us about your organization and how you support startups in the ecosystem"
   }
 };
 
@@ -322,15 +339,23 @@ export default function Startupadd() {
   const [showLogoPreview, setShowLogoPreview] = useState(false);
   const [draftCertificateUrl, setDraftCertificateUrl] = useState(null);
   const [showCertificatePreview, setShowCertificatePreview] = useState(false);
-  const tabs = [
-    "Company Information",
-    "Contact Information",
-    "Address Information",
-    "Social Media Links",
-    "Additional Information",
-    "Location Info",
-    "Upload Data",
-  ];
+  const isInvestor = actor === "ROLE_INVESTOR";
+  const tabs = isInvestor
+    ? [
+        "Company Information",
+        "Contact Information",
+        "Address Information",
+        "Location Info",
+      ]
+    : [
+        "Company Information",
+        "Contact Information",
+        "Address Information",
+        "Social Media Links",
+        "Additional Information",
+        "Location Info",
+        "Upload Data",
+      ];
 
   const mapContainerRef = useRef(null);
   const markerRef = useRef(null);
@@ -1347,94 +1372,125 @@ const fetchDraftData = async (id) => {
   const validateCompanyInformation = () => {
     const errors = {};
     const labels = ACTOR_LABELS[actor] || ACTOR_LABELS.ROLE_STARTUP;
+    const isInvestorActor = actor === "ROLE_INVESTOR";
     
     if (!formData.companyName) {
       errors.companyName = `${labels.companyLabel} is required.`;
-      toast.error(`${labels.companyLabel} is required.`);
-    }
-    if (!formData.companyDescription) {
-      errors.companyDescription = `${labels.companyDescLabel} is required.`;
-      toast.error(`${labels.companyDescLabel} is required.`);
-    }
-    if (!formData.foundedDate) {
-      errors.foundedDate = `${labels.foundedLabel} is required.`;
-      toast.error(`${labels.foundedLabel} is required.`);
-    }
-    if (!formData.trlLevel) {
-      errors.trlLevel = "TRL Level is required.";
-      toast.error("TRL Level is required.");
-    }
-    if (!formData.verifiedCredentials) {
-      errors.verifiedCredentials = "Verified credentials are required.";
-      toast.error("Verified credentials are required.");
-    }
-    if (!formData.hasSupports) {
-      errors.hasSupports = "Please indicate if you have supports.";
-      toast.error("Please indicate if you have supports.");
-    }
-    if (formData.hasSupports === "yes") {
-      if (!formData.supportProvider) {
-        errors.supportProvider = "Support provider is required.";
-        toast.error("Support provider is required.");
-      }
-      if (!formData.supportProgram) {
-        errors.supportProgram = "Support program is required.";
-        toast.error("Support program is required.");
-      }
-    }
-    if (!formData.numberOfEmployees) {
-      errors.numberOfEmployees = "Number of Employees is required.";
-      toast.error("Number of Employees is required.");
     }
     if (!formData.typeOfCompany) {
       errors.typeOfCompany = `${labels.typeLabel} is required.`;
-      toast.error(`${labels.typeLabel} is required.`);
     }
-    if (!formData.industry) {
-      errors.industry = `${labels.industryLabel} is required.`;
-      toast.error(`${labels.industryLabel} is required.`);
+    if (!formData.companyDescription) {
+      errors.companyDescription = `${labels.companyDescLabel} is required.`;
     }
-    
-    // Registration validation
-    if (formData.isGovernmentRegistered === "" || formData.isGovernmentRegistered === null || formData.isGovernmentRegistered === undefined) {
-      errors.isGovernmentRegistered = "Please specify registration status.";
-      toast.error("Please specify if registered with a government agency.");
-    }
-    const isGovRegistered = formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes";
-    if (isGovRegistered) {
-      const selectedAgencies = getSelectedAgencies(formData.registrationAgency);
-      if (selectedAgencies.length === 0) {
-        errors.registrationAgency = "Please select at least one registration agency.";
-        toast.error("Please select at least one registration agency.");
+
+    if (isInvestorActor) {
+      // Investor specific requirements in Company Information
+      if (!formData.businessActivity) {
+        errors.businessActivity = "Investment Focus & Value Proposition is required.";
       }
-      if (selectedAgencies.includes("other") && !formData.otherRegistrationAgency) {
-        errors.otherRegistrationAgency = "Please specify the other registration agency.";
-        toast.error("Please specify the other registration agency.");
+      if (!formData.industry) {
+        errors.industry = "Target Investment Sectors is required.";
       }
-      if (!formData.registrationNumber) {
-        errors.registrationNumber = "Registration number is required.";
-        toast.error("Registration number is required.");
+      if (!formData.fundingStage) {
+        errors.fundingStage = "Target Investment Stage is required.";
       }
-      if (!formData.registrationDate) {
-        errors.registrationDate = "Registration date is required.";
-        toast.error("Registration date is required.");
+      // Established / Investing Since (foundedDate) is optional
+      // Verified credentials is optional
+      // TRL Level is removed
+      // Has supports is removed
+      // Number of employees is removed
+
+      // Government Registration: Only for registered firms
+      const isGovRegistered = formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes";
+      if (isGovRegistered) {
+        const selectedAgencies = getSelectedAgencies(formData.registrationAgency);
+        if (selectedAgencies.length === 0) {
+          errors.registrationAgency = "Please select at least one registration agency.";
+        }
+        if (selectedAgencies.includes("other") && !formData.otherRegistrationAgency) {
+          errors.otherRegistrationAgency = "Please specify the other registration agency.";
+        }
+        if (!formData.registrationNumber) {
+          errors.registrationNumber = "Registration number is required.";
+        }
+        if (!formData.registrationDate) {
+          errors.registrationDate = "Registration date is required.";
+        }
+        if (!formData.businessLicenseNumber) {
+          errors.businessLicenseNumber = "Business license number is required.";
+        }
+        if (!formData.tin) {
+          errors.tin = "TIN is required.";
+        }
       }
-      if (!formData.businessLicenseNumber) {
-        errors.businessLicenseNumber = "Business license number is required.";
-        toast.error("Business license number is required.");
+    } else {
+      // Standard startup validation
+      if (!formData.foundedDate) {
+        errors.foundedDate = `${labels.foundedLabel} is required.`;
       }
-      if (!formData.tin) {
-        errors.tin = "TIN is required.";
-        toast.error("TIN is required.");
+      if (!formData.trlLevel) {
+        errors.trlLevel = "TRL Level is required.";
       }
-      if (!formData.registrationCertificate && !draftCertificateUrl) {
-        errors.registrationCertificate = "Registration certificate file is required.";
-        toast.error("Registration certificate file is required.");
+      if (!formData.verifiedCredentials) {
+        errors.verifiedCredentials = "Verified credentials are required.";
+      }
+      if (!formData.hasSupports) {
+        errors.hasSupports = "Please indicate if you have supports.";
+      }
+      if (formData.hasSupports === "yes") {
+        if (!formData.supportProvider) {
+          errors.supportProvider = "Support provider is required.";
+        }
+        if (!formData.supportProgram) {
+          errors.supportProgram = "Support program is required.";
+        }
+      }
+      if (!formData.numberOfEmployees) {
+        errors.numberOfEmployees = "Number of Employees is required.";
+      }
+      if (!formData.industry) {
+        errors.industry = `${labels.industryLabel} is required.`;
+      }
+      
+      // Registration validation for startup
+      if (formData.isGovernmentRegistered === "" || formData.isGovernmentRegistered === null || formData.isGovernmentRegistered === undefined) {
+        errors.isGovernmentRegistered = "Please specify registration status.";
+      }
+      const isGovRegistered = formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes";
+      if (isGovRegistered) {
+        const selectedAgencies = getSelectedAgencies(formData.registrationAgency);
+        if (selectedAgencies.length === 0) {
+          errors.registrationAgency = "Please select at least one registration agency.";
+        }
+        if (selectedAgencies.includes("other") && !formData.otherRegistrationAgency) {
+          errors.otherRegistrationAgency = "Please specify the other registration agency.";
+        }
+        if (!formData.registrationNumber) {
+          errors.registrationNumber = "Registration number is required.";
+        }
+        if (!formData.registrationDate) {
+          errors.registrationDate = "Registration date is required.";
+        }
+        if (!formData.businessLicenseNumber) {
+          errors.businessLicenseNumber = "Business license number is required.";
+        }
+        if (!formData.tin) {
+          errors.tin = "TIN is required.";
+        }
+        if (!formData.registrationCertificate && !draftCertificateUrl) {
+          errors.registrationCertificate = "Registration certificate file is required.";
+        }
       }
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      toast.error(errors[errorKeys[0]]);
+      return "validation_failed";
+    }
+    return "";
   };
 
   const validateContactInformation = () => {
@@ -1442,99 +1498,94 @@ const fetchDraftData = async (id) => {
     
     if (!formData.phoneNumber) {
       errors.phoneNumber = "Phone Number is required.";
-      toast.error("Phone Number is required.");
     } else {
       const digits = formData.phoneNumber.replace("+63 ", "").replace(/\D/g, "");
       if (digits.length !== 10) {
         errors.phoneNumber = "Phone number must contain exactly 10 digits.";
-        toast.error("Phone number must contain exactly 10 digits (excluding +63 prefix).");
       }
     }
     
     if (!formData.contactEmail) {
       errors.contactEmail = "Contact Email is required.";
-      toast.error("Contact Email is required.");
     } else if (!validateEmail(formData.contactEmail)) {
       errors.contactEmail = "Please enter a valid email address.";
-      toast.error("Please enter a valid email address");
-    }
-    
-    if (!formData.website) {
-      // website is optional
-
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      toast.error(errors[errorKeys[0]]);
+      return "validation_failed";
+    }
+    return "";
   };
 
   const validateAddressInformation = () => {
     const errors = {};
+    const isInvestorActor = actor === "ROLE_INVESTOR";
     
     if (!formData.region) {
       errors.region = "Region is required.";
-      toast.error("Region is required.");
     }
     if (!formData.province) {
       errors.province = "Province is required.";
-      toast.error("Province is required.");
     }
     if (!formData.city) {
       errors.city = "City is required.";
-      toast.error("City is required.");
     }
-    if (!formData.barangay) {
-      errors.barangay = "Barangay is required.";
-      toast.error("Barangay is required.");
-    }
-    if (!formData.streetAddress) {
-      errors.streetAddress = "Street Address is required.";
-      toast.error("Street Address is required.");
-    }
-    if (!formData.postalCode) {
-      errors.postalCode = "Postal Code is required.";
-      toast.error("Postal Code is required.");
-    } else if (formData.postalCode.length !== 4) {
-      errors.postalCode = "Postal Code must be 4 digits.";
-      toast.error("Postal Code Must be 4 digits");
-    }
-    
-    setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
-  };  const validateSocialMediaLinks = () => {
-    const errors = {};
-    
-    if (!formData.facebook) {
-      // facebook is optional
-
-    }
-    if (!formData.linkedIn) {
-      // linkedIn is optional
-
+    if (!isInvestorActor) {
+      if (!formData.barangay) {
+        errors.barangay = "Barangay is required.";
+      }
+      if (!formData.streetAddress) {
+        errors.streetAddress = "Street Address is required.";
+      }
+      if (!formData.postalCode) {
+        errors.postalCode = "Postal Code is required.";
+      } else if (formData.postalCode.length !== 4) {
+        errors.postalCode = "Postal Code must be 4 digits.";
+      }
+    } else {
+      // Optional for investor, but if entered, ensure 4 digits
+      if (formData.postalCode && formData.postalCode.length !== 4) {
+        errors.postalCode = "Postal Code must be 4 digits.";
+      }
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      toast.error(errors[errorKeys[0]]);
+      return "validation_failed";
+    }
+    return "";
+  };
+
+  const validateSocialMediaLinks = () => {
+    return "";
   };
 
   const validateAdditionalInformation = () => {
+    if (actor === "ROLE_INVESTOR") return "";
     const errors = {};
     
     if (!formData.fundingStage) {
       errors.fundingStage = "Funding Stage is required.";
-      toast.error("Funding Stage is required.");
     }
     if (!formData.operatingHours) {
       errors.operatingHours = "Operating Hours is required.";
-      toast.error("Operating Hours is required.");
     }
     if (!formData.businessActivity) {
       errors.businessActivity = "Business Activity is required.";
-      toast.error("Business Activity is required.");
     }
     
     setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      toast.error(errors[errorKeys[0]]);
+      return "validation_failed";
+    }
+    return "";
   };
 
   const validateLocationInfo = () => {
@@ -1544,10 +1595,11 @@ const fetchDraftData = async (id) => {
       errors.locationLat = "Please select a location on the map.";
       errors.locationLng = "Please select a location on the map.";
       toast.error("Please select a location on the map.");
+      setFieldErrors(prev => ({ ...prev, ...errors }));
+      return "validation_failed";
     }
     
-    setFieldErrors(prev => ({ ...prev, ...errors }));
-    return Object.keys(errors).length === 0 ? "" : "validation_failed";
+    return "";
   };
 
   const handleNext = () => {
@@ -1852,7 +1904,9 @@ const handleSubmit = async () => {
   setIsSubmitting(true);
   setIsSubmittingStartup(true);
   setSubmissionProgress(0);
-  setSubmissionStatus("Validating startup information...");
+  const isInvestorActor = actor === "ROLE_INVESTOR";
+  const actorName = ACTOR_LABELS[actor]?.name || "Startup";
+  setSubmissionStatus(isInvestorActor ? "Validating investor information..." : `Validating ${actorName.toLowerCase()} information...`);
   
   // Set isDraft to false for final submission
   setFormData(prev => ({ ...prev, isDraft: false }));
@@ -1878,19 +1932,21 @@ const handleSubmit = async () => {
     setIsSubmittingStartup(false);
     return;
   }
-  errorMessage = validateSocialMediaLinks();
-  if (errorMessage) {
-    setError(errorMessage);
-    setIsSubmitting(false);
-    setIsSubmittingStartup(false);
-    return;
-  }
-  errorMessage = validateAdditionalInformation();
-  if (errorMessage) {
-    setError(errorMessage);
-    setIsSubmitting(false);
-    setIsSubmittingStartup(false);
-    return;
+  if (!isInvestorActor) {
+    errorMessage = validateSocialMediaLinks();
+    if (errorMessage) {
+      setError(errorMessage);
+      setIsSubmitting(false);
+      setIsSubmittingStartup(false);
+      return;
+    }
+    errorMessage = validateAdditionalInformation();
+    if (errorMessage) {
+      setError(errorMessage);
+      setIsSubmitting(false);
+      setIsSubmittingStartup(false);
+      return;
+    }
   }
   errorMessage = validateLocationInfo();
   if (errorMessage) {
@@ -1901,7 +1957,7 @@ const handleSubmit = async () => {
   }
 
   setSubmissionProgress(15);
-  setSubmissionStatus("Validation complete. Preparing submission...");
+  setSubmissionStatus(isInvestorActor ? "Validation complete. Preparing investor submission..." : "Validation complete. Preparing submission...");
 
   try {
     const token = localStorage.getItem("token");
@@ -2034,14 +2090,14 @@ const handleSubmit = async () => {
       }
       
       setSubmissionProgress(40);
-      setSubmissionStatus("Startup submitted successfully!");
+      setSubmissionStatus(isInvestorActor ? "Investor submitted successfully!" : `${actorName} submitted successfully!`);
       
       // Clear draft state
       setDraftId(null);
     } else {
       // Create new startup submission
       setSubmissionProgress(25);
-      setSubmissionStatus("Creating your startup profile...");
+      setSubmissionStatus(isInvestorActor ? "Creating your investor profile..." : `Creating your ${actorName.toLowerCase()} profile...`);
       
       const { registrationCertificate, ...startupData } = formData;
 
@@ -2095,7 +2151,7 @@ const handleSubmit = async () => {
       }
       
       setSubmissionProgress(40);
-      setSubmissionStatus("Startup profile created successfully!");
+      setSubmissionStatus(isInvestorActor ? "Investor profile created successfully!" : `${actorName} profile created successfully!`);
     }
 
     // Continue with file uploads using the startupId
@@ -2215,7 +2271,7 @@ const handleSubmit = async () => {
         setSubmissionStatus("Finalizing submission...");
         
         try { localStorage.removeItem(FORM_STORAGE_KEY); } catch (e) {}
-        toast.success("Startup added successfully! Verification email sent.");
+        toast.success(isInvestorActor ? "Investor registered successfully! Verification email sent." : `${actorName} added successfully! Verification email sent.`);
 
         try {
           await fetch(`${getBackendUrl()}/startups/draft`, {
@@ -2332,7 +2388,7 @@ const handleSubmit = async () => {
             <div className="mb-4">
               <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Startup</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your {ACTOR_LABELS[actor]?.name || "Startup"}</h2>
             <p className="text-gray-600 mb-4">{loadingStatus}</p>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
               <div 
@@ -2340,7 +2396,7 @@ const handleSubmit = async () => {
                 style={{ width: `${loadingProgress}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-500">Please wait while we process your startup information...</p>
+            <p className="text-sm text-gray-500">Please wait while we process your {(ACTOR_LABELS[actor]?.name || "startup").toLowerCase()} information...</p>
           </div>
         </div>
       </div>
@@ -2397,7 +2453,7 @@ const handleSubmit = async () => {
 
             {/* Title and Status */}
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Submitting Your Startup
+              Submitting Your {actor === "ROLE_INVESTOR" ? "Investor Profile" : (ACTOR_LABELS[actor]?.name || "Startup")}
             </h2>
             <p className="text-gray-600 mb-6 min-h-[24px]">
               {submissionStatus}
@@ -2466,7 +2522,7 @@ const handleSubmit = async () => {
             {/* Info Message */}
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
               <p className="text-sm text-blue-800">
-                <span className="font-semibold">Please wait...</span> We're processing your startup information and uploading your files securely.
+                <span className="font-semibold">Please wait...</span> We're processing your {(ACTOR_LABELS[actor]?.name || "startup").toLowerCase()} information and uploading your files securely.
               </p>
             </div>
           </div>
@@ -2914,6 +2970,533 @@ const handleSubmit = async () => {
         </div>
 
         {selectedTab === "Company Information" && (
+          actor === "ROLE_INVESTOR" ? (
+            <form className="space-y-8">
+              {/* Section Header */}
+              <div className="pb-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  Investor & Firm Information
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">Identifies and classifies your organization in the regional innovation ecosystem</p>
+              </div>
+
+              {/* 1. Investor / Fund / Firm Name & 2. Investor Type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Investor / Fund / Firm Name
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      name="companyName"
+                      placeholder="Enter investor, fund, or firm name"
+                      className={`w-full border-2 ${fieldErrors.companyName ? 'border-red-500' : 'border-gray-300'} rounded-lg px-4 py-3 pr-10 focus:ring-2 ${fieldErrors.companyName ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'} outline-none transition-all duration-200 group-hover:border-gray-400`}
+                      value={formData.companyName}
+                      onChange={handleChange}
+                    />
+                    {formData.companyName && !fieldErrors.companyName && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {fieldErrors.companyName && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {fieldErrors.companyName}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">Official name of your investment firm, angel group, or fund</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Investor Type
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <select
+                      name="typeOfCompany"
+                      className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
+                        fieldErrors.typeOfCompany 
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                      value={formData.typeOfCompany}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select investor type</option>
+                      <optgroup label="💼 Investor Entity Types">
+                        <option value="Angel Investor">Angel Investor</option>
+                        <option value="Venture Capital (VC)">Venture Capital (VC)</option>
+                        <option value="Corporate Venture Capital (CVC)">Corporate Venture Capital (CVC)</option>
+                        <option value="Private Equity (PE)">Private Equity (PE)</option>
+                        <option value="Family Office">Family Office</option>
+                        <option value="Angel Syndicate / Network">Angel Syndicate / Network</option>
+                        <option value="Accelerator / Incubator Fund">Accelerator / Incubator Fund</option>
+                        <option value="Impact Investment Fund">Impact Investment Fund</option>
+                        <option value="Government Investment Fund">Government Investment Fund</option>
+                      </optgroup>
+                      <optgroup label="🏢 Legal Entity Structure">
+                        <option value="Corporation">Corporation</option>
+                        <option value="Limited Partnership">Limited Partnership</option>
+                        <option value="Partnership">Partnership</option>
+                        <option value="Sole Proprietorship">Sole Proprietorship</option>
+                        <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
+                        <option value="Non-Profit Organization">Non-Profit Organization</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  {fieldErrors.typeOfCompany && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {fieldErrors.typeOfCompany}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">Classification of your investment vehicle or legal structure</p>
+                </div>
+              </div>
+
+              {/* 3. Established / Investing Since (Optional) & 4. Target Investment Stage */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Established / Investing Since
+                    <span className="text-gray-400 text-xs">(Optional)</span>
+                  </label>
+                  <div className="relative group">
+                    <DatePicker
+                      selected={formData.foundedDate ? new Date(formData.foundedDate) : null}
+                      onChange={handleDateChange}
+                      placeholderText="Select month and year established"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 pr-10 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400"
+                      maxDate={new Date()}
+                      showYearDropdown
+                      showMonthDropdown
+                      dropdownMode="select"
+                      yearDropdownItemNumber={100}
+                      scrollableYearDropdown
+                      dateFormat="MMMM d, yyyy"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Shows organizational experience and investment history</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Target Investment Stage
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <select
+                      name="fundingStage"
+                      className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
+                        fieldErrors.fundingStage 
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                      value={formData.fundingStage}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select target investment stage...</option>
+                      <option value="All Stages / Multi-Stage">All Stages / Multi-Stage</option>
+                      <option value="Idea / Concept Stage">Idea / Concept Stage</option>
+                      <option value="Pre-Seed">Pre-Seed</option>
+                      <option value="Seed Funding">Seed Funding</option>
+                      <option value="Early Stage (Pre-Seed to Seed)">Early Stage (Pre-Seed to Seed)</option>
+                      <option value="Series A">Series A</option>
+                      <option value="Series B">Series B</option>
+                      <option value="Growth Stage (Series B+)">Growth Stage (Series B+)</option>
+                      <option value="Late Stage / Pre-IPO">Late Stage / Pre-IPO</option>
+                      <option value="Angel Investment">Angel Investment</option>
+                      <option value="Venture Capital">Venture Capital</option>
+                      <option value="Private Equity">Private Equity</option>
+                      <option value="Grants & Non-Dilutive Capital">Grants & Non-Dilutive Capital</option>
+                    </select>
+                  </div>
+                  {fieldErrors.fundingStage && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {fieldErrors.fundingStage}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">Primary stage where your firm deploys capital</p>
+                </div>
+              </div>
+
+              {/* 5. Investment Profile & Thesis */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Investment Profile & Thesis
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <textarea
+                    name="companyDescription"
+                    placeholder="Describe your organization's investment identity, fund thesis, vision, and how you evaluate potential portfolio companies..."
+                    rows="3"
+                    className={`w-full border-2 ${fieldErrors.companyDescription ? 'border-red-500' : 'border-gray-300'} rounded-lg px-4 py-3 ${fieldErrors.companyDescription ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'} focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 resize-none`}
+                    value={formData.companyDescription}
+                    onChange={handleChange}
+                  />
+                </div>
+                {fieldErrors.companyDescription && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    {fieldErrors.companyDescription}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">Describes your organization's investment identity and portfolio vision</p>
+              </div>
+
+              {/* 6. Investment Focus & Value Proposition */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Investment Focus & Value Proposition
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    name="businessActivity"
+                    placeholder="Explains how your organization supports startups (e.g., smart capital, active mentoring, strategic market access, follow-on syndication)..."
+                    className={`w-full border-2 rounded-lg px-4 py-3 pr-10 focus:ring-2 outline-none transition-all duration-200 group-hover:border-gray-400 ${
+                      fieldErrors.businessActivity 
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
+                    value={formData.businessActivity}
+                    onChange={handleChange}
+                  />
+                </div>
+                {fieldErrors.businessActivity && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    {fieldErrors.businessActivity}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">Explains how the organization supports startups beyond financial capital</p>
+              </div>
+
+              {/* 7. Target Investment Sectors & Total Fund Size */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Target Investment Sectors
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <select
+                      name="industry"
+                      className={`w-full border-2 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 outline-none transition-all duration-200 bg-white group-hover:border-gray-400 ${
+                        fieldErrors.industry 
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                      value={formData.industry}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select target industry / sector</option>
+                      <optgroup label="🌐 Investor Sector Focus & Tech">
+                        <option value="Sector Agnostic / Multi-Sector">Sector Agnostic / Multi-Sector</option>
+                        <option value="Deep Tech & AI">Deep Tech & AI</option>
+                        <option value="FinTech & InsurTech">FinTech & InsurTech</option>
+                        <option value="HealthTech & BioTech">HealthTech & BioTech</option>
+                        <option value="EdTech & Future of Work">EdTech & Future of Work</option>
+                        <option value="CleanTech & Climate Tech">CleanTech & Climate Tech</option>
+                        <option value="AgriTech & FoodTech">AgriTech & FoodTech</option>
+                        <option value="E-Commerce & Consumer Tech">E-Commerce & Consumer Tech</option>
+                        <option value="Enterprise SaaS & B2B">Enterprise SaaS & B2B</option>
+                      </optgroup>
+                      <optgroup label="💼 General Industry Verticals">
+                        <option value="Agriculture & Farming">Agriculture & Farming</option>
+                        <option value="Technology & IT Services">Technology & IT Services</option>
+                        <option value="Healthcare & Medical Services">Healthcare & Medical Services</option>
+                        <option value="Financial Services">Financial Services</option>
+                        <option value="Retail & E-commerce">Retail & E-commerce</option>
+                        <option value="Manufacturing & Production">Manufacturing & Production</option>
+                        <option value="Transportation & Logistics">Transportation & Logistics</option>
+                        <option value="Energy & Utilities">Energy & Utilities</option>
+                        <option value="Education & Training">Education & Training</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  {fieldErrors.industry && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {fieldErrors.industry}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">Primary sectors and technology areas of investment focus</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Total Fund Size / Investment Capital (₱)
+                    <span className="text-gray-400 text-xs">(Optional)</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                      <span className="text-gray-500 font-medium">₱</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="totalStartupFundingReceived"
+                      min="0"
+                      step="1000"
+                      placeholder="e.g., 50000000 (AUM or fund size)"
+                      className="w-full border-2 border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 hover:border-gray-400"
+                      value={formData.totalStartupFundingReceived}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Fund size, assets under management, or capital allocation (optional)</p>
+                </div>
+              </div>
+
+              {/* 8. Verified Credentials (Optional) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Verified Credentials
+                  <span className="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    name="verifiedCredentials"
+                    placeholder="e.g., SEC Licensed, Accredited Investor, CFA, Angel Network Member (Optional)"
+                    className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 group-hover:border-gray-400"
+                    value={formData.verifiedCredentials}
+                    onChange={handleChange}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Establishes credibility with founders and regional co-investors</p>
+              </div>
+
+              {/* 9. Affiliated Organizations (Optional) */}
+              <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 rounded-xl p-6 border border-amber-100">
+                <div className="mb-4">
+                  <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Affiliated Organizations & Programs
+                    <span className="text-gray-400 text-xs">(Optional)</span>
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1">Shows institutional relationships, university TBIs, angel networks, or venture associations</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Affiliated Enabler / Organization
+                    </label>
+                    <input
+                      type="text"
+                      name="supportProvider"
+                      placeholder="e.g., University TBI, DOST, Angel Network"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.supportProvider}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Affiliated Program / Fund
+                    </label>
+                    <input
+                      type="text"
+                      name="supportProgram"
+                      placeholder="e.g., Incubation Partner, Co-Investment Fund"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.supportProgram}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 10. Government Registration (Only for registered firms) */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+                <div className="mb-4">
+                  <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Government Registration
+                    <span className="text-gray-500 text-xs font-normal">(Only for registered firms)</span>
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1">Provide registration details if operating as a registered firm, fund, or legal corporation. Individual angel investors may skip this.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <span>Is your firm / organization registered with a government agency?</span>
+                  </label>
+                  <div className="relative group">
+                    <select
+                      name="isGovernmentRegistered"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 pr-10 appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 bg-white group-hover:border-gray-400"
+                      value={
+                        formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes"
+                          ? "true"
+                          : formData.isGovernmentRegistered === false || formData.isGovernmentRegistered === "false" || formData.isGovernmentRegistered === "no"
+                          ? "false"
+                          : ""
+                      }
+                      onChange={e => {
+                        const val = e.target.value;
+                        const boolVal = val === "true" ? true : val === "false" ? false : "";
+                        setFormData(prev => ({
+                          ...prev,
+                          isGovernmentRegistered: boolVal,
+                        }));
+                      }}
+                    >
+                      <option value="">Select an option (Optional for individual angels)</option>
+                      <option value="true">Yes, registered investment firm / fund</option>
+                      <option value="false">No / Individual angel investor</option>
+                    </select>
+                  </div>
+                </div>
+
+                {Boolean(formData.isGovernmentRegistered === true || formData.isGovernmentRegistered === "true" || formData.isGovernmentRegistered === "yes") && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-blue-200/60">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">Registration Number</label>
+                      <input
+                        type="text"
+                        name="registrationNumber"
+                        placeholder="e.g., SEC Registration # / DTI #"
+                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.registrationNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">TIN</label>
+                      <input
+                        type="text"
+                        name="tin"
+                        placeholder="000-000-000-000"
+                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.tin}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 11. Company Logo (Optional) */}
+              <div className="col-span-2">
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Company / Firm Logo (Optional)
+                </label>
+                {showLogoPreview ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <img
+                          src={uploadedImage ? URL.createObjectURL(uploadedImage) : draftLogoUrl}
+                          alt="Company Logo"
+                          className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm text-gray-600">
+                          {uploadedImage ? 'New logo selected' : 'Current firm logo'}
+                        </p>
+                        <div className="flex gap-2">
+                          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm">
+                            Change Logo
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleRemoveLogo}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-all duration-200"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all duration-200">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop logo
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, or JPEG (MAX. 5MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="col-span-2 flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  onClick={saveDraft}
+                  disabled={isSavingDraft}
+                >
+                  {isSavingDraft ? <span>Saving...</span> : <span>Save as Draft</span>}
+                </button>
+                <button
+                  type="button"
+                  className="bg-[#1D3557] text-white px-6 py-2.5 rounded-lg hover:bg-[#16324f] transition-all duration-200 shadow-sm"
+                  onClick={handleNext}
+                >
+                  Next
+                </button>
+              </div>
+            </form>
+          ) : (
           <form className="space-y-8">
             {/* Section Header */}
             <div className="pb-4 border-b border-gray-200">
@@ -3341,25 +3924,51 @@ const handleSubmit = async () => {
                     onChange={handleChange}
                   >
                     <option value="">{ACTOR_LABELS[actor]?.typePlaceholder || "Select type of company"}</option>
-                    <option value="Cooperative">Cooperative</option>
-                    <option value="Corporation">Corporation</option>
-                    <option value="Family Business">Family Business</option>
-                    <option value="Foundation">Foundation</option>
-                    <option value="Franchise">Franchise</option>
-                    <option value="General Partnership">General Partnership</option>
-                    <option value="Large Enterprise">Large Enterprise (200+ employees)</option>
-                    <option value="Limited Partnership">Limited Partnership</option>
-                    <option value="Medium Enterprise">Medium Enterprise (100-199 employees)</option>
-                    <option value="Microenterprise">Microenterprise (1-9 employees)</option>
-                    <option value="NGO (Non-Governmental Organization)">NGO (Non-Governmental Organization)</option>
-                    <option value="Non-Profit Organization">Non-Profit Organization</option>
-                    <option value="Non-Stock Corporation">Non-Stock Corporation</option>
-                    <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
-                    <option value="Partnership">Partnership</option>
-                    <option value="Small Enterprise">Small Enterprise (10-99 employees)</option>
-                    <option value="Social Enterprise">Social Enterprise</option>
-                    <option value="Sole Proprietorship">Sole Proprietorship</option>
-                    <option value="Stock Corporation">Stock Corporation</option>
+                    {actor === "ROLE_INVESTOR" ? (
+                      <>
+                        <optgroup label="💼 Investor Entity Types">
+                          <option value="Angel Investor">Angel Investor</option>
+                          <option value="Venture Capital (VC)">Venture Capital (VC)</option>
+                          <option value="Corporate Venture Capital (CVC)">Corporate Venture Capital (CVC)</option>
+                          <option value="Private Equity (PE)">Private Equity (PE)</option>
+                          <option value="Family Office">Family Office</option>
+                          <option value="Angel Syndicate / Network">Angel Syndicate / Network</option>
+                          <option value="Accelerator / Incubator Fund">Accelerator / Incubator Fund</option>
+                          <option value="Impact Investment Fund">Impact Investment Fund</option>
+                          <option value="Government Investment Fund">Government Investment Fund</option>
+                        </optgroup>
+                        <optgroup label="🏢 Legal Entity Structure">
+                          <option value="Corporation">Corporation</option>
+                          <option value="Limited Partnership">Limited Partnership</option>
+                          <option value="Partnership">Partnership</option>
+                          <option value="Sole Proprietorship">Sole Proprietorship</option>
+                          <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
+                          <option value="Non-Profit Organization">Non-Profit Organization</option>
+                        </optgroup>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Cooperative">Cooperative</option>
+                        <option value="Corporation">Corporation</option>
+                        <option value="Family Business">Family Business</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Franchise">Franchise</option>
+                        <option value="General Partnership">General Partnership</option>
+                        <option value="Large Enterprise">Large Enterprise (200+ employees)</option>
+                        <option value="Limited Partnership">Limited Partnership</option>
+                        <option value="Medium Enterprise">Medium Enterprise (100-199 employees)</option>
+                        <option value="Microenterprise">Microenterprise (1-9 employees)</option>
+                        <option value="NGO (Non-Governmental Organization)">NGO (Non-Governmental Organization)</option>
+                        <option value="Non-Profit Organization">Non-Profit Organization</option>
+                        <option value="Non-Stock Corporation">Non-Stock Corporation</option>
+                        <option value="One Person Corporation (OPC)">One Person Corporation (OPC)</option>
+                        <option value="Partnership">Partnership</option>
+                        <option value="Small Enterprise">Small Enterprise (10-99 employees)</option>
+                        <option value="Social Enterprise">Social Enterprise</option>
+                        <option value="Sole Proprietorship">Sole Proprietorship</option>
+                        <option value="Stock Corporation">Stock Corporation</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 {fieldErrors.typeOfCompany && (
@@ -3399,7 +4008,19 @@ const handleSubmit = async () => {
                   >
                     <option value="">{ACTOR_LABELS[actor]?.industryPlaceholder || "Select industry"}</option>
                 
-                {/* Agriculture & Food */}
+                {actor === "ROLE_INVESTOR" && (
+                  <optgroup label="🌐 Investor Sector Focus & Tech">
+                    <option value="Sector Agnostic / Multi-Sector">Sector Agnostic / Multi-Sector</option>
+                    <option value="Deep Tech & AI">Deep Tech & AI</option>
+                    <option value="FinTech & InsurTech">FinTech & InsurTech</option>
+                    <option value="HealthTech & BioTech">HealthTech & BioTech</option>
+                    <option value="EdTech & Future of Work">EdTech & Future of Work</option>
+                    <option value="CleanTech & Climate Tech">CleanTech & Climate Tech</option>
+                    <option value="AgriTech & FoodTech">AgriTech & FoodTech</option>
+                    <option value="E-Commerce & Consumer Tech">E-Commerce & Consumer Tech</option>
+                    <option value="Enterprise SaaS & B2B">Enterprise SaaS & B2B</option>
+                  </optgroup>
+                )}
                 <optgroup label="🌾 Agriculture & Food">
                   <option value="Agriculture & Farming">Agriculture & Farming</option>
                   <option value="Aquaculture & Fisheries">Aquaculture & Fisheries</option>
@@ -4374,6 +4995,7 @@ const handleSubmit = async () => {
               </button>
             </div>
           </form>
+          )
         )}
         {selectedTab === "Contact Information" && (
           <form className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -4508,47 +5130,126 @@ const handleSubmit = async () => {
                 )}
               </div>
             </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">Website
-                <span className="text-gray-400 text-xs"> (Optional)</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="url"
-                  name="website"
-                  placeholder="Website link"
-                  className={`w-full border-2 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:outline-none transition-all duration-200 ${
-                    fieldErrors.website 
-                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  value={formData.website}
-                  onChange={handleChange}
-                />
-                {formData.website && !fieldErrors.website && (
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
+            {actor !== "ROLE_INVESTOR" ? (
+              <div>
+                <label className="block mb-1 text-sm font-medium">Website
+                  <span className="text-gray-400 text-xs"> (Optional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    name="website"
+                    placeholder="Website link"
+                    className={`w-full border-2 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:outline-none transition-all duration-200 ${
+                      fieldErrors.website 
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
+                    value={formData.website}
+                    onChange={handleChange}
+                  />
+                  {formData.website && !fieldErrors.website && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                  {fieldErrors.website && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
                 {fieldErrors.website && (
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
-                  </div>
+                    {fieldErrors.website}
+                  </p>
                 )}
               </div>
-              {fieldErrors.website && (
-                <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {fieldErrors.website}
-                </p>
-              )}
-            </div>
+            ) : null}
+
+            {actor === "ROLE_INVESTOR" && (
+              <div className="col-span-1 sm:col-span-2 space-y-4 pt-4 border-t border-gray-200">
+                <div>
+                  <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    Professional & Social Media Links
+                    <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">Provide your professional profiles and social channels for founder outreach</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* LinkedIn */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <span className="font-semibold text-blue-700">LinkedIn Profile / Page</span>
+                    </label>
+                    <input
+                      type="url"
+                      name="linkedIn"
+                      placeholder="https://linkedin.com/in/yourprofile or /company/..."
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.linkedIn}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  {/* Facebook */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <span className="font-semibold text-blue-600">Facebook Page</span>
+                    </label>
+                    <input
+                      type="url"
+                      name="facebook"
+                      placeholder="https://facebook.com/yourpage"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.facebook}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  {/* Twitter / X */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <span className="font-semibold text-sky-600">Twitter / X</span>
+                    </label>
+                    <input
+                      type="url"
+                      name="twitter"
+                      placeholder="https://twitter.com/yourhandle"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.twitter}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <span className="font-semibold text-pink-600">Instagram</span>
+                    </label>
+                    <input
+                      type="url"
+                      name="instagram"
+                      placeholder="https://instagram.com/yourhandle"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+                      value={formData.instagram}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="col-span-2 flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
               <button
                 type="button"
@@ -4793,7 +5494,11 @@ const handleSubmit = async () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   Barangay
-                  <span className="text-red-500">*</span>
+                  {actor === "ROLE_INVESTOR" ? (
+                    <span className="text-gray-400 text-xs">(Optional)</span>
+                  ) : (
+                    <span className="text-red-500">*</span>
+                  )}
                 </label>
                 <div className="relative group">
                   <select
@@ -4857,7 +5562,11 @@ const handleSubmit = async () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                     Street Address
-                    <span className="text-red-500">*</span>
+                    {actor === "ROLE_INVESTOR" ? (
+                      <span className="text-gray-400 text-xs">(Optional)</span>
+                    ) : (
+                      <span className="text-red-500">*</span>
+                    )}
                   </label>
                   <div className="relative">
                     <input
@@ -4905,7 +5614,11 @@ const handleSubmit = async () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     Postal Code
-                    <span className="text-red-500">*</span>
+                    {actor === "ROLE_INVESTOR" ? (
+                      <span className="text-gray-400 text-xs">(Optional)</span>
+                    ) : (
+                      <span className="text-red-500">*</span>
+                    )}
                   </label>
                   <div className="relative">
                     <input
@@ -5007,7 +5720,7 @@ const handleSubmit = async () => {
             </div>
           </form>
         )}
-        {selectedTab === "Social Media Links" && (
+        {selectedTab === "Social Media Links" && actor !== "ROLE_INVESTOR" && (
           <form className="space-y-6">
             {/* Section Header */}
             <div className="pb-4 border-b border-gray-200">
@@ -5288,7 +6001,7 @@ const handleSubmit = async () => {
             </div>
           </form>
         )}
-        {selectedTab === "Additional Information" && (
+        {selectedTab === "Additional Information" && actor !== "ROLE_INVESTOR" && (
           <form className="space-y-6">
             {/* Section Header */}
             <div className="pb-4 border-b border-gray-200">
@@ -5296,9 +6009,13 @@ const handleSubmit = async () => {
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Business Operations
+                {actor === "ROLE_INVESTOR" ? "Investment Operations & Preferences" : "Business Operations"}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">Provide additional details about your business operations and funding</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {actor === "ROLE_INVESTOR"
+                  ? "Provide details about your investment stages, ticket sizes, and consultation hours"
+                  : "Provide additional details about your business operations and funding"}
+              </p>
             </div>
 
             {/* Funding Stage and Business Activity */}
@@ -5309,7 +6026,7 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Funding Stage
+                  {actor === "ROLE_INVESTOR" ? "Target Investment Stage" : "Funding Stage"}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
@@ -5323,26 +6040,46 @@ const handleSubmit = async () => {
                     value={formData.fundingStage}
                     onChange={handleChange}
                   >
-                    <option value="">Select funding stage...</option>
-                    <option value="Angel Investment">Angel Investment</option>
-                    <option value="Bank Loan">Bank Loan</option>
-                    <option value="Crowdfunding">Crowdfunding</option>
-                    <option value="DOST Funding">DOST Funding</option>
-                    <option value="DTI Funding">DTI Funding</option>
-                    <option value="Family & Friends">Family & Friends</option>
-                    <option value="Government Grant">Government Grant</option>
-                    <option value="IPO / Public Offering">IPO / Public Offering</option>
-                    <option value="Microfinance">Microfinance</option>
-                    <option value="Not Seeking Funding">Not Seeking Funding</option>
-                    <option value="Pre-Seed">Pre-Seed</option>
-                    <option value="Private Equity">Private Equity</option>
-                    <option value="Seed Funding">Seed Funding</option>
-                    <option value="Self-Funded / Bootstrapped">Self-Funded / Bootstrapped</option>
-                    <option value="Series A">Series A</option>
-                    <option value="Series B">Series B</option>
-                    <option value="Series C">Series C</option>
-                    <option value="Series D+">Series D+</option>
-                    <option value="Venture Capital">Venture Capital</option>
+                    <option value="">{actor === "ROLE_INVESTOR" ? "Select target investment stage..." : "Select funding stage..."}</option>
+                    {actor === "ROLE_INVESTOR" ? (
+                      <>
+                        <option value="All Stages / Multi-Stage">All Stages / Multi-Stage</option>
+                        <option value="Idea / Concept Stage">Idea / Concept Stage</option>
+                        <option value="Pre-Seed">Pre-Seed</option>
+                        <option value="Seed Funding">Seed Funding</option>
+                        <option value="Early Stage (Pre-Seed to Seed)">Early Stage (Pre-Seed to Seed)</option>
+                        <option value="Series A">Series A</option>
+                        <option value="Series B">Series B</option>
+                        <option value="Growth Stage (Series B+)">Growth Stage (Series B+)</option>
+                        <option value="Late Stage / Pre-IPO">Late Stage / Pre-IPO</option>
+                        <option value="Angel Investment">Angel Investment</option>
+                        <option value="Venture Capital">Venture Capital</option>
+                        <option value="Private Equity">Private Equity</option>
+                        <option value="Grants & Non-Dilutive Capital">Grants & Non-Dilutive Capital</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Angel Investment">Angel Investment</option>
+                        <option value="Bank Loan">Bank Loan</option>
+                        <option value="Crowdfunding">Crowdfunding</option>
+                        <option value="DOST Funding">DOST Funding</option>
+                        <option value="DTI Funding">DTI Funding</option>
+                        <option value="Family & Friends">Family & Friends</option>
+                        <option value="Government Grant">Government Grant</option>
+                        <option value="IPO / Public Offering">IPO / Public Offering</option>
+                        <option value="Microfinance">Microfinance</option>
+                        <option value="Not Seeking Funding">Not Seeking Funding</option>
+                        <option value="Pre-Seed">Pre-Seed</option>
+                        <option value="Private Equity">Private Equity</option>
+                        <option value="Seed Funding">Seed Funding</option>
+                        <option value="Self-Funded / Bootstrapped">Self-Funded / Bootstrapped</option>
+                        <option value="Series A">Series A</option>
+                        <option value="Series B">Series B</option>
+                        <option value="Series C">Series C</option>
+                        <option value="Series D+">Series D+</option>
+                        <option value="Venture Capital">Venture Capital</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 {fieldErrors.fundingStage && (
@@ -5361,7 +6098,7 @@ const handleSubmit = async () => {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  Total Funding Received (₱)
+                  {actor === "ROLE_INVESTOR" ? "Total Fund Size / Investment Capital (₱)" : "Total Funding Received (₱)"}
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -5372,7 +6109,7 @@ const handleSubmit = async () => {
                     name="totalStartupFundingReceived"
                     min="0"
                     step="1000"
-                    placeholder="e.g., 5000000"
+                    placeholder={actor === "ROLE_INVESTOR" ? "e.g., 50000000 (AUM or fund size)" : "e.g., 5000000"}
                     className="w-full border-2 rounded-lg pl-8 pr-4 py-3 focus:ring-2 outline-none transition-all duration-200 hover:border-gray-400 border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     value={formData.totalStartupFundingReceived}
                     onChange={handleChange}
@@ -5385,7 +6122,11 @@ const handleSubmit = async () => {
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Enter the total amount of funding your business has received (optional)</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {actor === "ROLE_INVESTOR" 
+                    ? "Enter your fund size, assets under management, or typical check size (optional)" 
+                    : "Enter the total amount of funding your business has received (optional)"}
+                </p>
               </div>
             </div>
 
@@ -5396,7 +6137,8 @@ const handleSubmit = async () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-sm text-green-800">
-                  Total Funding: <strong>₱{Number(formData.totalStartupFundingReceived).toLocaleString()}</strong>
+                  {actor === "ROLE_INVESTOR" ? "Total Fund / Capital Size: " : "Total Funding: "}
+                  <strong>₱{Number(formData.totalStartupFundingReceived).toLocaleString()}</strong>
                 </span>
               </div>
             )}
@@ -5459,10 +6201,14 @@ const handleSubmit = async () => {
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Operating Hours
+                  {ACTOR_LABELS[actor]?.operatingLabel || "Operating Hours"}
                   <span className="text-red-500">*</span>
                 </h4>
-                <p className="text-sm text-gray-600 mt-1">Set your business hours and operating days</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {actor === "ROLE_INVESTOR"
+                    ? "Set your consultation hours and availability for founders"
+                    : "Set your business hours and operating days"}
+                </p>
               </div>
 
               {/* Time Selectors */}
@@ -5685,16 +6431,29 @@ const handleSubmit = async () => {
                   )}
                   {/* Show Next button only if startup has been submitted (has startupId and Location Info is completed) */}
                   {startupId && completedTabs.includes("Location Info") ? (
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 bg-[#1D3557] text-white px-6 py-2.5 rounded-lg hover:bg-[#16324f] transition-all duration-200 shadow-sm"
-                      onClick={handleNext}
-                    >
-                      <span>Next</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+                    actor === "ROLE_INVESTOR" ? (
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm"
+                        onClick={() => setVerificationModal(true)}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Submitted (View Details)</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 bg-[#1D3557] text-white px-6 py-2.5 rounded-lg hover:bg-[#16324f] transition-all duration-200 shadow-sm"
+                        onClick={handleNext}
+                      >
+                        <span>Next</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    )
                   ) : (
                     <button
                       type="button"
@@ -5708,14 +6467,14 @@ const handleSubmit = async () => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          <span>Submitting...</span>
+                          <span>{actor === "ROLE_INVESTOR" ? "Submitting Investor..." : "Submitting..."}</span>
                         </>
                       ) : (
                         <>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
-                          <span>Submit</span>
+                          <span>{actor === "ROLE_INVESTOR" ? "Submit Investor" : "Submit"}</span>
                         </>
                       )}
                     </button>
@@ -5724,11 +6483,11 @@ const handleSubmit = async () => {
               </div>
             </div>
           )}
-        {selectedTab === "Upload Data" && (
+        {selectedTab === "Upload Data" && actor !== "ROLE_INVESTOR" && (
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800">Upload Startup Data</h2>
+                <h2 className="text-2xl font-semibold text-gray-800">Upload {ACTOR_LABELS[actor]?.name || "Startup"} Data</h2>
                 <button
                   type="button"
                   className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
@@ -5748,7 +6507,7 @@ const handleSubmit = async () => {
                     <h3 className="text-lg font-medium text-blue-800 mb-2">Quick Start Guide</h3>
                     <ol className="list-decimal list-inside space-y-2 text-blue-700">
                       <li>Download the Excel template</li>
-                      <li>Fill in your startup's data</li>
+                      <li>Fill in your {(ACTOR_LABELS[actor]?.name || "startup").toLowerCase()}'s data</li>
                       <li>Upload the completed file</li>
                       <li>Review and submit</li>
                     </ol>
