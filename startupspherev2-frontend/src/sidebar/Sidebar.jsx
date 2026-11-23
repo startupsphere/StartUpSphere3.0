@@ -935,47 +935,49 @@ export default function Sidebar({
 
   const logout = async () => {
     try {
-      const response = await fetch(
+      const token = localStorage.getItem("token");
+      await fetch(
         `${getBackendUrl()}/auth/logout`,
         {
           method: "POST",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
-      );
-
-      if (response.ok) {
-        console.log("Logout successful");
-        setShowLogoutConfirm(false);
-        setShowLogoutSuccess(true);
-
-        setTimeout(() => {
-          setIsAuthenticated(false);
-          setUser(null);
-          setCurrentUser(null);
-          setLikedStartups([]);
-          setLikedStakeholders([]);
-
-          localStorage.removeItem("likedStartups");
-          localStorage.removeItem("likedStakeholders");
-          localStorage.removeItem("user");
-          localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("token");
-          localStorage.removeItem("startupsphere_ai_chat");
-          localStorage.removeItem("pending_ai_startup_desc");
-          try {
-            sessionStorage.clear();
-          } catch (e) { }
-          document.cookie =
-            "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-          setUserDetails(null);
-          navigate("/");
-          setShowLogoutSuccess(false);
-        }, 1500);
-      } else {
-        console.error("Failed to logout");
-      }
+      ).catch(() => {});
     } catch (error) {
       console.error("Error during logout:", error);
+    } finally {
+      setShowLogoutConfirm(false);
+      setShowLogoutSuccess(true);
+
+      setTimeout(() => {
+        setIsAuthenticated(false);
+        setUser(null);
+        setCurrentUser(null);
+        setLikedStartups([]);
+        setLikedStakeholders([]);
+
+        localStorage.removeItem("likedStartups");
+        localStorage.removeItem("likedStakeholders");
+        localStorage.removeItem("user");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("token");
+        localStorage.removeItem("startupsphere_ai_chat");
+        localStorage.removeItem("pending_ai_startup_desc");
+        try {
+          sessionStorage.clear();
+        } catch (e) { }
+        document.cookie =
+          "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie =
+          "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        setUserDetails(null);
+        navigate("/");
+        setShowLogoutSuccess(false);
+      }, 800);
     }
   };
 
@@ -2308,9 +2310,7 @@ export default function Sidebar({
                     {/* Dashboard Icon */}
                     <li className="flex justify-center relative">
                       {(location.pathname === "/startup-dashboard" ||
-                        (currentUser?.role === "ROLE_ADMIN" &&
-                          location.pathname === "/all-startup-dashboard" &&
-                          location.state?.activeTab !== "rankings")) && (
+                        location.pathname === "/all-startup-dashboard") && (
                           <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
                         )}
                       <button
@@ -2335,9 +2335,7 @@ export default function Sidebar({
                           }
                         }}
                         className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${location.pathname === "/startup-dashboard" ||
-                          (currentUser?.role === "ROLE_ADMIN" &&
-                            location.pathname === "/all-startup-dashboard" &&
-                            location.state?.activeTab !== "rankings")
+                          location.pathname === "/all-startup-dashboard"
                           ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
                           : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                           }`}
@@ -2349,46 +2347,6 @@ export default function Sidebar({
                           style={{ zIndex: 99999 }}
                         >
                           Dashboard
-                        </span>
-                      </button>
-                    </li>
-
-                    {/* All Startups Icon */}
-                    <li className="flex justify-center relative">
-                      {location.pathname === "/all-startup-dashboard" &&
-                        (currentUser?.role !== "ROLE_ADMIN" ||
-                          location.state?.activeTab === "rankings") && (
-                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
-                        )}
-                      <button
-                        onClick={() => {
-                          setShowRecents(false);
-                          setShowSearchContainer(false);
-                          setShowBookmarks(false);
-                          setShowGeminiAi(false);
-                          window.dispatchEvent(
-                            new CustomEvent("switch-startup-dashboard-tab", {
-                              detail: { tab: "rankings" },
-                            })
-                          );
-                          navigate("/all-startup-dashboard", {
-                            state: { activeTab: "rankings" },
-                          });
-                        }}
-                        className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${location.pathname === "/all-startup-dashboard" &&
-                          (currentUser?.role !== "ROLE_ADMIN" ||
-                            location.state?.activeTab === "rankings")
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
-                          }`}
-                        aria-label="All Startups & Rankings"
-                      >
-                        <Award className="h-5.5 w-5.5" />
-                        <span
-                          className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
-                          style={{ zIndex: 99999 }}
-                        >
-                          All Startups & Rankings
                         </span>
                       </button>
                     </li>
@@ -2786,6 +2744,12 @@ export default function Sidebar({
                                     activeTab: "review",
                                     reviewStartupId: startup.id,
                                     startupName: startup.companyName,
+                                    actorFilter:
+                                      startup.role === "ROLE_INVESTOR"
+                                        ? "ROLE_INVESTOR"
+                                        : "all",
+                                    isInvestor:
+                                      startup.role === "ROLE_INVESTOR",
                                   },
                                 })
                               }
@@ -2821,14 +2785,22 @@ export default function Sidebar({
                                   <p className="text-sm font-medium text-gray-900">
                                     {startup.companyName}
                                   </p>
-                                  <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
-                                    Review
-                                  </span>
+                                  {startup.role === "ROLE_INVESTOR" ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                      Investor Review
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
+                                      Review
+                                    </span>
+                                  )}
                                 </div>
 
                                 <p className="mt-1 text-xs text-gray-600 line-clamp-2">
                                   {startup.companyDescription ||
-                                    "New startup submission awaiting review"}
+                                    (startup.role === "ROLE_INVESTOR"
+                                      ? "New investor submission awaiting review"
+                                      : "New startup submission awaiting review")}
                                 </p>
 
                                 <div className="mt-2 flex items-center text-xs text-gray-500">
@@ -5313,7 +5285,7 @@ export default function Sidebar({
 
             <div className="flex gap-3">
               <motion.button
-                whileHover={{ backgroundColor: "#f3f4f6" }}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex-1 px-4 py-2.5 text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors border-0 cursor-pointer"
                 onClick={() => setShowLogoutConfirm(false)}
@@ -5321,9 +5293,9 @@ export default function Sidebar({
                 Cancel
               </motion.button>
               <motion.button
-                whileHover={{ backgroundColor: "#0077BG" }}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 px-4 py-2.5 text-white font-medium bg-blue-600 hover:bg-blue-900 rounded-lg transition-colors border-0 cursor-pointer"
+                className="flex-1 px-4 py-2.5 text-white font-medium bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors border-0 cursor-pointer"
                 onClick={logout}
               >
                 Sign Out
