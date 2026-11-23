@@ -43,6 +43,7 @@ import {
 import TooltipInfo from "../components/TooltipInfo";
 import ChartExportButton from "../components/ChartExportButton";
 import ExportReportModal from "../modals/ExportReportModal";
+import { exportSpecificReportPdf } from "../utils/chartExportUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ToastContainer, toast } from "react-toastify";
@@ -708,220 +709,26 @@ export default function AllStartupDashboard() {
     });
   };
 
-  const downloadReport = (report) => {
+  const downloadReport = async (report) => {
     try {
-      const doc = new jsPDF();
-
-      // Add header with logo and title
-      doc.setFillColor(29, 53, 87); // Dark blue color
-      doc.rect(0, 0, 210, 40, "F");
-
-      // Add logo
-      doc.addImage(loginLogo, "PNG", 20, 10, 50, 25);
-
-      // Add title with custom font
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text(report.title, 80, 25);
-
-      // Add subtitle
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text("StartupSphere Philippines", 80, 35);
-
-      // Reset text color for content
-      doc.setTextColor(0, 0, 0);
-
-      // Add generation date with styling
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "italic");
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 50);
-
-      // Add description with better formatting
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      const splitDescription = doc.splitTextToSize(report.description, 170);
-      doc.text(splitDescription, 20, 60);
-
-      // Add a decorative line
-      doc.setDrawColor(29, 53, 87);
-      doc.setLineWidth(0.5);
-      doc.line(
-        20,
-        70 + splitDescription.length * 7,
-        190,
-        70 + splitDescription.length * 7
-      );
-
-      // Add summary statistics with better styling
-      const summaryStartY = 80 + splitDescription.length * 7;
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Summary Statistics", 20, summaryStartY);
-
-      // Add statistics in a styled box
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, summaryStartY + 5, 170, 40, "F");
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Total Startups: ${totalStartups || 0}`, 25, summaryStartY + 15);
-
-      const avgScore =
-        rankedStartups && rankedStartups.length > 0
-          ? (
-            rankedStartups.reduce(
-              (sum, s) => sum + (s.overallScore || 0),
-              0
-            ) / rankedStartups.length
-          ).toFixed(2)
-          : "0.00";
-      doc.text(`Average Score: ${avgScore}`, 25, summaryStartY + 25);
-
-      const totalFundingVal = calculatedTotalFunding;
-      doc.text(`Total Funding: ₱${formatFundingAmount(totalFundingVal)}`, 25, summaryStartY + 35);
-
-      // Add industry breakdown with better styling
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Industry Breakdown", 20, summaryStartY + 55);
-
-      const industryTableData = (industryData || []).map((industry) => [
-        industry.name || "Unknown",
-        (industry.value || 0).toString(),
-        totalStartups
-          ? (((industry.value || 0) / totalStartups) * 100).toFixed(1) + "%"
-          : "0%",
-      ]);
-
-      autoTable(doc, {
-        startY: summaryStartY + 60,
-        head: [["Industry", "Count", "Percentage"]],
-        body: industryTableData,
-        theme: "grid",
-        headStyles: {
-          fillColor: [29, 53, 87],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-        styles: {
-          fontSize: 10,
-          cellPadding: 5,
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
-        margin: { top: 10, right: 20, bottom: 10, left: 20 },
+      toast.info(`Preparing ${report.title}...`);
+      await exportSpecificReportPdf(report, {
+        totalStartups,
+        calculatedTotalFunding,
+        industries,
+        industryData,
+        locationData,
+        fundingData,
+        govComplianceData,
+        trlStagesData,
+        growthData,
+        topStartups: (topStartups && topStartups.length > 0) ? topStartups : rankedStartups,
+        rankedStartups,
+        formatFundingAmount,
       });
-
-      // Add geographical distribution with better styling
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Geographical Distribution", 20, doc.lastAutoTable.finalY + 20);
-
-      const geoTableData = (locationData || []).map((item) => [
-        item.name || "Unknown",
-        (item.value || 0).toString(),
-        totalStartups
-          ? (((item.value || 0) / totalStartups) * 100).toFixed(1) + "%"
-          : "0%",
-      ]);
-
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 25,
-        head: [["Region", "Count", "Percentage"]],
-        body: geoTableData,
-        theme: "grid",
-        headStyles: {
-          fillColor: [29, 53, 87],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-        styles: {
-          fontSize: 10,
-          cellPadding: 5,
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
-        margin: { top: 10, right: 20, bottom: 10, left: 20 },
-      });
-
-      // Add top startups with better styling
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Top Performing Startups", 20, doc.lastAutoTable.finalY + 20);
-
-      const startupTableData = (topStartups || []).map((startup) => [
-        startup.companyName || "Unknown",
-        startup.industry || "Unknown",
-        (startup.overallScore || 0).toFixed(2),
-        (startup.growthScore || 0).toFixed(2),
-        (startup.investmentScore || 0).toFixed(2),
-        (startup.ecosystemScore || 0).toFixed(2),
-      ]);
-
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 25,
-        head: [
-          [
-            "Company",
-            "Industry",
-            "Overall",
-            "Growth",
-            "Investment",
-            "Ecosystem",
-          ],
-        ],
-        body: startupTableData,
-        theme: "grid",
-        headStyles: {
-          fillColor: [29, 53, 87],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-        styles: {
-          fontSize: 9,
-          cellPadding: 4,
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
-        columnStyles: {
-          0: { cellWidth: 40 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 25 },
-        },
-        margin: { top: 10, right: 20, bottom: 10, left: 20 },
-      });
-
-      // Add footer
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "italic");
-        doc.setTextColor(100, 100, 100);
-        doc.text(
-          `Page ${i} of ${pageCount} | StartupSphere Philippines`,
-          doc.internal.pageSize.width / 2,
-          doc.internal.pageSize.height - 10,
-          { align: "center" }
-        );
-      }
-
-      // Save the PDF
-      const fileName = `${report.title.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]
-        }.pdf`;
-      doc.save(fileName);
-      toast.success("Report downloaded successfully!");
-      refreshDashboard();
+      toast.success(`${report.title} downloaded successfully!`);
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error generating report PDF:", error);
       toast.error("Failed to generate PDF. Please try again.");
     }
   };

@@ -947,3 +947,798 @@ export async function exportComprehensiveAnalyticsPdf({
 
   return true;
 }
+
+// ============================================================================
+// SPECIFIC STARTUP ECOSYSTEM REPORTS BUILDERS
+// ============================================================================
+
+/**
+ * Common KPI Row Renderer for Ecosystem Reports
+ */
+function drawReportKpiRow(doc, kpis, startY) {
+  const cardW = 42.5;
+  const cardH = 20;
+  const cardGap = 4;
+  const startX = 14;
+
+  kpis.forEach((kpi, idx) => {
+    const x = startX + idx * (cardW + cardGap);
+    doc.setFillColor(...(kpi.bg || [248, 250, 252]));
+    doc.setDrawColor(...(kpi.border || [226, 232, 240]));
+    doc.roundedRect(x, startY, cardW, cardH, 2, 2, "FD");
+
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...(kpi.text || [30, 41, 59]));
+    doc.text(kpi.label, x + 3.5, startY + 5);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(kpi.value), x + 3.5, startY + 12);
+
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(kpi.sub || "", x + 3.5, startY + 16.5);
+  });
+
+  return startY + cardH + 6;
+}
+
+/**
+ * Common Meta Box Renderer for Ecosystem Reports
+ */
+function drawReportMetaBox(doc, title, editionDate, description, startY = 42) {
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(14, startY, 182, 17, 2, 2, "FD");
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text(`${title} • Edition: ${editionDate || "Current"}`, 18, startY + 5.5);
+
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  const descText = doc.splitTextToSize(description || "Official StartupSphere Ecosystem Intelligence Report.", 174);
+  doc.text(descText, 18, startY + 10.5);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    `Generated on: ${new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`,
+    192,
+    startY + 5.5,
+    { align: "right" }
+  );
+
+  return startY + 22;
+}
+
+/**
+ * 1. Annual Ecosystem Report
+ */
+function buildAnnualEcosystemReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, calculatedTotalFunding = 0, industries = [], industryData = [], locationData = [], fundingData = [], topStartups = [], formatFundingAmount } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Annual Startup Ecosystem Report",
+    "Comprehensive Statistical Review, Industry Demographics & Ecosystem Benchmarks",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  const avgScore = topStartups.length > 0
+    ? (topStartups.reduce((sum, s) => sum + (Number(s.overallScore) || 0), 0) / topStartups.length).toFixed(1)
+    : "0.0";
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "TOTAL STARTUPS", value: String(totalStartups), sub: "Across ecosystem", bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "TOTAL CAPITAL", value: `P${formatFundingAmount(calculatedTotalFunding)}`, sub: "Capital deployed", bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "ACTIVE SECTORS", value: String(industries.length || industryData.length), sub: "Industries tracked", bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "AVG. PERFORMANCE", value: `${avgScore}/100`, sub: "Composite benchmark", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Industry Breakdown
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Industry Sector Demographics & Market Share", 14, currentY + 2);
+
+  const indRows = (industryData || []).map((ind) => [
+    ind.name || "Unknown",
+    String(ind.value || 0),
+    totalStartups > 0 ? `${(((ind.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["Industry Sector", "Active Startups", "Ecosystem Share (%)"]],
+    body: indRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  // Check if we need new page for Regional & Funding
+  if (currentY > 210) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: Regional Hubs
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Regional Innovation Hubs Distribution", 14, currentY);
+
+  const geoRows = (locationData || []).map((loc) => [
+    loc.name || "Unknown",
+    String(loc.value || 0),
+    totalStartups > 0 ? `${(((loc.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["Region / Urban Hub", "Startups Count", "Share (%)"]],
+    body: geoRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 210) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 3: Top Ecosystem Champions
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("3. Top 10 Ecosystem Champions (Highest Overall Performance)", 14, currentY);
+
+  const champRows = topStartups.slice(0, 10).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.industry || "General",
+    s.locationName || s.city || "Unknown",
+    `${Number(s.overallScore || 0).toFixed(1)} / 100`,
+    `${Number(s.growthScore || 0).toFixed(1)}%`,
+    s.trlLevel || "N/A",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["#", "Company Name", "Industry", "Location", "Overall Score", "Growth Score", "TRL Stage"]],
+    body: champRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 2. Funding Landscape Report
+ */
+function buildFundingLandscapeReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, calculatedTotalFunding = 0, fundingData = [], topStartups = [], formatFundingAmount } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Startup Funding Landscape & Capital Analysis",
+    "Capital Rounds, Funding Stages & Investment Deployment Benchmarks",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  // Compute funding statistics
+  const fundedStartups = topStartups.filter((s) => Number(s.totalFunding) > 0);
+  const totalFundedCount = fundedStartups.length;
+  const fundedRate = totalStartups > 0 ? ((totalFundedCount / totalStartups) * 100).toFixed(1) : "0.0";
+  const avgCapital = totalFundedCount > 0 ? calculatedTotalFunding / totalFundedCount : 0;
+
+  // Find dominant stage
+  let topStageName = "Seed / Early";
+  if (fundingData && fundingData.length > 0) {
+    const sortedStages = [...fundingData].sort((a, b) => (b.value || 0) - (a.value || 0));
+    if (sortedStages[0]) topStageName = sortedStages[0].name;
+  }
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "TOTAL CAPITAL RAISED", value: `P${formatFundingAmount(calculatedTotalFunding)}`, sub: "Ecosystem funding", bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "FUNDED VENTURES", value: `${totalFundedCount}`, sub: `${fundedRate}% of startups`, bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "AVG. CAPITAL / STARTUP", value: `P${formatFundingAmount(avgCapital)}`, sub: "Per funded startup", bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "DOMINANT STAGE", value: String(topStageName), sub: "Most common stage", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Funding Distribution by Stage
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Funding Distribution by Startup Development Stage", 14, currentY + 2);
+
+  const stageRows = (fundingData || []).map((stage) => [
+    stage.name || "Unspecified",
+    String(stage.value || 0),
+    totalStartups > 0 ? `${(((stage.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+    stage.name === "Seed" ? "Early validation & initial runway"
+      : stage.name === "Series A" ? "Product-market fit & commercial scale"
+      : stage.name === "Series B" ? "Market expansion & user acquisition"
+      : stage.name === "Series C+" ? "Maturity & international expansion"
+      : "R&D and foundation building",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["Funding Stage", "Ventures Count", "Share (%)", "Stage Capital Focus"]],
+    body: stageRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 190) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: Top Capitalized Startups
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Top Capitalized Startups (Largest Funding Volumes Raised)", 14, currentY);
+
+  const sortedByFunding = [...topStartups].sort((a, b) => (Number(b.totalFunding) || 0) - (Number(a.totalFunding) || 0));
+  const topCapitalRows = sortedByFunding.slice(0, 15).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.industry || "General",
+    s.fundingStage || "Seed",
+    `P${formatFundingAmount(Number(s.totalFunding) || 0)}`,
+    s.trlLevel || "TRL 6+",
+    `${Number(s.investmentScore || 0).toFixed(1)} / 100`,
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["#", "Company Name", "Industry", "Funding Stage", "Total Funding Raised", "TRL Level", "Invest. Score"]],
+    body: topCapitalRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 3. Industry Analysis Report
+ */
+function buildIndustryAnalysisReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, calculatedTotalFunding = 0, industries = [], industryData = [], growthData = [], topStartups = [], formatFundingAmount } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Industry Sector Benchmark & Comparative Analysis",
+    "Sector Market Share, Scoring Benchmarks & Industry Leadership",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  const topSector = industryData && industryData.length > 0 ? industryData[0] : { name: "Technology", value: 0 };
+
+  // Calculate industry with highest average score
+  const industryScoreMap = {};
+  topStartups.forEach((s) => {
+    const ind = s.industry || "Other";
+    if (!industryScoreMap[ind]) industryScoreMap[ind] = { sum: 0, count: 0 };
+    industryScoreMap[ind].sum += Number(s.overallScore) || 0;
+    industryScoreMap[ind].count += 1;
+  });
+
+  let highestScoreInd = "General";
+  let highestScoreVal = 0;
+  Object.keys(industryScoreMap).forEach((ind) => {
+    const avg = industryScoreMap[ind].sum / industryScoreMap[ind].count;
+    if (avg > highestScoreVal) {
+      highestScoreVal = avg;
+      highestScoreInd = ind;
+    }
+  });
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "ACTIVE SECTORS", value: String(industries.length || industryData.length), sub: "Verticals tracked", bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "LARGEST SECTOR", value: String(topSector.name || "Tech"), sub: `${topSector.value || 0} ventures`, bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "HIGHEST AVG SCORE", value: String(highestScoreInd), sub: `${highestScoreVal.toFixed(1)}/100 avg`, bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "ECOSYSTEM CAPITAL", value: `P${formatFundingAmount(calculatedTotalFunding)}`, sub: "Across all sectors", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Comprehensive Industry Breakdown
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Comprehensive Industry Sector Performance & Demographics", 14, currentY + 2);
+
+  const indTableRows = (industryData || []).map((ind) => {
+    const indStats = industryScoreMap[ind.name] || { sum: 0, count: ind.value || 1 };
+    const avg = indStats.count > 0 ? (indStats.sum / indStats.count).toFixed(1) : "N/A";
+    const share = totalStartups > 0 ? (((ind.value || 0) / totalStartups) * 100).toFixed(1) : "0.0";
+    return [ind.name || "Unknown", String(ind.value || 0), `${share}%`, `${avg} / 100`, "Active Tracked"];
+  });
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["Industry Sector", "Startups Count", "Market Share (%)", "Avg. Score", "Status"]],
+    body: indTableRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 190) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: Industry Sector Champions
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Industry Sector Champions (Top Scoring Startup per Sector)", 14, currentY);
+
+  const industryLeaders = [];
+  industries.forEach((ind) => {
+    const startupsInInd = topStartups.filter((s) => s.industry === ind);
+    if (startupsInInd.length > 0) {
+      const topInInd = [...startupsInInd].sort((a, b) => (Number(b.overallScore) || 0) - (Number(a.overallScore) || 0))[0];
+      industryLeaders.push([
+        ind,
+        topInInd.companyName || "Unknown",
+        `${Number(topInInd.overallScore || 0).toFixed(1)} / 100`,
+        `${Number(topInInd.growthScore || 0).toFixed(1)}%`,
+        topInInd.trlLevel || "N/A",
+      ]);
+    }
+  });
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["Industry Sector", "Leading Startup Venture", "Leader Overall Score", "Growth Score", "TRL Stage"]],
+    body: industryLeaders.slice(0, 15),
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 4. Regional Performance Report
+ */
+function buildRegionalPerformanceReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, locationData = [], topStartups = [], formatFundingAmount } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Regional Startup Distribution & Hub Performance",
+    "Geographical Innovation Density, Regional Distribution & Hub Analysis",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  const topHub = locationData && locationData.length > 0 ? locationData[0] : { name: "National Capital Region", value: 0 };
+  const totalRegions = locationData.length || 1;
+  const avgPerRegion = (totalStartups / totalRegions).toFixed(1);
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "REGIONS COVERED", value: String(totalRegions), sub: "Innovation hubs", bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "TOP INNOVATION HUB", value: String(topHub.name || "NCR"), sub: `${topHub.value || 0} active startups`, bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "HUB DENSITY", value: `${avgPerRegion} / hub`, sub: "Avg startups per region", bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "REGIONAL COVERAGE", value: "100%", sub: "Monitored nationwide", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Regional Hubs Breakdown
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Regional Hubs Startup Concentration", 14, currentY + 2);
+
+  const geoRows = (locationData || []).map((loc) => [
+    loc.name || "Unknown",
+    String(loc.value || 0),
+    totalStartups > 0 ? `${(((loc.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+    "Active Innovation Hub",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["Region / Urban Center", "Active Startups", "Ecosystem Share (%)", "Classification"]],
+    body: geoRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 190) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: Regional Ventures Registry
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Regional Startup Ventures Registry", 14, currentY);
+
+  const startupGeoRows = topStartups.slice(0, 20).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.locationName || s.city || "NCR",
+    s.industry || "General",
+    `${Number(s.overallScore || 0).toFixed(1)} / 100`,
+    s.trlLevel || "TRL 6",
+    s.isGovernmentRegistered ? "Gov. Registered" : "Pending",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["#", "Company Name", "Regional Hub / City", "Industry", "Score", "TRL Level", "Compliance"]],
+    body: startupGeoRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 5. Top Performers Spotlight Report
+ */
+function buildTopPerformersReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, topStartups = [] } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Top Performers Spotlight & Ecosystem Leaderboard",
+    "Composite Scoring, Leaderboard Rankings & Performance Tiers",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  const leader = topStartups[0] || { companyName: "N/A", overallScore: 0 };
+  const sortedByGrowth = [...topStartups].sort((a, b) => (Number(b.growthScore) || 0) - (Number(a.growthScore) || 0));
+  const growthLeader = sortedByGrowth[0] || { companyName: "N/A", growthScore: 0 };
+  const sortedByInvest = [...topStartups].sort((a, b) => (Number(b.investmentScore) || 0) - (Number(a.investmentScore) || 0));
+  const investLeader = sortedByInvest[0] || { companyName: "N/A", investmentScore: 0 };
+
+  const avgScore = topStartups.length > 0
+    ? (topStartups.reduce((sum, s) => sum + (Number(s.overallScore) || 0), 0) / topStartups.length).toFixed(1)
+    : "0.0";
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "#1 LEADER", value: String(leader.companyName || "N/A"), sub: `${Number(leader.overallScore || 0).toFixed(1)}/100 overall`, bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "HIGHEST GROWTH", value: String(growthLeader.companyName || "N/A"), sub: `${Number(growthLeader.growthScore || 0).toFixed(1)}% growth rate`, bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "TOP INVESTMENT", value: String(investLeader.companyName || "N/A"), sub: `${Number(investLeader.investmentScore || 0).toFixed(1)}/100 invest score`, bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "ECOSYSTEM AVG", value: `${avgScore}/100`, sub: "Composite benchmark", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Leaderboard
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Official Top Performers Leaderboard (Top 20 Rankings)", 14, currentY + 2);
+
+  const leaderboardRows = topStartups.slice(0, 20).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.industry || "General",
+    `${Number(s.overallScore || 0).toFixed(1)}`,
+    `${Number(s.growthScore || 0).toFixed(1)}`,
+    `${Number(s.investmentScore || 0).toFixed(1)}`,
+    `${Number(s.ecosystemScore || 0).toFixed(1)}`,
+    s.trlLevel || "N/A",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["#", "Company Name", "Industry", "Overall", "Growth", "Invest.", "Eco.", "TRL Stage"]],
+    body: leaderboardRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 200) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: Performance Tiers
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Performance Tier Classification", 14, currentY);
+
+  const tier1Count = topStartups.filter((s) => Number(s.overallScore) >= 75).length;
+  const tier2Count = topStartups.filter((s) => Number(s.overallScore) >= 50 && Number(s.overallScore) < 75).length;
+  const tier3Count = topStartups.filter((s) => Number(s.overallScore) < 50).length;
+  const n = topStartups.length || 1;
+
+  const tierRows = [
+    ["Tier 1: High Performers", "75 - 100", String(tier1Count), `${((tier1Count / n) * 100).toFixed(1)}%`, "Market-ready, established operational traction"],
+    ["Tier 2: Emerging Leaders", "50 - 74", String(tier2Count), `${((tier2Count / n) * 100).toFixed(1)}%`, "Scaling operations, strong validation signals"],
+    ["Tier 3: Early Contenders", "< 50", String(tier3Count), `${((tier3Count / n) * 100).toFixed(1)}%`, "Early stage, prototype and concept development"],
+  ];
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["Performance Tier", "Score Bracket", "Startups Count", "Share (%)", "Operational Characteristics"]],
+    body: tierRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 6. Government Support & Compliance Report
+ */
+function buildGovernmentSupportReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, govComplianceData = [], trlStagesData = [], topStartups = [] } = data;
+
+  drawBrandedHeader(
+    doc,
+    "Government Compliance & Support Programs Analysis",
+    "Agency Registrations (BIR, SEC, DTI), Compliance Rates & TRL Readiness",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  // Compute stats
+  const registeredStartups = topStartups.filter((s) => s.isGovernmentRegistered === true || (s.registrationAgency && s.registrationAgency.trim().length > 0));
+  const registeredCount = registeredStartups.length;
+  const complianceRate = totalStartups > 0 ? ((registeredCount / totalStartups) * 100).toFixed(1) : "0.0";
+
+  let topAgency = "SEC / DTI";
+  if (govComplianceData && govComplianceData.length > 0) {
+    const sorted = [...govComplianceData].sort((a, b) => (b.value || 0) - (a.value || 0));
+    if (sorted[0]) topAgency = `${sorted[0].name} (${sorted[0].value})`;
+  }
+
+  const commercializedCount = topStartups.filter((s) => {
+    const raw = s.trlLevel || "";
+    const m = raw.match(/\d+/);
+    return m ? Number(m[0]) >= 7 : false;
+  }).length;
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "GOV. REGISTERED", value: `${registeredCount}`, sub: "Certified ventures", bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "COMPLIANCE RATE", value: `${complianceRate}%`, sub: "Of total ecosystem", bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "TOP AGENCY", value: String(topAgency), sub: "Dominant accreditation", bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "COMMERCIAL TRL (7+)", value: `${commercializedCount}`, sub: "Market validated", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  // Table 1: Regulatory Agency Compliance
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("1. Regulatory Agency Registration Breakdown", 14, currentY + 2);
+
+  const agencyRows = (govComplianceData || []).map((agency) => [
+    agency.name || "Agency",
+    String(agency.value || 0),
+    totalStartups > 0 ? `${(((agency.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+    agency.name === "Unregistered" ? "Pending Accreditation" : "Fully Certified & Compliant",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["Accreditation Agency / Program", "Startups Count", "Share (%)", "Compliance Status"]],
+    body: agencyRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 190) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 2: TRL Stages
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("2. Technology Readiness Level (TRL) Breakdown", 14, currentY);
+
+  const trlRows = (trlStagesData || []).map((stage) => [
+    stage.name || "TRL Stage",
+    stage.name.toLowerCase().includes("concept") ? "TRL 1 - 3"
+      : stage.name.toLowerCase().includes("prototype") ? "TRL 4 - 6"
+      : "TRL 7 - 9",
+    String(stage.value || 0),
+    totalStartups > 0 ? `${(((stage.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
+    stage.name.toLowerCase().includes("concept") ? "Basic principles & formulation"
+      : stage.name.toLowerCase().includes("prototype") ? "Testing & operational validation"
+      : "Market deployable & proven",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["TRL Stage Category", "TRL Level Range", "Startups Count", "Share (%)", "Readiness Description"]],
+    body: trlRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  if (currentY > 190) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Table 3: Registered Startups
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("3. Verified Government Registered Startups Registry", 14, currentY);
+
+  const registeredRows = registeredStartups.slice(0, 15).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.industry || "General",
+    s.registrationAgency || "Government Registered",
+    s.trlLevel || "TRL 6",
+    `${Number(s.overallScore || 0).toFixed(1)} / 100`,
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 3,
+    head: [["#", "Company Name", "Industry", "Registration Agency", "TRL Stage", "Overall Score"]],
+    body: registeredRows.length > 0 ? registeredRows : [["-", "No registered startups currently recorded", "-", "-", "-", "-"]],
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * 7. Generic / Custom Report Builder
+ */
+function buildGenericCustomReport(doc, report, data, logoDataUrl) {
+  const { totalStartups = 0, calculatedTotalFunding = 0, topStartups = [], formatFundingAmount } = data;
+
+  drawBrandedHeader(
+    doc,
+    report.title || "Custom Ecosystem Report",
+    "Specialized Analytical Summary & Demographic Intelligence",
+    logoDataUrl
+  );
+
+  let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
+
+  const avgScore = topStartups.length > 0
+    ? (topStartups.reduce((sum, s) => sum + (Number(s.overallScore) || 0), 0) / topStartups.length).toFixed(1)
+    : "0.0";
+
+  currentY = drawReportKpiRow(doc, [
+    { label: "TOTAL VENTURES", value: String(topStartups.length || totalStartups), sub: "Matching criteria", bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] },
+    { label: "CAPITAL SUM", value: `P${formatFundingAmount(calculatedTotalFunding)}`, sub: "Tracked funding", bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] },
+    { label: "AVG. RATING", value: `${avgScore}/100`, sub: "Composite score", bg: [254, 243, 199], border: [253, 230, 138], text: [180, 83, 9] },
+    { label: "REPORT STATUS", value: "Verified", sub: "Ready for review", bg: [240, 253, 250], border: [153, 246, 228], text: [13, 148, 136] },
+  ], currentY);
+
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("Startups Directory & Performance Summary", 14, currentY + 2);
+
+  const customRows = topStartups.slice(0, 25).map((s, idx) => [
+    String(idx + 1),
+    s.companyName || "Unknown",
+    s.industry || "General",
+    s.locationName || s.city || "Unknown",
+    `${Number(s.overallScore || 0).toFixed(1)}`,
+    `${Number(s.growthScore || 0).toFixed(1)}`,
+    `${Number(s.investmentScore || 0).toFixed(1)}`,
+    s.trlLevel || "N/A",
+  ]);
+
+  autoTable(doc, {
+    startY: currentY + 4,
+    head: [["#", "Company Name", "Industry", "Location", "Overall", "Growth", "Invest.", "TRL Level"]],
+    body: customRows,
+    theme: "grid",
+    headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+}
+
+/**
+ * Main dispatcher to export specific report PDF
+ */
+export async function exportSpecificReportPdf(report, context = {}) {
+  const logoDataUrl = await loadImageAsDataUrl(loginLogo);
+  const doc = new jsPDF("p", "mm", "a4");
+
+  const titleLower = (report.title || "").toLowerCase();
+  const reportId = report.id;
+
+  if (reportId === 2 || titleLower.includes("funding")) {
+    buildFundingLandscapeReport(doc, report, context, logoDataUrl);
+  } else if (reportId === 3 || titleLower.includes("industry")) {
+    buildIndustryAnalysisReport(doc, report, context, logoDataUrl);
+  } else if (reportId === 4 || titleLower.includes("regional")) {
+    buildRegionalPerformanceReport(doc, report, context, logoDataUrl);
+  } else if (reportId === 5 || titleLower.includes("top performer") || titleLower.includes("spotlight")) {
+    buildTopPerformersReport(doc, report, context, logoDataUrl);
+  } else if (reportId === 6 || titleLower.includes("government")) {
+    buildGovernmentSupportReport(doc, report, context, logoDataUrl);
+  } else if (reportId === 1 || titleLower.includes("annual")) {
+    buildAnnualEcosystemReport(doc, report, context, logoDataUrl);
+  } else {
+    buildGenericCustomReport(doc, report, context, logoDataUrl);
+  }
+
+  drawPageFooters(doc);
+
+  const cleanTitle = (report.title || "ecosystem-report")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+  const dateStr = new Date().toISOString().split("T")[0];
+  doc.save(`${cleanTitle}-${dateStr}.pdf`);
+  return true;
+}
