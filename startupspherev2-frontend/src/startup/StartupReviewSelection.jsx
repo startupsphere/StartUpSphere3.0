@@ -28,6 +28,10 @@ import {
   RefreshCw,
   SlidersHorizontal,
   MessageSquare,
+  TrendingUp,
+  GraduationCap,
+  FlaskConical,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -36,6 +40,7 @@ export default function EnhancedStartupReviewSection({
   industry,
   region,
   status,
+  actorType,
   searchQuery,
   filteredStartups: externalFilteredStartups,
   onRefresh,
@@ -48,6 +53,8 @@ export default function EnhancedStartupReviewSection({
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
   const [rejectionComment, setRejectionComment] = useState("");
   const [pendingRejectionId, setPendingRejectionId] = useState(null);
+  const [pendingRejectionIsInvestor, setPendingRejectionIsInvestor] = useState(false);
+  const [pendingRejectionIsStandalone, setPendingRejectionIsStandalone] = useState(false);
   const [certificateUrl, setCertificateUrl] = useState(null);
   const [loadingCertificate, setLoadingCertificate] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
@@ -65,11 +72,23 @@ export default function EnhancedStartupReviewSection({
     "Other (please specify)",
   ]);
 
+  const [investorRejectionReasons] = useState([
+    "Incomplete fund or credential details",
+    "Investment thesis does not align with ecosystem guidelines",
+    "Contact or representative information is invalid or unverified",
+    "Institutional accreditation / registration could not be verified",
+    "Fund mandate, ticket size, or target stage is unspecified",
+    "Duplicate investor submission",
+    "Violates platform terms and conditions",
+    "Other (please specify)",
+  ]);
+
   const [filters, setFilters] = useState({
     search: searchQuery || "",
     industry: industry !== "All" ? industry : "",
     status: status !== "all" ? status : "",
     region: region !== "All Regions" ? region : "",
+    actorType: actorType || "all",
     dateRange: { start: null, end: null },
   });
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -115,7 +134,13 @@ export default function EnhancedStartupReviewSection({
         region: region !== "All Regions" ? region : "",
       }));
     }
-  }, [searchQuery, industry, status, region]);
+    if (actorType !== undefined) {
+      setFilters((prev) => ({
+        ...prev,
+        actorType: actorType || "all",
+      }));
+    }
+  }, [searchQuery, industry, status, region, actorType]);
 
   // Fetch startups data or use externally provided filtered startups
   useEffect(() => {
@@ -240,7 +265,51 @@ export default function EnhancedStartupReviewSection({
       const responseData = await response.json();
 
       // Extract startups from paginated response
-      const data = responseData.content || responseData || [];
+      let data = responseData.content || responseData || [];
+
+      // Also query submitted investors from /investors/submitted to support standalone investor records
+      try {
+        const invRes = await fetch(
+          `${getBackendUrl()}/investors/submitted?page=0&size=100`,
+          {
+            credentials: "include",
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+          }
+        );
+        if (invRes.ok) {
+          const invJson = await invRes.json();
+          const invList = invJson.content || invJson || [];
+          if (Array.isArray(invList) && invList.length > 0) {
+            const mappedInvestors = invList.map((inv) => ({
+              id: inv.investorId,
+              companyName:
+                `${inv.firstname || ""} ${inv.lastname || ""}`.trim() ||
+                inv.emailAddress ||
+                "Investor",
+              companyDescription:
+                inv.biography || "Registered investor profile awaiting review.",
+              industry: "Venture Capital & Investment",
+              city: inv.locationName || "N/A",
+              contactEmail: inv.emailAddress,
+              phoneNumber: inv.contactInformation,
+              status: inv.status || "In Review",
+              role: "ROLE_INVESTOR",
+              isStandaloneInvestor: true,
+              viewsCount: inv.views || 0,
+              createdAt: inv.createdAt,
+            }));
+            const existingIds = new Set(data.map((d) => d.id));
+            const newInv = mappedInvestors.filter(
+              (inv) => !existingIds.has(inv.id)
+            );
+            data = [...data, ...newInv];
+          }
+        }
+      } catch (invErr) {
+        // Fallback gracefully
+      }
 
       // If a specific startupId is requested, filter for that startup
       if (startupId) {
@@ -358,19 +427,82 @@ export default function EnhancedStartupReviewSection({
     }
   };
 
-  // Handler for approving a startup
-  const handleApprove = async (id) => {
-    await handleStartupAction(id, "approve", "Startup approved successfully!");
+  // Helper to determine if an entity is an investor
+  const isInvestorItem = (item) => {
+    if (!item) return false;
+    return item.role === "ROLE_INVESTOR" || item.isStandaloneInvestor === true;
   };
 
-  // Handler for initiating startup rejection
-  const handleInitiateReject = (id) => {
+  // Helper to render actor badge
+  const getActorBadge = (item) => {
+    if (isInvestorItem(item)) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+          <TrendingUp size={11} className="mr-1 text-amber-700" />
+          Investor / VC
+        </span>
+      );
+    }
+    if (item.role === "ROLE_HEI") {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+          <GraduationCap size={11} className="mr-1 text-purple-700" />
+          HEI / University
+        </span>
+      );
+    }
+    if (item.role === "ROLE_RESEARCH") {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-100 text-teal-800 border border-teal-300">
+          <FlaskConical size={11} className="mr-1 text-teal-700" />
+          Research Lab
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+        <Building size={11} className="mr-1 text-blue-700" />
+        Startup
+      </span>
+    );
+  };
+
+  // Handler for approving a startup or investor
+  const handleApprove = async (target) => {
+    const startup =
+      typeof target === "object"
+        ? target
+        : startups.find((s) => s.id === target) || {};
+    const id = startup.id !== undefined ? startup.id : target;
+    const isInvestor = isInvestorItem(startup);
+    const successMsg = isInvestor
+      ? "Investor accepted and approved successfully!"
+      : "Startup approved successfully!";
+
+    await handleStartupAction(
+      id,
+      "approve",
+      successMsg,
+      {},
+      !!startup.isStandaloneInvestor,
+      isInvestor
+    );
+  };
+
+  // Handler for initiating startup or investor rejection
+  const handleInitiateReject = (target) => {
+    const startup =
+      typeof target === "object"
+        ? target
+        : startups.find((s) => s.id === target) || {};
+    const id = startup.id !== undefined ? startup.id : target;
     setPendingRejectionId(id);
+    setPendingRejectionIsInvestor(isInvestorItem(startup));
+    setPendingRejectionIsStandalone(!!startup.isStandaloneInvestor);
     setRejectionComment("");
     setIsRejectionModalOpen(true);
   };
 
-  // Handler for submitting rejection with comment
   // Handler for submitting rejection with comment
   const handleReject = async () => {
     if (!rejectionComment.trim()) {
@@ -378,56 +510,59 @@ export default function EnhancedStartupReviewSection({
       return;
     }
 
-    // Create a proper payload with comments
     const rejectionPayload = {
       comments: rejectionComment.trim(),
     };
 
-    console.log("Rejection payload:", rejectionPayload);
+    const successMsg = pendingRejectionIsInvestor
+      ? "Investor application rejected."
+      : "Startup rejected successfully!";
 
     await handleStartupAction(
       pendingRejectionId,
       "reject",
-      "Startup rejected successfully!",
-      rejectionPayload
+      successMsg,
+      rejectionPayload,
+      pendingRejectionIsStandalone,
+      pendingRejectionIsInvestor
     );
 
     setIsRejectionModalOpen(false);
     setPendingRejectionId(null);
+    setPendingRejectionIsInvestor(false);
+    setPendingRejectionIsStandalone(false);
     setRejectionComment("");
   };
 
-  // Generic action handler for startup operations
-  // Generic action handler for startup operations
-  // Generic action handler for startup operations
+  // Generic action handler for startup and investor operations
   const handleStartupAction = async (
     id,
     action,
     successMessage,
-    additionalData = {}
+    additionalData = {},
+    isStandaloneInvestor = false,
+    isInvestor = false
   ) => {
     try {
       setIsActionLoading(true);
 
-      // Create proper payload based on the action type
       const payload = { ...additionalData };
+      const entityLabel = isInvestor ? "Investor" : "Startup";
 
-      // Make sure payload structure matches what backend expects
       if (action === "reject" && additionalData.comments) {
-        // Ensure we're following the exact API format
         payload.comments = additionalData.comments;
-        payload.remarks = `Startup ${id} rejected: ${additionalData.comments.substring(
+        payload.remarks = `${entityLabel} ${id} rejected: ${additionalData.comments.substring(
           0,
           30
         )}${additionalData.comments.length > 30 ? "..." : ""}`;
       } else if (action === "approve") {
-        // For approvals, provide default comments if none present
         payload.comments =
-          additionalData.comments || "Startup application approved";
-        payload.remarks = additionalData.remarks || `Startup ${id} approved`;
+          additionalData.comments || `${entityLabel} application approved`;
+        payload.remarks =
+          additionalData.remarks || `${entityLabel} ${id} approved`;
       }
 
-      console.log(`Sending ${action} request with payload:`, payload);
+      console.log(`Sending ${action} request for ${entityLabel} with payload:`, payload);
 
       const token = localStorage.getItem("token");
       const requestOptions = {
@@ -437,21 +572,22 @@ export default function EnhancedStartupReviewSection({
           "Content-Type": "application/json",
           ...(token && { Authorization: `Bearer ${token}` }),
         },
-        body: JSON.stringify(payload), // Always send the payload as JSON
+        body: JSON.stringify(payload),
       };
 
-      const response = await fetch(
-        `${getBackendUrl()
-        }/notifications/startups/${id}/${action}`,
-        requestOptions
-      );
+      const endpoint = isStandaloneInvestor
+        ? `${getBackendUrl()}/investors/${id}/${action}`
+        : `${getBackendUrl()}/notifications/startups/${id}/${action}`;
 
-      // For debugging - log the raw response
+      const response = await fetch(endpoint, requestOptions);
+
       const responseText = await response.text();
       console.log(`API Response (${response.status}):`, responseText);
 
       if (!response.ok) {
-        throw new Error(`Failed to ${action} startup: ${response.status}`);
+        throw new Error(
+          `Failed to ${action} ${entityLabel.toLowerCase()}: ${response.status}`
+        );
       }
 
       // Update local state
@@ -555,6 +691,7 @@ export default function EnhancedStartupReviewSection({
       industry: "",
       status: "",
       region: "",
+      actorType: "all",
       dateRange: { start: null, end: null },
     });
     setSortConfig({ key: "companyName", direction: "asc" });
@@ -571,6 +708,17 @@ export default function EnhancedStartupReviewSection({
   // Apply filters to startups data
   const filteredStartups = useMemo(() => {
     let result = [...startups];
+
+    // Apply actor/role filter
+    if (filters.actorType && filters.actorType !== "all") {
+      if (filters.actorType === "ROLE_STARTUP") {
+        result = result.filter((s) => !s.role || s.role === "ROLE_STARTUP");
+      } else if (filters.actorType === "ROLE_INVESTOR") {
+        result = result.filter((s) => isInvestorItem(s));
+      } else {
+        result = result.filter((s) => s.role === filters.actorType);
+      }
+    }
 
     // Apply search filter locally (in case server filtering doesn't cover all fields)
     if (filters.search && !externalFilteredStartups) {
@@ -745,11 +893,16 @@ export default function EnhancedStartupReviewSection({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800 mb-3 sm:mb-0">
-          Startup Review Dashboard
-        </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">
+            Review & Approvals Dashboard
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Accept or reject submissions for Startups, Investors, and Ecosystem Partners
+          </p>
+        </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
           <button
             onClick={() => setFiltersVisible(!filtersVisible)}
             className="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded flex items-center hover:bg-blue-100 transition-colors"
@@ -778,9 +931,113 @@ export default function EnhancedStartupReviewSection({
         </div>
       </div>
 
+      {/* Quick Actor Filter Tabs */}
+      <div className="px-4 py-2.5 bg-gray-50/70 border-b flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-1">
+          Entity Filter:
+        </span>
+        <button
+          type="button"
+          onClick={() => setFilters((prev) => ({ ...prev, actorType: "all" }))}
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+            filters.actorType === "all"
+              ? "bg-gray-900 text-white shadow-sm"
+              : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+          }`}
+        >
+          All ({startups.length})
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters((prev) => ({ ...prev, actorType: "ROLE_STARTUP" }))
+          }
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filters.actorType === "ROLE_STARTUP"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "bg-white text-blue-700 hover:bg-blue-50 border border-blue-200"
+          }`}
+        >
+          <Building size={13} />
+          Startups (
+          {
+            startups.filter(
+              (s) => !s.role || s.role === "ROLE_STARTUP"
+            ).length
+          }
+          )
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters((prev) => ({ ...prev, actorType: "ROLE_INVESTOR" }))
+          }
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filters.actorType === "ROLE_INVESTOR"
+              ? "bg-amber-600 text-white shadow-sm"
+              : "bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 font-semibold"
+          }`}
+        >
+          <TrendingUp size={13} />
+          Investors & VCs (
+          {startups.filter((s) => isInvestorItem(s)).length}
+          )
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters((prev) => ({ ...prev, actorType: "ROLE_HEI" }))
+          }
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filters.actorType === "ROLE_HEI"
+              ? "bg-purple-600 text-white shadow-sm"
+              : "bg-white text-purple-700 hover:bg-purple-50 border border-purple-200"
+          }`}
+        >
+          <GraduationCap size={13} />
+          HEIs ({startups.filter((s) => s.role === "ROLE_HEI").length})
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters((prev) => ({ ...prev, actorType: "ROLE_RESEARCH" }))
+          }
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filters.actorType === "ROLE_RESEARCH"
+              ? "bg-teal-600 text-white shadow-sm"
+              : "bg-white text-teal-700 hover:bg-teal-50 border border-teal-200"
+          }`}
+        >
+          <FlaskConical size={13} />
+          Research ({startups.filter((s) => s.role === "ROLE_RESEARCH").length})
+        </button>
+      </div>
+
       {filtersVisible && (
         <div className="p-4 border-b bg-blue-50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label
+                htmlFor="actor-filter"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Entity Type
+              </label>
+              <select
+                id="actor-filter"
+                value={filters.actorType}
+                onChange={(e) =>
+                  setFilters({ ...filters, actorType: e.target.value })
+                }
+                className="w-full text-black p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Entities</option>
+                <option value="ROLE_STARTUP">Startups & Businesses</option>
+                <option value="ROLE_INVESTOR">Investors & Venture Capitals</option>
+                <option value="ROLE_HEI">HEIs / Universities</option>
+                <option value="ROLE_RESEARCH">Research Labs</option>
+              </select>
+            </div>
             <div>
               <label
                 htmlFor="industry-filter"
@@ -1150,8 +1407,11 @@ export default function EnhancedStartupReviewSection({
                     </div>
                   </td>
                   <td className="p-3">
-                    <div className="font-medium text-gray-900">
-                      {startup.companyName || "Unnamed Startup"}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium text-gray-900">
+                        {startup.companyName || "Unnamed Entity"}
+                      </span>
+                      {getActorBadge(startup)}
                     </div>
                     <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                       {startup.companyDescription?.substring(0, 80)}
@@ -1218,9 +1478,9 @@ export default function EnhancedStartupReviewSection({
                         startup.status === "Pending") && (
                           <>
                             <button
-                              onClick={() => handleApprove(startup.id)}
+                              onClick={() => handleApprove(startup)}
                               className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                              title="Approve"
+                              title={isInvestorItem(startup) ? "Accept Investor" : "Approve Startup"}
                               disabled={isActionLoading}
                             >
                               {isActionLoading &&
@@ -1231,9 +1491,9 @@ export default function EnhancedStartupReviewSection({
                               )}
                             </button>
                             <button
-                              onClick={() => handleInitiateReject(startup.id)}
+                              onClick={() => handleInitiateReject(startup)}
                               className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                              title="Reject"
+                              title={isInvestorItem(startup) ? "Reject Investor" : "Reject Startup"}
                               disabled={isActionLoading}
                             >
                               {isActionLoading &&
@@ -1342,37 +1602,62 @@ export default function EnhancedStartupReviewSection({
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-4/5 max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-semibold flex items-center text-blue-900">
-                <Building className="mr-2" size={20} />
-                {selectedStartup.companyName || "Startup Details"}
-              </h2>
+              <div className="flex items-center gap-2">
+                {isInvestorItem(selectedStartup) ? (
+                  <TrendingUp className="text-amber-600" size={22} />
+                ) : (
+                  <Building className="text-blue-900" size={22} />
+                )}
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    {selectedStartup.companyName ||
+                      (isInvestorItem(selectedStartup)
+                        ? "Investor Details"
+                        : "Startup Details")}
+                    {getActorBadge(selectedStartup)}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {isInvestorItem(selectedStartup)
+                      ? "Investor & Venture Capital Profile Review"
+                      : "Startup Application & Credentials Review"}
+                  </p>
+                </div>
+              </div>
               <div className="flex items-center space-x-3">
                 {(selectedStartup.status === "In Review" ||
                   selectedStartup.status === "Pending") && (
                     <>
                       <button
-                        onClick={() => handleInitiateReject(selectedStartup.id)}
+                        onClick={() => handleInitiateReject(selectedStartup)}
                         disabled={isActionLoading}
-                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center text-sm disabled:opacity-50"
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center text-sm font-medium shadow-sm disabled:opacity-50"
                       >
                         {isActionLoading ? (
                           <Loader size={16} className="mr-1 animate-spin" />
                         ) : (
                           <X size={16} className="mr-1" />
                         )}
-                        <span>Reject</span>
+                        <span>
+                          {isInvestorItem(selectedStartup)
+                            ? "Reject Investor"
+                            : "Reject"}
+                        </span>
                       </button>
                       <button
-                        onClick={() => handleApprove(selectedStartup.id)}
+                        onClick={() => handleApprove(selectedStartup)}
                         disabled={isActionLoading}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center text-sm disabled:opacity-50"
+                        className="px-3.5 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center text-sm font-medium shadow-sm disabled:opacity-50"
                       >
                         {isActionLoading ? (
                           <Loader size={16} className="mr-1 animate-spin" />
                         ) : (
                           <Check size={16} className="mr-1" />
                         )}
-                        <span>Approve</span>
+                        <span>
+                          {isInvestorItem(selectedStartup)
+                            ? "Accept Investor"
+                            : "Approve"}
+                        </span>
                       </button>
                     </>
                   )}
@@ -2071,6 +2356,44 @@ export default function EnhancedStartupReviewSection({
                 </div>
               </div>
             </div>
+
+            {/* Bottom Decision Footer Bar in Preview Modal */}
+            {(selectedStartup.status === "In Review" ||
+              selectedStartup.status === "Pending") && (
+              <div className="bg-gray-50 border-t border-gray-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-gray-600">
+                  Ready to make a decision on this{" "}
+                  <span className="font-semibold text-gray-900">
+                    {isInvestorItem(selectedStartup)
+                      ? "Investor Application"
+                      : "Startup Submission"}
+                  </span>
+                  ?
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleInitiateReject(selectedStartup)}
+                    disabled={isActionLoading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center font-medium text-sm shadow-sm disabled:opacity-50"
+                  >
+                    <X size={16} className="mr-1.5" />
+                    {isInvestorItem(selectedStartup)
+                      ? "Reject Investor"
+                      : "Reject Application"}
+                  </button>
+                  <button
+                    onClick={() => handleApprove(selectedStartup)}
+                    disabled={isActionLoading}
+                    className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center font-medium text-sm shadow-sm disabled:opacity-50"
+                  >
+                    <Check size={16} className="mr-1.5" />
+                    {isInvestorItem(selectedStartup)
+                      ? "Accept & Approve Investor"
+                      : "Approve Startup"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2082,7 +2405,9 @@ export default function EnhancedStartupReviewSection({
             <div className="bg-red-50 p-4 border-b border-red-100 flex justify-between items-center">
               <h3 className="text-lg font-medium flex items-center text-red-800">
                 <MessageSquare className="mr-2" size={20} />
-                Provide Rejection Reason
+                {pendingRejectionIsInvestor
+                  ? "Provide Rejection Reason for Investor"
+                  : "Provide Rejection Reason"}
               </h3>
               <button
                 onClick={() => setIsRejectionModalOpen(false)}
@@ -2095,9 +2420,9 @@ export default function EnhancedStartupReviewSection({
 
             <div className="p-6">
               <p className="mb-4 text-gray-600">
-                Please select or provide a reason for rejecting this startup.
-                This feedback will help the startup owner understand what needs
-                to be improved.
+                {pendingRejectionIsInvestor
+                  ? "Please select or provide a reason for rejecting this investor application. This feedback will help the investor understand why their profile was not approved."
+                  : "Please select or provide a reason for rejecting this startup. This feedback will help the startup owner understand what needs to be improved."}
               </p>
 
               <div className="mb-4">
@@ -2105,15 +2430,19 @@ export default function EnhancedStartupReviewSection({
                   Common Reasons:
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
-                  {commonRejectionReasons.map((reason, index) => (
+                  {(pendingRejectionIsInvestor
+                    ? investorRejectionReasons
+                    : commonRejectionReasons
+                  ).map((reason, index) => (
                     <div key={index} className="flex items-start">
                       <button
                         type="button"
                         onClick={() => setRejectionComment(reason)}
-                        className={`text-left text-gray-800 px-3 py-2 rounded-md w-full ${rejectionComment === reason
-                            ? "bg-red-100 text-red-800"
+                        className={`text-left text-gray-800 px-3 py-2 rounded-md w-full ${
+                          rejectionComment === reason
+                            ? "bg-red-100 text-red-800 font-medium"
                             : "hover:bg-gray-100"
-                          }`}
+                        }`}
                       >
                         {reason}
                       </button>
@@ -2128,7 +2457,10 @@ export default function EnhancedStartupReviewSection({
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
                   {rejectionComment === "Other (please specify)" ||
-                    !commonRejectionReasons.includes(rejectionComment)
+                  !(pendingRejectionIsInvestor
+                    ? investorRejectionReasons
+                    : commonRejectionReasons
+                  ).includes(rejectionComment)
                     ? "Please specify:"
                     : "Additional comments (optional):"}
                 </label>
@@ -2157,7 +2489,9 @@ export default function EnhancedStartupReviewSection({
                   {isActionLoading ? (
                     <Loader size={16} className="mr-2 animate-spin" />
                   ) : null}
-                  Submit Rejection
+                  {pendingRejectionIsInvestor
+                    ? "Confirm Investor Rejection"
+                    : "Submit Rejection"}
                 </button>
               </div>
             </div>
