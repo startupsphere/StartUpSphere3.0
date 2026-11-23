@@ -15,6 +15,7 @@ import com.startupsphere.capstone.dtos.InvestmentInterestRequest;
 import com.startupsphere.capstone.dtos.NotificationRequest;
 import com.startupsphere.capstone.entity.Notifications;
 import com.startupsphere.capstone.entity.Startup;
+import com.startupsphere.capstone.entity.Investor;
 import com.startupsphere.capstone.entity.User;
 import com.startupsphere.capstone.repository.NotificationsRepository;
 import com.startupsphere.capstone.repository.StartupRepository;
@@ -180,27 +181,76 @@ public class NotificationService {
 
     public Notifications createStartupApprovalNotification(Startup startup, String status, String comments) {
         NotificationRequest request = new NotificationRequest();
+        boolean isInvestor = startup.getRole() != null && startup.getRole().equalsIgnoreCase("ROLE_INVESTOR");
 
         switch (status.toLowerCase()) {
             case "approved":
-                request.setRemarks(String.format(NotificationRemarks.STARTUP_APPROVED, startup.getCompanyName()));
-                request.setComments("Congratulations! Your startup has been approved. " + comments);
+                if (isInvestor) {
+                    request.setRemarks(String.format(NotificationRemarks.INVESTOR_APPROVED, startup.getCompanyName()));
+                    request.setComments("Congratulations! Your investor profile has been approved. " + (comments != null ? comments : ""));
+                } else {
+                    request.setRemarks(String.format(NotificationRemarks.STARTUP_APPROVED, startup.getCompanyName()));
+                    request.setComments("Congratulations! Your startup has been approved. " + (comments != null ? comments : ""));
+                }
                 break;
             case "rejected":
-                request.setRemarks(String.format(NotificationRemarks.STARTUP_REJECTED, startup.getCompanyName()));
-                request.setComments("Your startup application has been rejected. " + comments);
+                if (isInvestor) {
+                    request.setRemarks(String.format(NotificationRemarks.INVESTOR_REJECTED, startup.getCompanyName()));
+                    request.setComments("Your investor application has been rejected. " + (comments != null ? comments : ""));
+                } else {
+                    request.setRemarks(String.format(NotificationRemarks.STARTUP_REJECTED, startup.getCompanyName()));
+                    request.setComments("Your startup application has been rejected. " + (comments != null ? comments : ""));
+                }
                 break;
             case "in review":
-                request.setRemarks(String.format(NotificationRemarks.STARTUP_SUBMITTED, startup.getCompanyName()));
-                request.setComments("Your startup application is now under review. " + comments);
+                if (isInvestor) {
+                    request.setRemarks(String.format(NotificationRemarks.INVESTOR_SUBMITTED, startup.getCompanyName()));
+                    request.setComments("Your investor application is now under review. " + (comments != null ? comments : ""));
+                } else {
+                    request.setRemarks(String.format(NotificationRemarks.STARTUP_SUBMITTED, startup.getCompanyName()));
+                    request.setComments("Your startup application is now under review. " + (comments != null ? comments : ""));
+                }
                 break;
             default:
                 break;
         }
 
         request.setStartupId(startup.getId());
-        request.setUserId(startup.getUser().getId());
+        if (startup.getUser() != null) {
+            request.setUserId(startup.getUser().getId());
+        }
 
+        return createNotifications(request);
+    }
+
+    public Notifications createInvestorApprovalNotification(Investor investor, String status, String comments) {
+        if (investor == null || investor.getUserId() == null) {
+            return null;
+        }
+
+        NotificationRequest request = new NotificationRequest();
+        String investorName = (investor.getFirstname() != null ? investor.getFirstname() : "") + " " +
+                             (investor.getLastname() != null ? investor.getLastname() : "");
+        investorName = investorName.trim().isEmpty() ? "Investor Profile" : investorName.trim();
+
+        switch (status.toLowerCase()) {
+            case "approved":
+                request.setRemarks(String.format(NotificationRemarks.INVESTOR_APPROVED, investorName));
+                request.setComments("Congratulations! Your investor profile has been approved. " + (comments != null ? comments : ""));
+                break;
+            case "rejected":
+                request.setRemarks(String.format(NotificationRemarks.INVESTOR_REJECTED, investorName));
+                request.setComments("Your investor application has been rejected. " + (comments != null ? comments : ""));
+                break;
+            case "in review":
+                request.setRemarks(String.format(NotificationRemarks.INVESTOR_SUBMITTED, investorName));
+                request.setComments("Your investor application is now under review. " + (comments != null ? comments : ""));
+                break;
+            default:
+                break;
+        }
+
+        request.setUserId(investor.getUserId().getId());
         return createNotifications(request);
     }
 
