@@ -80,4 +80,20 @@ public class InvestorService {
         investor.setViews(investor.getViews() + 1);
         investorRepository.save(investor);
     }
+
+    public Investor approveInvestor(Integer id) {
+        Investor investor = getInvestorById(id);
+        investor.setStatus("Approved");
+        return investorRepository.save(investor);
+    }
+
+    public Investor rejectInvestor(Integer id, String reason) {
+        Investor investor = getInvestorById(id);
+        investor.setStatus("Rejected");
+        return investorRepository.save(investor);
+    }
+
+    public Page<Investor> getAllSubmittedInvestors(Pageable pageable) {
+        return investorRepository.findByStatus("In Review", pageable);
+    }
 }
