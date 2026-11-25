@@ -57,6 +57,9 @@ public class StartupController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private com.startupsphere.capstone.service.InvestmentInterestService investmentInterestService;
+
     @PostMapping
     @Transactional
     public ResponseEntity<Startup> createStartup(@RequestBody Startup startup) {
@@ -571,6 +574,13 @@ public class StartupController {
 
             // Create notification for the startup owner
             Notifications notification = notificationService.createInvestmentInterestNotification(startup, request, currentUser);
+
+            // Record deal in Deal Flow / Pipeline Management process
+            try {
+                investmentInterestService.createInterest(startup, request, currentUser);
+            } catch (Exception interestEx) {
+                logger.error("Failed to persist deal in pipeline: {}", interestEx.getMessage());
+            }
 
             // Send email notification to the startup's contact email or founder's email asynchronously
             String targetEmail = startup.getContactEmail();
