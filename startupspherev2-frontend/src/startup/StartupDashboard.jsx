@@ -5,6 +5,7 @@ import { BiLike } from "react-icons/bi";
 import { FaBookBookmark } from "react-icons/fa6";
 import {
   ArrowLeft,
+  ArrowRight,
   Edit,
   Trash2,
   Save,
@@ -2837,6 +2838,36 @@ export default function StartupDashboard({ openAddMethodModal }) {
                         <span className="text-indigo-600 font-bold">100% Owned by Your Account</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Deal Flow & Investor Pipeline Quick Banner */}
+                  <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-emerald-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center shrink-0">
+                        <TrendingUp className="w-5 h-5 text-emerald-300" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-sm sm:text-base text-white">
+                            Deal Flow & Investment Inquiries Pipeline
+                          </h3>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                            Active Pipeline
+                          </span>
+                        </div>
+                        <p className="text-xs text-emerald-100/80 mt-0.5 max-w-2xl">
+                          Track when investors express interest in your startups through initial screening, founder meetings, due diligence, and term sheet closing.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/investments")}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-gray-950 text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 active:scale-95"
+                    >
+                      <span>Open Deal Flow Pipeline</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
                   {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
