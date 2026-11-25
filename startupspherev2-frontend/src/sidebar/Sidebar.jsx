@@ -15,7 +15,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaRegEye } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Award, Sparkles, User, RotateCcw, DollarSign, FileCheck, FileX, Clock, Users } from "lucide-react";
+import { Award, Sparkles, User, RotateCcw, DollarSign, FileCheck, FileX, Clock, Users, Coins, Briefcase } from "lucide-react";
 import InvestmentInterestModal from "../modals/InvestmentInterestModal";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
@@ -946,7 +946,7 @@ export default function Sidebar({
             ...(token && { Authorization: `Bearer ${token}` }),
           },
         }
-      ).catch(() => {});
+      ).catch(() => { });
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
@@ -2071,6 +2071,26 @@ export default function Sidebar({
                   </button>
                   <button
                     onClick={() => {
+                      setShowTooltip(false);
+                      navigate("/investments");
+                    }}
+                    className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                  >
+                    <Coins className="mr-2 h-4 w-4 text-blue-600" />
+                    Investment Inquiries (Deal Flow)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTooltip(false);
+                      navigate("/investor-portfolio");
+                    }}
+                    className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                  >
+                    <Briefcase className="mr-2 h-4 w-4 text-blue-600" />
+                    Interested Ventures (Pipeline)
+                  </button>
+                  <button
+                    onClick={() => {
                       setShowLogoutConfirm(true);
                       setShowTooltip(false);
                     }}
@@ -2378,6 +2398,62 @@ export default function Sidebar({
                             style={{ zIndex: 99999 }}
                           >
                             Notifications
+                          </span>
+                        </button>
+                      </li>
+                    )}
+
+                    {/* Investment Inquiries (Deal Flow) Icon */}
+                    {currentUser?.role !== "ROLE_ADMIN" && (
+                      <li className="flex justify-center relative">
+                        {location.pathname === "/investments" && (
+                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                        )}
+                        <button
+                          className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${location.pathname === "/investments"
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                              : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                            }`}
+                          onClick={() => {
+                            setShowGeminiAi(false);
+                            navigate("/investments");
+                          }}
+                          aria-label="Investment Inquiries"
+                        >
+                          <Coins className="h-5.5 w-5.5 stroke-[2]" />
+                          <span
+                            className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                            style={{ zIndex: 99999 }}
+                          >
+                            Investment Inquiries (Deal Flow)
+                          </span>
+                        </button>
+                      </li>
+                    )}
+
+                    {/* Interested Ventures (Investor Pipeline) Icon */}
+                    {currentUser?.role !== "ROLE_ADMIN" && (
+                      <li className="flex justify-center relative">
+                        {location.pathname === "/investor-portfolio" && (
+                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-600 rounded-r-full" />
+                        )}
+                        <button
+                          className={`group relative flex flex-col items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer ${location.pathname === "/investor-portfolio"
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 scale-105"
+                              : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
+                            }`}
+                          onClick={() => {
+                            setShowGeminiAi(false);
+                            navigate("/investor-portfolio");
+                          }}
+                          aria-label="Interested Ventures"
+                        >
+                          <Briefcase className="h-5.5 w-5.5 stroke-[2]" />
+                          <span
+                            className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
+                            style={{ zIndex: 99999 }}
+                          >
+                            Interested Ventures (Investor Pipeline)
                           </span>
                         </button>
                       </li>
