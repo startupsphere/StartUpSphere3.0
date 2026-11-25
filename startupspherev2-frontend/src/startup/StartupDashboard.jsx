@@ -90,6 +90,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
     );
   }, [startups, selectedStartup]);
 
+  // Grand total funding of all startups owned by this user
+  const allStartupsTotalFunding = useMemo(() => {
+    if (!startups || startups.length === 0) return 0;
+    return startups.reduce(
+      (acc, s) =>
+        acc +
+        Number(s.totalStartupFundingReceived || s.paidUpCapital || 0) +
+        Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0),
+      0
+    );
+  }, [startups]);
+
   const formatUserFunding = (val) => {
     const num = Number(val) || 0;
     if (num >= 1_000_000_000) return `₱${(num / 1_000_000_000).toFixed(2)}B`;
@@ -2135,11 +2147,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           </div>
                           <div>
                             <span className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider block">
-                              Total Venture Funding
+                              {startups.length > 1
+                                ? `Total Funding of All Startups (${startups.length})`
+                                : "Total Venture Funding"}
                             </span>
                             <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
                               {selectedStartup === "all"
-                                ? `Portfolio Total (${startups.length} Ventures)`
+                                ? `Portfolio Total (${startups.length} ${startups.length === 1 ? "Startup" : "Startups"})`
                                 : (activeStartup?.companyName || "Selected Venture")}
                             </span>
                           </div>
@@ -2163,7 +2177,11 @@ export default function StartupDashboard({ openAddMethodModal }) {
                             {loading ? (
                               <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
-                              formatUserFunding(userTotalFunding)
+                              formatUserFunding(
+                                startups.length > 1 && selectedStartup === "all"
+                                  ? allStartupsTotalFunding
+                                  : userTotalFunding
+                              )
                             )}
                           </p>
                           <span className="text-xs text-emerald-700 font-bold">
@@ -2171,8 +2189,48 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                          Exact Amount: ₱{userTotalFunding.toLocaleString()} • Scoped to your business portfolio
+                          {startups.length > 1 && selectedStartup !== "all" ? (
+                            <>
+                              Selected: ₱{userTotalFunding.toLocaleString()} •{" "}
+                              <span className="font-bold text-emerald-800">
+                                All Startups: ₱{allStartupsTotalFunding.toLocaleString()}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              Exact Amount: ₱{allStartupsTotalFunding.toLocaleString()} • Combined across all your {startups.length} startups
+                            </>
+                          )}
                         </p>
+
+                        {/* If user has multiple startups, show a mini per-startup funding list */}
+                        {startups.length > 1 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-emerald-100/80">
+                            {startups.map((st) => {
+                              const stFund =
+                                Number(st.totalStartupFundingReceived || st.paidUpCapital || 0) +
+                                Number(st.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
+                              return (
+                                <button
+                                  key={st.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedStartup(String(st.id));
+                                    setIsFundingModalOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 text-[10.5px] font-semibold text-gray-700 hover:text-emerald-800 border border-emerald-200/70 cursor-pointer transition-colors shadow-2xs"
+                                  title={`Click to view breakdown for ${st.companyName}`}
+                                >
+                                  <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  <span className="truncate max-w-[100px]">{st.companyName}:</span>
+                                  <span className="font-bold text-emerald-700">
+                                    ₱{stFund.toLocaleString()}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-2 border-t border-emerald-100/80 flex items-center justify-between text-[10.5px] text-gray-500">
@@ -2181,7 +2239,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           onClick={() => setIsFundingModalOpen(true)}
                           className="text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                         >
-                          View Origins & Certified Status →
+                          View Breakdown by Startup →
                         </span>
                       </div>
                     </div>
