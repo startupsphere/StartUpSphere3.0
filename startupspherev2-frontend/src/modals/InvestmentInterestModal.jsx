@@ -194,10 +194,7 @@ export default function InvestmentInterestModal({
           <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-950">
             <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <p>
-              Both <strong>investors</strong> and <strong>business owners</strong> are
-              welcome to invest of their means. Submitting this form sends an
-              instant in-app notification and email to the business founders with
-              your discussion details.
+              Submitting places this opportunity directly into <strong>Deal Flow / Pipeline Management</strong>. Both you and the business founder can monitor initial screening, meetings, due diligence, and term sheets.
             </p>
           </div>
 
@@ -348,35 +345,35 @@ export default function InvestmentInterestModal({
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
               <Briefcase size={13} className="text-gray-400" />
-              What investment process do you want to discuss? *
+              Investment Focus *
             </label>
             <select
               name="processType"
               value={formData.processType}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all font-medium"
               style={{ color: "#111827", backgroundColor: "#ffffff" }}
             >
+              <option value="Direct Equity / Seed Round">
+                Direct Equity / Seed Round
+              </option>
+              <option value="Pre-Seed Angel Capital">
+                Pre-Seed Angel Capital
+              </option>
+              <option value="Series A Growth Funding">
+                Series A Growth Funding
+              </option>
+              <option value="SAFE / Convertible Note">
+                SAFE / Convertible Note
+              </option>
+              <option value="Strategic Partnership & Synergies">
+                Strategic Partnership & Synergies
+              </option>
+              <option value="Revenue-Share / Debt Financing">
+                Revenue-Share / Debt Financing
+              </option>
               <option value="General Investment Discussion & Inquiry">
                 General Investment Discussion & Inquiry
-              </option>
-              <option value="Direct Equity & Valuation Pitch">
-                Direct Equity & Valuation Pitch
-              </option>
-              <option value="Convertible Note / SAFE Discussion">
-                Convertible Note / SAFE Discussion
-              </option>
-              <option value="Debt / Revenue-Share Financing">
-                Debt / Revenue-Share Financing
-              </option>
-              <option value="Strategic Partnership & Capital Synergies">
-                Strategic Partnership & Capital Synergies
-              </option>
-              <option value="Co-Development & Grants Matching">
-                Co-Development & Grants Matching
-              </option>
-              <option value="Formal Due Diligence & Term Sheet Review">
-                Formal Due Diligence & Term Sheet Review
               </option>
             </select>
           </div>
