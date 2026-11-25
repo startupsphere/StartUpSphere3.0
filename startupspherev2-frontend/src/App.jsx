@@ -15,6 +15,8 @@ import CsvUploadPage from "./startup/CsvUploadPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import SplashScreen from "./components/SplashScreen";
+import InvestmentInquiriesPage from "./investments/InvestmentInquiriesPage";
+import InvestorPortfolioPage from "./investments/InvestorPortfolioPage";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -83,6 +85,8 @@ function App() {
             />
             <Route path="/startup/:id" element={<StartupDetail />} />
             <Route path="/notifications" element={<Notification />} />
+            <Route path="/investments" element={<InvestmentInquiriesPage />} />
+            <Route path="/investor-portfolio" element={<InvestorPortfolioPage />} />
             <Route
               path="/update-startup/:id"
               element={<UpdateStartupAlternative />}
