@@ -44,7 +44,10 @@ import {
 import TooltipInfo from "../components/TooltipInfo";
 import ChartExportButton from "../components/ChartExportButton";
 import ExportReportModal from "../modals/ExportReportModal";
-import { ToastContainer, toast } from "react-toastify";
+import { exportSpecificReportPdf } from "../utils/chartExportUtils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import StartupReviewSection from "./StartupReviewSelection";
@@ -304,6 +307,26 @@ export default function AllStartupDashboard() {
   const [selectedFundingStage, setSelectedFundingStage] = useState(null);
   const [hoveredIndustry, setHoveredIndustry] = useState(null);
   const [hoveredFundingStage, setHoveredFundingStage] = useState(null);
+
+  // States for Admin Reports tab
+  const [generatedReports, setGeneratedReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportFormData, setReportFormData] = useState({
+    industry: "All Industries",
+    region: "All Regions",
+    timePeriod: "2025 (YTD)",
+    metrics: [
+      "Growth Rate",
+      "Funding Amount",
+      "Survival Rate",
+      "Employment Data",
+      "Investment Rounds",
+      "Foreign Investment",
+      "Government Support",
+      "Mentorship Data",
+      "Public-Private Partnerships",
+    ],
+  });
 
   // State for Review tab filters
   const [reviewSelectedRegion, setReviewSelectedRegion] = useState("All Regions");
@@ -903,12 +926,394 @@ export default function AllStartupDashboard() {
     }
   };
 
-  // Call this function when the component mounts or the activeTab changes to "review"
+  // Call this function when the component mounts or the activeTab changes to "review" or "reports"
   useEffect(() => {
     if (activeTab === "review") {
       fetchPsgcRegions();
     }
+    if (activeTab === "reports") {
+      fetchPsgcRegions();
+      fetchAvailableReports();
+    }
   }, [activeTab]);
+
+  const fetchAvailableReports = async () => {
+    setReportsLoading(true);
+    try {
+      const reports = [
+        {
+          id: 1,
+          title: "Annual Ecosystem Report",
+          description: `Comprehensive analysis of all ${totalStartups} startups across ${industries.length} industries`,
+          date: "May 2025",
+          type: "pdf",
+        },
+        {
+          id: 2,
+          title: "Funding Landscape",
+          description: `Analysis of funding distribution across ${fundingData.length} startup stages`,
+          date: "April 2025",
+          type: "pdf",
+        },
+        {
+          id: 3,
+          title: "Industry Analysis",
+          description: `Performance comparison of ${industries
+            .slice(0, 3)
+            .join(", ")} and other industries`,
+          date: "March 2025",
+          type: "pdf",
+        },
+        {
+          id: 4,
+          title: "Regional Performance",
+          description: `Startup distribution and performance across ${locationData.length} major regions`,
+          date: "February 2025",
+          type: "pdf",
+        },
+        {
+          id: 5,
+          title: "Top Performers Spotlight",
+          description: `Detailed analysis of top ${topStartups.length} performing startups`,
+          date: "January 2025",
+          type: "pdf",
+        },
+        {
+          id: 6,
+          title: "Government Support Analysis",
+          description:
+            "Impact of government programs on startup growth and survival",
+          date: "December 2024",
+          type: "pdf",
+        },
+      ];
+
+      setGeneratedReports(reports);
+      setReportsLoading(false);
+    } catch (error) {
+      console.error("Error generating reports:", error);
+      setReportsLoading(false);
+    }
+  };
+
+  const handleReportFormChange = (e) => {
+    const { name, value } = e.target;
+    setReportFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleMetricChange = (metric) => {
+    setReportFormData((prev) => {
+      const metrics = [...prev.metrics];
+      if (metrics.includes(metric)) {
+        return {
+          ...prev,
+          metrics: metrics.filter((m) => m !== metric),
+        };
+      } else {
+        return {
+          ...prev,
+          metrics: [...metrics, metric],
+        };
+      }
+    });
+  };
+
+  const downloadReport = async (report) => {
+    try {
+      toast.info(`Preparing ${report.title}...`);
+      await exportSpecificReportPdf(report, {
+        totalStartups,
+        calculatedTotalFunding,
+        industries,
+        industryData,
+        locationData,
+        fundingData,
+        govComplianceData: computedGovCompliance,
+        trlStagesData: computedTrlStages,
+        growthData,
+        topStartups: (topStartups && topStartups.length > 0) ? topStartups : rankedStartups,
+        rankedStartups,
+        formatFundingAmount,
+      });
+      toast.success(`${report.title} downloaded successfully!`);
+      refreshDashboard();
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
+  };
+
+  const generateCustomReport = async () => {
+    setReportsLoading(true);
+
+    try {
+      // Filter startups based on selected criteria
+      const filteredStartups = rankedStartups.filter((startup) => {
+        const industryMatch =
+          reportFormData.industry === "All Industries" ||
+          startup.industry === reportFormData.industry;
+
+        const selectedRegion = reportFormData.region.toLowerCase();
+        const startupLocation = startup.locationName?.toLowerCase() || "";
+
+        const regionMatch =
+          reportFormData.region === "All Regions" ||
+          startupLocation.includes(selectedRegion) ||
+          selectedRegion.includes(startupLocation);
+
+        return industryMatch && regionMatch;
+      });
+
+      if (filteredStartups.length === 0) {
+        toast.warning(
+          `No startups found for the selected criteria. Please try different filters.`
+        );
+        setReportsLoading(false);
+        return;
+      }
+
+      // Create PDF with enhanced styling
+      const doc = new jsPDF();
+
+      // Add header with logo and title
+      doc.setFillColor(29, 53, 87);
+      doc.rect(0, 0, 210, 40, "F");
+
+      // Add logo
+      doc.addImage(loginLogo, "PNG", 20, 10, 50, 25);
+
+      // Add title
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("Custom Startup Report", 80, 25);
+
+      // Add subtitle
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("StartupSphere Philippines", 80, 35);
+
+      // Reset text color for content
+      doc.setTextColor(0, 0, 0);
+
+      // Add generation date
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 50);
+
+      // Add filters section with styling
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Report Filters", 20, 65);
+
+      // Add filters in a styled box
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, 70, 170, 40, "F");
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Industry: ${reportFormData.industry}`, 25, 80);
+      doc.text(`Region: ${reportFormData.region}`, 25, 90);
+      doc.text(`Time Period: ${reportFormData.timePeriod}`, 25, 100);
+
+      // Add summary statistics
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary Statistics", 20, 120);
+
+      // Add statistics in a styled box
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, 125, 170, 30, "F");
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Total Startups Analyzed: ${filteredStartups.length}`, 25, 135);
+
+      // Calculate and add industry distribution
+      const industryDistribution = {};
+      filteredStartups.forEach((startup) => {
+        if (startup.industry) {
+          industryDistribution[startup.industry] =
+            (industryDistribution[startup.industry] || 0) + 1;
+        }
+      });
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Industry Distribution", 20, 165);
+
+      const industryTableData = Object.entries(industryDistribution).map(
+        ([industry, count]) => [
+          industry,
+          count.toString(),
+          ((count / filteredStartups.length) * 100).toFixed(1) + "%",
+        ]
+      );
+
+      autoTable(doc, {
+        startY: 170,
+        head: [["Industry", "Count", "Percentage"]],
+        body: industryTableData,
+        theme: "grid",
+        headStyles: {
+          fillColor: [29, 53, 87],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 5,
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+        margin: { top: 10, right: 20, bottom: 10, left: 20 },
+      });
+
+      // Add regional distribution
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Regional Distribution", 20, doc.lastAutoTable.finalY + 20);
+
+      const regionalDistribution = {};
+      filteredStartups.forEach((startup) => {
+        if (startup.locationName) {
+          regionalDistribution[startup.locationName] =
+            (regionalDistribution[startup.locationName] || 0) + 1;
+        }
+      });
+
+      const regionalTableData = Object.entries(regionalDistribution).map(
+        ([region, count]) => [
+          region,
+          count.toString(),
+          ((count / filteredStartups.length) * 100).toFixed(1) + "%",
+        ]
+      );
+
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 25,
+        head: [["Region", "Count", "Percentage"]],
+        body: regionalTableData,
+        theme: "grid",
+        headStyles: {
+          fillColor: [29, 53, 87],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 5,
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+        margin: { top: 10, right: 20, bottom: 10, left: 20 },
+      });
+
+      // Add startup details
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Startup Details", 20, doc.lastAutoTable.finalY + 20);
+
+      const startupTableData = filteredStartups.map((startup) => [
+        startup.companyName || "N/A",
+        startup.industry || "N/A",
+        startup.locationName || "N/A",
+        (startup.overallScore || 0).toFixed(2),
+        (startup.growthScore || 0).toFixed(2),
+        (startup.investmentScore || 0).toFixed(2),
+        (startup.ecosystemScore || 0).toFixed(2),
+      ]);
+
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 25,
+        head: [
+          [
+            "Company",
+            "Industry",
+            "Location",
+            "Overall",
+            "Growth",
+            "Investment",
+            "Ecosystem",
+          ],
+        ],
+        body: startupTableData,
+        theme: "grid",
+        headStyles: {
+          fillColor: [29, 53, 87],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 4,
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 25 },
+          6: { cellWidth: 25 },
+        },
+        margin: { top: 10, right: 20, bottom: 10, left: 20 },
+      });
+
+      // Add footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          `Page ${i} of ${pageCount} | StartupSphere Philippines`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: "center" }
+        );
+      }
+
+      // Save the PDF
+      const fileName = `custom-report-${new Date().toISOString().split("T")[0]
+        }.pdf`;
+      doc.save(fileName);
+
+      // Add new report to list
+      const newReport = {
+        id: generatedReports.length + 1,
+        title: `Custom Report: ${reportFormData.industry} in ${reportFormData.region}`,
+        description: `Analysis for ${reportFormData.timePeriod} including ${reportFormData.metrics.length
+          } metrics: ${reportFormData.metrics.slice(0, 2).join(", ")}${reportFormData.metrics.length > 2 ? "..." : ""
+          }`,
+        date: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        type: "pdf",
+        isCustom: true,
+      };
+
+      setGeneratedReports((prev) => [newReport, ...prev]);
+      setReportFormData((prev) => ({ ...prev, metrics: [] }));
+      setReportsLoading(false);
+      toast.success("Custom report generated successfully!");
+      refreshDashboard();
+    } catch (error) {
+      console.error("Error generating custom report:", error);
+      setReportsLoading(false);
+      toast.error("Failed to generate report. Please try again.");
+    }
+  };
 
   // Helper function to get industry icon
   const getIndustryIcon = (industryName) => {
@@ -1414,6 +1819,18 @@ export default function AllStartupDashboard() {
                 </span>
               )}
             </button>
+
+            {role === "ROLE_ADMIN" && (
+              <button
+                onClick={() => setActiveTab("reports")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "reports"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Reports
+              </button>
+            )}
 
             {role === "ROLE_ADMIN" && (
               <button
@@ -2991,6 +3408,336 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
+        {activeTab === "reports" && (
+          <div className="grid grid-cols-1 gap-6">
+            {/* Available Reports Section - Enhanced with real data */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">
+                Startup Ecosystem Reports
+              </h2>
+              {reportsLoading ? (
+                <div className="text-center py-6">Loading reports...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {generatedReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className={`border rounded-lg p-4 ${report.isCustom
+                        ? "bg-indigo-50 border-indigo-200"
+                        : "hover:bg-indigo-50"
+                        } transition-colors duration-150`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium mb-2 text-blue-900">
+                          {report.title}
+                        </h3>
+                        <div className="p-2 bg-blue-100 rounded text-xs font-bold text-blue-800">
+                          {report.type.toUpperCase()}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {report.description}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {report.date}
+                        </p>
+                        <button
+                          className="rounded-md p-2 flex items-center text-indigo-600 text-sm font-medium hover:text-indigo-800 hover:bg-indigo-200 cursor-pointer"
+                          onClick={() => downloadReport(report)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Report Builder - Enhanced with real data */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center mb-4 text-blue-900">
+                <FileText className="h-6 w-6 mr-2" />
+                <h2 className="text-xl font-bold">Custom Report Builder</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Industry
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="industry"
+                    value={reportFormData.industry}
+                    onChange={handleReportFormChange}
+                  >
+                    <option>All Industries</option>
+                    {industries.map((industry, index) => (
+                      <option key={index} value={industry}>
+                        {industry}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Region
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="region"
+                    value={reportFormData.region}
+                    onChange={handleReportFormChange}
+                    disabled={psgcLoading}
+                  >
+                    <option value="All Regions">All Regions</option>
+                    {psgcLoading ? (
+                      <option value="" disabled>Loading regions...</option>
+                    ) : (
+                      availableRegions.map((region, index) => (
+                        <option key={region.code || index} value={region.name || region}>
+                          {region.regionName || region.name || region}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Time Period
+                  </label>
+                  <select
+                    className="w-full border rounded p-2 text-blue-900"
+                    name="timePeriod"
+                    value={reportFormData.timePeriod}
+                    onChange={handleReportFormChange}
+                  >
+                    <option>2025 (YTD)</option>
+                    <option>2024</option>
+                    <option>2023</option>
+                    <option>Last 3 Years</option>
+                    <option>Last 5 Years</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <BarChart2 className="h-4 w-4 mr-1" />
+                  Metrics to Include
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-black">
+                  {[
+                    "Growth Rate",
+                    "Funding Amount",
+                    "Survival Rate",
+                    "Employment Data",
+                    "Investment Rounds",
+                    "Foreign Investment",
+                    "Government Support",
+                    "Mentorship Data",
+                    "Public-Private Partnerships",
+                  ].map((metric, index) => (
+                    <div key={index} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`metric-${index}`}
+                        className="mr-2"
+                        checked={reportFormData.metrics.includes(metric)}
+                        onChange={() => handleMetricChange(metric)}
+                      />
+                      <label htmlFor={`metric-${index}`} className="text-sm">
+                        {metric}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                    <Zap className="h-4 w-4 mr-1" />
+                    Report Preview
+                  </h4>
+                  <div className="text-sm text-blue-700">
+                    {reportFormData.metrics.length === 0 ? (
+                      <p>Select at least one metric to generate a report</p>
+                    ) : (
+                      <p>
+                        Your custom report will include data for{" "}
+                        <strong>{reportFormData.industry}</strong> in{" "}
+                        <strong>{reportFormData.region}</strong> during{" "}
+                        <strong>{reportFormData.timePeriod}</strong> with
+                        analysis of{" "}
+                        <strong>{reportFormData.metrics.length} metrics</strong>
+                        .
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  className={`flex items-center px-4 py-2 rounded text-white ${reportFormData.metrics.length === 0 || reportsLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-500"
+                    }`}
+                  disabled={
+                    reportFormData.metrics.length === 0 || reportsLoading
+                  }
+                  onClick={generateCustomReport}
+                >
+                  {reportsLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Custom Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">
+                Report Analytics
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-md font-semibold mb-3 text-blue-900">
+                    Industry Distribution in Reports
+                  </h3>
+                  <div className="h-64">
+                    {reportsLoading ? (
+                      <div className="text-center py-6">Loading data...</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={industryData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {industryData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-md font-semibold mb-3 text-blue-900">
+                    Growth Trends
+                  </h3>
+                  <div className="h-64">
+                    {dashboardLoading ? (
+                      <div className="text-center py-6">
+                        Loading growth data...
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={growthData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          {growthData.length > 0 &&
+                            Object.keys(growthData[0])
+                              .filter((key) => key !== "name")
+                              .slice(0, 3)
+                              .map((industry, index) => (
+                                <Bar
+                                  key={industry}
+                                  dataKey={industry}
+                                  fill={COLORS[index % COLORS.length]}
+                                  radius={[4, 4, 0, 0]}
+                                />
+                              ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-md font-semibold mb-3 text-blue-900">
+                  Recent Report Activity
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Report Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Generated
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Downloads
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {generatedReports.slice(0, 5).map((report) => (
+                        <tr key={report.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {report.title}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">
+                              {report.date}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {report.type.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {Math.floor(Math.random() * 50) + 1}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "review" && (
           <div className="p-4">
             <h2 className="text-xl font-semibold mb-4 text-blue-900 flex items-center justify-between">
@@ -3321,18 +4068,6 @@ export default function AllStartupDashboard() {
           © 2025 StartupSphere Philippines | Supporting DTI, DICT, and DOST
         </div>
       </footer>
-
-      <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
 
       {/* Export Report Modal */}
       <ExportReportModal

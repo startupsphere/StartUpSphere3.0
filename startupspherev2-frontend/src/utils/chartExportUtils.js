@@ -1536,18 +1536,19 @@ function buildGovernmentSupportReport(doc, report, data, logoDataUrl) {
   let currentY = drawReportMetaBox(doc, report.title, report.date, report.description, 42);
 
   // Compute stats
+  const getCount = (item) => Number(item?.value ?? item?.count ?? item?.startups ?? 0);
   const registeredStartups = topStartups.filter((s) => s.isGovernmentRegistered === true || (s.registrationAgency && s.registrationAgency.trim().length > 0));
   const registeredCount = registeredStartups.length;
   const complianceRate = totalStartups > 0 ? ((registeredCount / totalStartups) * 100).toFixed(1) : "0.0";
 
   let topAgency = "SEC / DTI";
-  if (govComplianceData && govComplianceData.length > 0) {
-    const sorted = [...govComplianceData].sort((a, b) => (b.value || 0) - (a.value || 0));
-    if (sorted[0]) topAgency = `${sorted[0].name} (${sorted[0].value})`;
+  if (Array.isArray(govComplianceData) && govComplianceData.length > 0) {
+    const sorted = [...govComplianceData].sort((a, b) => getCount(b) - getCount(a));
+    if (sorted[0]) topAgency = `${sorted[0].name || "Agency"} (${getCount(sorted[0])})`;
   }
 
   const commercializedCount = topStartups.filter((s) => {
-    const raw = s.trlLevel || "";
+    const raw = String(s.trlLevel || "");
     const m = raw.match(/\d+/);
     return m ? Number(m[0]) >= 7 : false;
   }).length;
@@ -1565,12 +1566,15 @@ function buildGovernmentSupportReport(doc, report, data, logoDataUrl) {
   doc.setTextColor(30, 41, 59);
   doc.text("1. Regulatory Agency Registration Breakdown", 14, currentY + 2);
 
-  const agencyRows = (govComplianceData || []).map((agency) => [
-    agency.name || "Agency",
-    String(agency.value || 0),
-    totalStartups > 0 ? `${(((agency.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
-    agency.name === "Unregistered" ? "Pending Accreditation" : "Fully Certified & Compliant",
-  ]);
+  const agencyRows = (Array.isArray(govComplianceData) ? govComplianceData : []).map((agency) => {
+    const count = getCount(agency);
+    return [
+      agency.name || "Agency",
+      String(count),
+      totalStartups > 0 ? `${((count / totalStartups) * 100).toFixed(1)}%` : "0%",
+      agency.name === "Unregistered" ? "Pending Accreditation" : "Fully Certified & Compliant",
+    ];
+  });
 
   autoTable(doc, {
     startY: currentY + 4,
@@ -1596,17 +1600,26 @@ function buildGovernmentSupportReport(doc, report, data, logoDataUrl) {
   doc.setTextColor(30, 41, 59);
   doc.text("2. Technology Readiness Level (TRL) Breakdown", 14, currentY);
 
-  const trlRows = (trlStagesData || []).map((stage) => [
-    stage.name || "TRL Stage",
-    stage.name.toLowerCase().includes("concept") ? "TRL 1 - 3"
-      : stage.name.toLowerCase().includes("prototype") ? "TRL 4 - 6"
-      : "TRL 7 - 9",
-    String(stage.value || 0),
-    totalStartups > 0 ? `${(((stage.value || 0) / totalStartups) * 100).toFixed(1)}%` : "0%",
-    stage.name.toLowerCase().includes("concept") ? "Basic principles & formulation"
-      : stage.name.toLowerCase().includes("prototype") ? "Testing & operational validation"
-      : "Market deployable & proven",
-  ]);
+  const trlRows = (Array.isArray(trlStagesData) ? trlStagesData : []).map((stage) => {
+    const stageLabel = String(stage.name || stage.stage || (stage.level ? `TRL ${stage.level}` : "TRL Stage"));
+    const stageLower = stageLabel.toLowerCase();
+    const levelNum = Number(stage.level ?? (stageLabel.match(/\d+/)?.[0] || 0));
+    const count = getCount(stage);
+    const isConcept = stageLower.includes("concept") || (levelNum >= 1 && levelNum <= 3);
+    const isPrototype = stageLower.includes("prototype") || (levelNum >= 4 && levelNum <= 6);
+
+    return [
+      stageLabel,
+      isConcept ? "TRL 1 - 3" : isPrototype ? "TRL 4 - 6" : "TRL 7 - 9",
+      String(count),
+      totalStartups > 0 ? `${((count / totalStartups) * 100).toFixed(1)}%` : "0%",
+      isConcept
+        ? "Basic principles & formulation"
+        : isPrototype
+        ? "Testing & operational validation"
+        : "Market deployable & proven",
+    ];
+  });
 
   autoTable(doc, {
     startY: currentY + 3,

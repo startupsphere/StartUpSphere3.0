@@ -26,7 +26,15 @@ import {
   PieChart,
   Sparkles,
   MapPin,
+  FileText,
+  Download,
+  Calendar,
+  BarChart2,
+  Zap,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import loginLogo from "/StartUpSphere_loginLogo.png";
 import FundingBreakdownModal from "../modals/FundingBreakdownModal";
 import StartupCategoryDiversity from "../components/StartupCategoryDiversity";
 import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
@@ -69,6 +77,22 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [logoUrls, setLogoUrls] = useState({});
   const [syncingSocialId, setSyncingSocialId] = useState(null);
   const [isFundingModalOpen, setIsFundingModalOpen] = useState(false);
+
+  // User Venture Reports state
+  const USER_REPORT_METRICS = [
+    "Views & Reach",
+    "Likes & Interest",
+    "Bookmarks & Saves",
+    "Funding & Capital",
+    "Social Engagement",
+    "Government Compliance & TRL",
+    "Venture Portfolio Details",
+    "Ecosystem Benchmarks (IDI / SI / EBS / EGS)",
+  ];
+  const [reportTimePeriod, setReportTimePeriod] = useState("2025 (YTD)");
+  const [selectedReportMetrics, setSelectedReportMetrics] = useState(USER_REPORT_METRICS);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [generatedUserReports, setGeneratedUserReports] = useState([]);
 
   // Scoped strictly to the user / business found only on the user dashboard
   const userTotalFunding = useMemo(() => {
@@ -1623,6 +1647,323 @@ export default function StartupDashboard({ openAddMethodModal }) {
     }
   };
 
+  const toggleReportMetric = (metric) => {
+    setSelectedReportMetrics((prev) =>
+      prev.includes(metric) ? prev.filter((m) => m !== metric) : [...prev, metric]
+    );
+  };
+
+  const generateUserMetricsReport = async ({
+    title = "Venture Metrics Report",
+    description,
+    metricsToInclude = selectedReportMetrics,
+  } = {}) => {
+    if (!metricsToInclude || metricsToInclude.length === 0) {
+      toast.warning("Please select at least one metric to generate a report.");
+      return;
+    }
+
+    const scopedStartups =
+      selectedStartup === "all"
+        ? startups
+        : startups.filter((s) => String(s.id) === String(selectedStartup));
+
+    if (!scopedStartups || scopedStartups.length === 0) {
+      toast.warning("No venture data available to generate a report.");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const scopeLabel =
+        selectedStartup === "all"
+          ? `All Portfolio Startups (${scopedStartups.length})`
+          : scopedStartups[0]?.companyName || "Selected Venture";
+
+      // Branded Header
+      doc.setFillColor(29, 53, 87);
+      doc.rect(0, 0, 210, 40, "F");
+      try {
+        doc.addImage(loginLogo, "PNG", 14, 8, 42, 22);
+      } catch (e) {
+        // Ignore logo load issues
+      }
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(title, 62, 20);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("StartupSphere Philippines • User Venture & Metrics Report", 62, 29);
+
+      // Meta box
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, 46, 182, 24, 2, 2, "FD");
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Scope: ${scopeLabel}`, 18, 53);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Time Period: ${reportTimePeriod}`, 18, 59);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 140, 53);
+      const summaryDesc =
+        description ||
+        `Metrics included: ${metricsToInclude.length} selected (${metricsToInclude.slice(0, 3).join(", ")}${metricsToInclude.length > 3 ? "..." : ""})`;
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(doc.splitTextToSize(summaryDesc, 174), 18, 65);
+
+      let currentY = 76;
+
+      // KPI Summary Row
+      const kpis = [
+        { label: "TOTAL VIEWS", value: String(metrics.views || 0), bg: [254, 243, 199], text: [180, 83, 9] },
+        { label: "TOTAL LIKES", value: String(metrics.likes || 0), bg: [239, 246, 255], text: [29, 78, 216] },
+        { label: "BOOKMARKS", value: String(metrics.bookmarks || 0), bg: [236, 253, 245], text: [4, 120, 87] },
+        {
+          label: "TOTAL FUNDING",
+          value: `PHP ${Number(userTotalFunding || 0).toLocaleString()}`,
+          bg: [238, 242, 255],
+          text: [67, 56, 202],
+        },
+      ];
+      const boxW = 43;
+      kpis.forEach((kpi, idx) => {
+        const x = 14 + idx * (boxW + 3.3);
+        doc.setFillColor(...kpi.bg);
+        doc.roundedRect(x, currentY, boxW, 18, 2, 2, "F");
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...kpi.text);
+        doc.text(kpi.label, x + 3, currentY + 6);
+        doc.setFontSize(11);
+        doc.text(kpi.value, x + 3, currentY + 14);
+      });
+      currentY += 25;
+
+      const ensureSpace = (needed = 40) => {
+        if (currentY + needed > 275) {
+          doc.addPage();
+          currentY = 18;
+        }
+      };
+
+      // 1. Engagement & Reach
+      if (
+        metricsToInclude.includes("Views & Reach") ||
+        metricsToInclude.includes("Likes & Interest") ||
+        metricsToInclude.includes("Bookmarks & Saves")
+      ) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Engagement & Reach Metrics", 14, currentY);
+
+        const engRows = [];
+        if (metricsToInclude.includes("Views & Reach")) {
+          engRows.push(["Total Profile Views", String(metrics.views || 0), "Platform visibility & reach"]);
+        }
+        if (metricsToInclude.includes("Likes & Interest")) {
+          const likeRate = metrics.views > 0 ? `${((metrics.likes / metrics.views) * 100).toFixed(1)}%` : "0.0%";
+          engRows.push(["Total Likes", String(metrics.likes || 0), `Like-to-view rate: ${likeRate}`]);
+        }
+        if (metricsToInclude.includes("Bookmarks & Saves")) {
+          const saveRate = metrics.views > 0 ? `${((metrics.bookmarks / metrics.views) * 100).toFixed(1)}%` : "0.0%";
+          engRows.push(["Total Bookmarks", String(metrics.bookmarks || 0), `Bookmark-to-view rate: ${saveRate}`]);
+        }
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Metric", "Value", "Insight"]],
+          body: engRows,
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // 2. Funding & Capital
+      if (metricsToInclude.includes("Funding & Capital")) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Funding & Capital Breakdown", 14, currentY);
+
+        const fundingRows = scopedStartups.map((s) => {
+          const base = Number(s.totalStartupFundingReceived || s.paidUpCapital || 0);
+          const grants = Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
+          return [
+            s.companyName || "Unnamed Venture",
+            s.fundingStage || "N/A",
+            `PHP ${base.toLocaleString()}`,
+            `PHP ${grants.toLocaleString()}`,
+            `PHP ${(base + grants).toLocaleString()}`,
+          ];
+        });
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Venture", "Stage", "Capital / Funding", "Gov. Grants", "Total Funding"]],
+          body: fundingRows,
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // 3. Social Engagement
+      if (metricsToInclude.includes("Social Engagement")) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Social Media Engagement", 14, currentY);
+
+        const socialRows = scopedStartups.map((s) => [
+          s.companyName || "Unnamed Venture",
+          String(s.facebookFollowers || 0),
+          String(s.facebookLikes || 0),
+          String(s.instagramFollowers || 0),
+        ]);
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Venture", "Facebook Followers", "Facebook Likes", "Instagram Followers"]],
+          body: socialRows,
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // 4. Government Compliance & TRL
+      if (metricsToInclude.includes("Government Compliance & TRL")) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Government Compliance & TRL Readiness", 14, currentY);
+
+        const complianceRows = scopedStartups.map((s) => [
+          s.companyName || "Unnamed Venture",
+          s.isGovernmentRegistered ? "Yes" : "No",
+          s.registrationAgency || (s.isGovernmentRegistered ? "Registered" : "N/A"),
+          s.trlLevel || "N/A",
+          s.status || "Pending",
+        ]);
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Venture", "Gov. Registered", "Agency", "TRL Level", "Review Status"]],
+          body: complianceRows,
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // 5. Venture Portfolio Details
+      if (metricsToInclude.includes("Venture Portfolio Details")) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Venture Portfolio Directory", 14, currentY);
+
+        const detailRows = scopedStartups.map((s) => [
+          s.companyName || "Unnamed Venture",
+          s.industry || "General",
+          s.city || s.locationName || "N/A",
+          String(s.numberOfEmployees || 0),
+          String(s.foundedYear || "N/A"),
+        ]);
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Venture", "Industry", "Location", "Employees", "Founded"]],
+          body: detailRows,
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // 6. Ecosystem Benchmarks
+      if (metricsToInclude.includes("Ecosystem Benchmarks (IDI / SI / EBS / EGS)")) {
+        ensureSpace(45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Ecosystem Benchmarks", 14, currentY);
+
+        autoTable(doc, {
+          startY: currentY + 3,
+          head: [["Index", "Score", "Description"]],
+          body: [
+            ["Innovation Density Index (IDI)", String(globalMetrics.idi || 0), "Regional innovation concentration"],
+            ["Startup Index (SI)", String(globalMetrics.si || 0), "Overall startup ecosystem activity"],
+            ["Ecosystem Business Score (EBS)", String(globalMetrics.ebs || 0), "Business viability & support"],
+            ["Ecosystem Growth Score (EGS)", String(globalMetrics.egs || 0), "Growth momentum across ventures"],
+          ],
+          theme: "grid",
+          headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          margin: { left: 14, right: 14 },
+        });
+      }
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          `Page ${i} of ${pageCount} | StartupSphere Philippines`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: "center" }
+        );
+      }
+
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const dateStr = new Date().toISOString().split("T")[0];
+      doc.save(`${slug}-${dateStr}.pdf`);
+
+      setGeneratedUserReports((prev) => [
+        {
+          id: Date.now(),
+          title,
+          scope: scopeLabel,
+          metricsCount: metricsToInclude.length,
+          date: new Date().toLocaleDateString(),
+        },
+        ...prev,
+      ]);
+      toast.success(`${title} downloaded successfully!`);
+    } catch (err) {
+      console.error("Error generating user report:", err);
+      toast.error("Failed to generate report. Please try again.");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const handleFilterClick = (filter) => {
     setActiveFilter(filter);
 
@@ -1960,7 +2301,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
             {/* View Metric Filters - Segmented Control */}
             <div className="inline-flex items-center p-1 bg-gray-100/90 rounded-xl border border-gray-200/60 gap-1 self-start md:self-auto overflow-x-auto max-w-full">
-              {["All", "Likes", "Bookmarks", "Views", "Metrics"].map((filter) => (
+              {["All", "Likes", "Bookmarks", "Views", "Metrics", "Reports"].map((filter) => (
                 <button
                   key={filter}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer whitespace-nowrap ${
@@ -2114,6 +2455,206 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </div>
               </div>
             </div>
+          </div>
+        ) : activeFilter === "Reports" ? (
+          <div className="space-y-6 mb-8">
+            {/* Quick Metric Reports */}
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-indigo-600" />
+                    Venture Metric Reports
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Generate PDF reports scoped to{" "}
+                    <span className="font-semibold text-gray-700">
+                      {selectedStartup === "all"
+                        ? `All Portfolio Startups (${startups.length})`
+                        : startups.find((s) => String(s.id) === String(selectedStartup))?.companyName || "Selected Venture"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    title: "Portfolio Performance Report",
+                    description: "Complete overview of views, likes, bookmarks, funding, and venture details.",
+                    metricsToInclude: USER_REPORT_METRICS,
+                  },
+                  {
+                    title: "Engagement & Social Reach Report",
+                    description: "Detailed breakdown of profile views, likes, bookmarks, and Facebook/Instagram reach.",
+                    metricsToInclude: ["Views & Reach", "Likes & Interest", "Bookmarks & Saves", "Social Engagement"],
+                  },
+                  {
+                    title: "Funding & Readiness Report",
+                    description: "Capital breakdown, government grants, TRL readiness, and ecosystem benchmarks.",
+                    metricsToInclude: [
+                      "Funding & Capital",
+                      "Government Compliance & TRL",
+                      "Ecosystem Benchmarks (IDI / SI / EBS / EGS)",
+                    ],
+                  },
+                ].map((preset) => (
+                  <div
+                    key={preset.title}
+                    className="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-semibold text-sm text-gray-900">{preset.title}</h3>
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-100 text-indigo-700">
+                          PDF
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-4">{preset.description}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isGeneratingReport || startups.length === 0}
+                      onClick={() => generateUserMetricsReport(preset)}
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download PDF
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Metrics Report Builder */}
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart2 className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-bold text-gray-900">Custom Metrics Report Builder</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Venture Scope
+                  </label>
+                  <div className="px-3 py-2 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg">
+                    {selectedStartup === "all"
+                      ? `All Portfolio Startups (${startups.length})`
+                      : startups.find((s) => String(s.id) === String(selectedStartup))?.companyName || "Selected Venture"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Time Period
+                  </label>
+                  <select
+                    value={reportTimePeriod}
+                    onChange={(e) => setReportTimePeriod(e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="2025 (YTD)">2025 (YTD)</option>
+                    <option value="Last 6 Months">Last 6 Months</option>
+                    <option value="Last 12 Months">Last 12 Months</option>
+                    <option value="All Time">All Time</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-semibold text-gray-700">Metrics to Include</span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReportMetrics(USER_REPORT_METRICS)}
+                      className="text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReportMetrics([])}
+                      className="text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {USER_REPORT_METRICS.map((metric) => (
+                    <label
+                      key={metric}
+                      className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer text-xs text-gray-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedReportMetrics.includes(metric)}
+                        onChange={() => toggleReportMetric(metric)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>{metric}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3.5 mb-5 flex items-start gap-2.5">
+                <Zap className="w-4 h-4 text-blue-700 mt-0.5 shrink-0" />
+                <p className="text-xs text-blue-800">
+                  {selectedReportMetrics.length === 0 ? (
+                    "Select at least one metric to generate your custom report."
+                  ) : (
+                    <>
+                      Your custom PDF will include <strong>{selectedReportMetrics.length} metrics</strong> for{" "}
+                      <strong>
+                        {selectedStartup === "all"
+                          ? `All Portfolio Startups (${startups.length})`
+                          : startups.find((s) => String(s.id) === String(selectedStartup))?.companyName || "Selected Venture"}
+                      </strong>{" "}
+                      covering <strong>{reportTimePeriod}</strong>.
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  disabled={isGeneratingReport || selectedReportMetrics.length === 0 || startups.length === 0}
+                  onClick={() =>
+                    generateUserMetricsReport({
+                      title: "Custom Venture Metrics Report",
+                      metricsToInclude: selectedReportMetrics,
+                    })
+                  }
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-xs transition-colors cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  <FileText className="w-4 h-4" />
+                  {isGeneratingReport ? "Generating..." : "Generate & Download PDF"}
+                </button>
+              </div>
+            </div>
+
+            {generatedUserReports.length > 0 && (
+              <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6">
+                <h3 className="text-sm font-bold text-gray-900 mb-3">Recent Downloads (This Session)</h3>
+                <div className="divide-y divide-gray-100">
+                  {generatedUserReports.map((item) => (
+                    <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-semibold text-gray-900">{item.title}</span>
+                        <span className="text-gray-500 ml-2">• {item.scope}</span>
+                      </div>
+                      <span className="text-gray-500 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {item.metricsCount} metrics • {item.date}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
