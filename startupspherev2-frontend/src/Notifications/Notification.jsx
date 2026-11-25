@@ -57,12 +57,16 @@ class ErrorBoundary extends React.Component {
 }
 
 // Helper to parse investment proposal key-values from notification comments
-const parseInvestmentDetails = (comments) => {
-  if (!comments || typeof comments !== "string") return null;
+const parseInvestmentDetails = (comments, remarks = "") => {
+  const safeComments = typeof comments === "string" ? comments : "";
+  const safeRemarks = typeof remarks === "string" ? remarks : "";
+  const combined = safeComments + "\n" + safeRemarks;
+
+  if (!safeComments && !safeRemarks) return null;
 
   const extract = (label) => {
     const regex = new RegExp(`(?:^|\\n)\\s*${label}\\s*:\\s*(.+)`, "i");
-    const match = comments.match(regex);
+    const match = combined.match(regex);
     return match ? match[1].trim() : null;
   };
 
@@ -77,16 +81,25 @@ const parseInvestmentDetails = (comments) => {
     }
   }
 
-  const email = extract("Email");
-  const phone = extract("Phone");
+  // Fallback extraction from remarks (e.g., "New investment interest from Jorge Ogang for 'ArnChum'")
+  if (!investorName) {
+    const fromMatch = safeRemarks.match(/from\s+([^for]+?)\s+for/i);
+    if (fromMatch) {
+      investorName = fromMatch[1].trim();
+    }
+  }
+
+  const email = extract("Email") || extract("Contact Email");
+  const phone = extract("Phone") || extract("Contact Phone");
   const amount =
     extract("Proposed Investment Amount") ||
     extract("Proposed Amount") ||
-    extract("Amount");
+    extract("Amount") ||
+    extract("Investment Range");
   const process = extract("Discussion Process") || extract("Process");
 
   let message = "";
-  const msgMatch = comments.match(
+  const msgMatch = safeComments.match(
     /(?:Proposal \/ Agenda|Proposal|Message|Notes)\s*:\s*([\s\S]*?)(?:--- Status:|$)/i
   );
   if (msgMatch) {
@@ -96,37 +109,52 @@ const parseInvestmentDetails = (comments) => {
   // Detect decision status
   let status = "PENDING";
   if (
-    comments.includes("--- Status: ACCEPTED ---") ||
-    comments.toUpperCase().includes("STATUS: ACCEPTED")
+    combined.includes("--- Status: ACCEPTED ---") ||
+    combined.toUpperCase().includes("STATUS: ACCEPTED") ||
+    combined.toLowerCase().includes("accepted your investment") ||
+    combined.toLowerCase().includes("you accepted the investment proposal")
   ) {
     status = "ACCEPTED";
   } else if (
-    comments.includes("--- Status: REJECTED ---") ||
-    comments.toUpperCase().includes("STATUS: REJECTED")
+    combined.includes("--- Status: REJECTED ---") ||
+    combined.toUpperCase().includes("STATUS: REJECTED") ||
+    combined.toLowerCase().includes("declined your investment") ||
+    combined.toLowerCase().includes("you declined the investment proposal")
   ) {
     status = "REJECTED";
   }
 
   let decisionDate = "";
-  const dateMatch = comments.match(/Decision Date\s*:\s*(.+)/i);
+  const dateMatch = combined.match(/Decision Date\s*:\s*(.+)/i);
   if (dateMatch) decisionDate = dateMatch[1].trim();
 
   let founderNote = "";
-  const noteMatch = comments.match(/Founder Note\s*:\s*(.+)/i);
+  const noteMatch = combined.match(/(?:Founder Note|Message from Founder|Reason\/Note)\s*:\s*(.+)/i);
   if (noteMatch) founderNote = noteMatch[1].trim();
 
-  if (!investorLine && !amount && !process) {
+  // If comments contain congratulations or acceptance message from founder
+  if (status === "ACCEPTED" && !message) {
+    const congratsMatch = safeComments.match(/Congratulations![\s\S]*/i);
+    if (congratsMatch) {
+      message = congratsMatch[0].trim();
+    }
+  }
+
+  const isInvestmentRelated =
+    Boolean(investorLine || amount || process || safeRemarks.toLowerCase().includes("investment") || safeComments.toLowerCase().includes("investment"));
+
+  if (!isInvestmentRelated) {
     return null;
   }
 
   return {
-    investorName,
-    investorType,
+    investorName: investorName || "Investor / Backer",
+    investorType: investorType || "Angel / Venture Capital",
     email,
     phone,
-    amount,
-    process,
-    message,
+    amount: amount || "Negotiable / Undisclosed",
+    process: process || "Direct Discussion",
+    message: message || (safeComments.trim() ? safeComments.trim() : "Investment proposal submitted."),
     status,
     decisionDate,
     founderNote,
@@ -1637,11 +1665,11 @@ function NotificationComponent() {
       {/* Action / Detail Modal */}
       {showActionModal && selectedNotification && (() => {
         const rawComments = selectedNotification?.rawData?.comments || "";
-        const investmentDetails = parseInvestmentDetails(rawComments);
+        const rawRemarks = selectedNotification?.content || selectedNotification?.rawData?.remarks || "";
+        const investmentDetails = parseInvestmentDetails(rawComments, rawRemarks);
         const isInvestment = Boolean(
           investmentDetails ||
-          selectedNotification?.content?.toLowerCase().includes("investment interest") ||
-          selectedNotification?.content?.toLowerCase().includes("investment proposal") ||
+          selectedNotification?.content?.toLowerCase().includes("investment") ||
           selectedNotification?.type === "investment"
         );
 
