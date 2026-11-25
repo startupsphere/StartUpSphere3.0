@@ -19,7 +19,16 @@ import {
   Building,
   Award,
   RefreshCw,
+  Coins,
+  Building2,
+  Wallet,
+  FileSpreadsheet,
+  PieChart,
+  Sparkles,
+  MapPin,
 } from "lucide-react";
+import FundingBreakdownModal from "../modals/FundingBreakdownModal";
+import StartupCategoryDiversity from "../components/StartupCategoryDiversity";
 import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
 import TooltipInfo from "../components/TooltipInfo";
 import {
@@ -59,6 +68,41 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [selectedStartup, setSelectedStartup] = useState("all");
   const [logoUrls, setLogoUrls] = useState({});
   const [syncingSocialId, setSyncingSocialId] = useState(null);
+  const [isFundingModalOpen, setIsFundingModalOpen] = useState(false);
+
+  // Scoped strictly to the user / business found only on the user dashboard
+  const userTotalFunding = useMemo(() => {
+    if (!startups || startups.length === 0) return 0;
+    if (selectedStartup !== "all") {
+      const target = startups.find((s) => String(s.id) === String(selectedStartup));
+      if (!target) return 0;
+      return (
+        Number(target.totalStartupFundingReceived || target.paidUpCapital || 0) +
+        Number(target.amountOfGovernmentGrantsOrSubsidiesReceived || 0)
+      );
+    }
+    return startups.reduce(
+      (acc, s) =>
+        acc +
+        Number(s.totalStartupFundingReceived || s.paidUpCapital || 0) +
+        Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0),
+      0
+    );
+  }, [startups, selectedStartup]);
+
+  const formatUserFunding = (val) => {
+    const num = Number(val) || 0;
+    if (num >= 1_000_000_000) return `₱${(num / 1_000_000_000).toFixed(2)}B`;
+    if (num >= 1_000_000) return `₱${(num / 1_000_000).toFixed(2)}M`;
+    if (num >= 1_000) return `₱${(num / 1_000).toFixed(0)}K`;
+    return `₱${num.toLocaleString()}`;
+  };
+
+  const userCategoriesCount = useMemo(() => {
+    if (!startups || startups.length === 0) return 0;
+    const uniqueCats = new Set(startups.map((s) => s.industry?.trim()).filter(Boolean));
+    return uniqueCats.size;
+  }, [startups]);
 
   const [metrics, setMetrics] = useState({
     views: 0,
@@ -2080,6 +2124,122 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
               return (
                 <div className="mb-3.5">
+                  {/* Core User Portfolio & Funding Highlights */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 mb-3">
+                    {/* Total Funding Card - Found only on User Dashboard */}
+                    <div className="bg-gradient-to-br from-white via-emerald-50/25 to-teal-50/40 rounded-xl shadow-xs border border-emerald-200/90 p-3.5 hover:shadow-sm hover:border-emerald-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 border border-emerald-200">
+                            <Coins className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider block">
+                              Total Venture Funding
+                            </span>
+                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                              {selectedStartup === "all"
+                                ? `Portfolio Total (${startups.length} Ventures)`
+                                : (activeStartup?.companyName || "Selected Venture")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Pop Up Button Breakdown */}
+                        <button
+                          type="button"
+                          onClick={() => setIsFundingModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200/90 border border-emerald-300 rounded-lg transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                          title="Open funding breakdown popup"
+                        >
+                          <Coins className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Funding Breakdown</span>
+                        </button>
+                      </div>
+
+                      <div className="my-1">
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
+                            {loading ? (
+                              <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
+                            ) : (
+                              formatUserFunding(userTotalFunding)
+                            )}
+                          </p>
+                          <span className="text-xs text-emerald-700 font-bold">
+                            Capital Raised
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                          Exact Amount: ₱{userTotalFunding.toLocaleString()} • Scoped to your business portfolio
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-emerald-100/80 flex items-center justify-between text-[10.5px] text-gray-500">
+                        <span>Includes: Grants, Paid-Up & Private Equity</span>
+                        <span
+                          onClick={() => setIsFundingModalOpen(true)}
+                          className="text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                        >
+                          View Origins & Certified Status →
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Total Number of Startups for that User Card */}
+                    <div className="bg-gradient-to-br from-white via-indigo-50/25 to-blue-50/40 rounded-xl shadow-xs border border-indigo-200/90 p-3.5 hover:shadow-sm hover:border-indigo-300 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 border border-indigo-200">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider block">
+                              Your Startups & Ventures
+                            </span>
+                            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60">
+                              {selectedStartup === "all" ? "User Portfolio" : "Single Focus"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="px-2.5 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 rounded-lg border border-indigo-200">
+                          {userCategoriesCount} Categor{userCategoriesCount > 1 ? "ies" : "y"}
+                        </span>
+                      </div>
+
+                      <div className="my-1">
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
+                            {loading ? (
+                              <span className="inline-block w-12 h-8 bg-gray-200 rounded animate-pulse"></span>
+                            ) : (
+                              startups.length
+                            )}
+                          </p>
+                          <span className="text-xs text-gray-600 font-medium">
+                            Total ventures owned by you
+                          </span>
+                          {drafts.length > 0 && (
+                            <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              +{drafts.length} draft{drafts.length > 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                          {selectedStartup === "all"
+                            ? `Showing all ${startups.length} ventures registered to your user account`
+                            : `Focusing ${activeStartup?.companyName || "selected venture"} (1 of ${startups.length})`}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-indigo-100/80 flex items-center justify-between text-[10.5px] text-gray-500">
+                        <span>User-Scoped Venture Directory</span>
+                        <span className="text-indigo-600 font-bold">100% Owned by Your Account</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                     {/* Views Card */}
@@ -2459,6 +2619,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
               );
             })()}
 
+        {/* Specified Category Diversity Matrix (Shown when user has multiple startups) */}
+        <StartupCategoryDiversity
+          startups={startups}
+          selectedStartup={selectedStartup}
+          onSelectStartup={(id) => setSelectedStartup(id)}
+        />
+
         {/* Enhanced Charts Section */}
         <div className="mb-3.5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
@@ -2753,37 +2920,34 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </p>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <table className="w-full text-left border-collapse table-auto">
                 <thead>
-                  <tr className="bg-gray-50/60 border-b border-gray-200">
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <tr className="bg-gray-50/75 border-b border-gray-200">
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Startup Name
                     </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Industry
                     </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Founded Date
                     </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Email
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Contact
                     </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Phone Number
-                    </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-3.5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-3.5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-gray-100 bg-white">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
+                      <td colSpan={6} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <div className="relative w-12 h-12 mb-4">
                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
@@ -2800,7 +2964,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </tr>
                   ) : displayList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
+                      <td colSpan={6} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
                             <svg
@@ -2825,7 +2989,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           </p>
                           <button
                             onClick={openAddMethodModal}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
                           >
                             Add Your First Startup
                           </button>
@@ -2844,18 +3008,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           key={`${isDraft ? "draft" : "startup"}-${item.id}`}
                           className={`${
                             isDraft
-                              ? "bg-amber-50"
-                              : "hover:bg-gray-50 cursor-pointer"
+                              ? "bg-amber-50/70"
+                              : "hover:bg-gray-50/80 cursor-pointer"
                           } transition-colors duration-150`}
                           onClick={() =>
                             !isDraft && navigate(`/startup/${item.id}`)
                           }
                         >
                           {/* Startup Name + Logo + Location */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
+                          <td className="px-3.5 py-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div className="flex-shrink-0">
-                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                <div className="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                                   {logoUrls[item.id] ? (
                                     <img
                                       src={logoUrls[item.id]}
@@ -2865,8 +3029,8 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                       decoding="async"
                                     />
                                   ) : logoUrls[item.id] === null ? (
-                                    <div className="w-full h-full bg-gradient-to-br from-gray-600 to-gray-700 flex bg-gray-600 items-center justify-center">
-                                      <span className="text-lg font-bold text-white">
+                                    <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center">
+                                      <span className="text-xs font-bold text-white">
                                         {(item.companyName ||
                                           "?")[0].toUpperCase()}
                                       </span>
@@ -2874,7 +3038,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 flex items-center justify-center animate-pulse">
                                       <svg
-                                        className="w-6 h-6 text-gray-400"
+                                        className="w-5 h-5 text-gray-400"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -2883,101 +3047,80 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                           strokeLinecap="round"
                                           strokeLinejoin="round"
                                           strokeWidth={2}
-                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
                                         />
                                       </svg>
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <p className="font-semibold text-gray-900 truncate text-sm">
+                              <div className="min-w-0 max-w-[170px] sm:max-w-[210px] lg:max-w-[250px]">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <p className="font-bold text-gray-900 truncate text-xs sm:text-sm" title={item.companyName}>
                                     {item.companyName || "Untitled Draft"}
                                   </p>
                                   {isDraft && (
-                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded">
+                                    <span className="px-1.5 py-0.2 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">
                                       Draft
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                  </svg>
-                                  {item.locationName || "No location"}
+                                <p className="text-[11px] text-gray-500 truncate flex items-center gap-0.5" title={item.locationName}>
+                                  <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                  <span className="truncate">{item.locationName || "No location"}</span>
                                 </p>
                               </div>
                             </div>
                           </td>
 
                           {/* Industry */}
-                          <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-100 truncate max-w-[130px]" title={item.industry}>
                               {item.industry || "N/A"}
                             </span>
                           </td>
 
                           {/* Founded Date */}
-                          <td className="px-6 py-4 text-center text-sm text-gray-600">
+                          <td className="px-3.5 py-3 whitespace-nowrap text-xs text-gray-600">
                             {formattedDate}
                           </td>
 
-                          {/* Email */}
-                          <td className="px-6 py-4 text-center">
-                            <a
-                              href={`mailto:${item.contactEmail}`}
-                              className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline"
-                            >
-                              {item.contactEmail || "N/A"}
-                            </a>
-                          </td>
-
-                          {/* Phone Number */}
-                          <td className="px-6 py-4 text-center text-sm text-gray-600">
-                            {item.phoneNumber || "N/A"}
+                          {/* Contact (Email & Phone Number combined) */}
+                          <td className="px-3.5 py-3">
+                            <div className="min-w-0 max-w-[150px] lg:max-w-[180px]">
+                              {item.contactEmail ? (
+                                <a
+                                  href={`mailto:${item.contactEmail}`}
+                                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline block truncate"
+                                  title={item.contactEmail}
+                                >
+                                  {item.contactEmail}
+                                </a>
+                              ) : (
+                                <span className="text-xs text-gray-400">No email</span>
+                              )}
+                              {item.phoneNumber && (
+                                <span className="text-[11px] text-gray-400 block truncate" title={item.phoneNumber}>
+                                  {item.phoneNumber}
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Status */}
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-3.5 py-3 text-center whitespace-nowrap">
                             {isDraft ? (
-                              <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-md">
+                              <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 text-[11px] font-semibold rounded-md">
                                 Draft
                               </span>
                             ) : item.emailVerified ? (
-                              <span className="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-md">
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
+                              <span className="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 text-[11px] font-semibold rounded-md">
+                                <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
                                 Verified
                               </span>
                             ) : (
                               <button
-                                className="px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                                className="px-2.5 py-1 text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleVerifyNow(item.id, item.contactEmail);
@@ -2990,10 +3133,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
 
                           {/* Actions */}
                           <td
-                            className="px-6 py-4"
+                            className="px-3.5 py-3 text-center whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5">
                               {isDraft ? (
                                 <>
                                   <button
@@ -3002,10 +3145,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                         `/add-startup?draftId=${item.id}`
                                       )
                                     }
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
                                     title="Continue editing draft"
                                   >
-                                    <PlayCircle size={14} /> Continue
+                                    <PlayCircle size={13} /> Continue
                                   </button>
                                   <button
                                     onClick={() =>
@@ -3014,7 +3157,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                         item.companyName
                                       )
                                     }
-                                    className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                     title="Delete draft"
                                   >
                                     <Trash2 size={14} />
@@ -3024,14 +3167,14 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                 <>
                                   <button
                                     onClick={() => handleNavigateToUpdate(item)}
-                                    className="inline-flex items-center justify-center w-8 h-8 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                                     title="Edit"
                                   >
                                     <Edit size={14} />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteClick(item)}
-                                    className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                     title="Delete"
                                   >
                                     <Trash2 size={14} />
@@ -3360,6 +3503,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
             </div>
           </>
         )}
+        {/* Funding Breakdown Pop Up Modal */}
+        <FundingBreakdownModal
+          isOpen={isFundingModalOpen}
+          onClose={() => setIsFundingModalOpen(false)}
+          startups={startups}
+          selectedStartupId={selectedStartup}
+        />
       </div>
     </div>
   );
