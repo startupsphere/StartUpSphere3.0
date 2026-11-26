@@ -66,14 +66,9 @@ public class BookmarksController {
             return ResponseEntity.badRequest().build(); // Bad Request if neither is provided
         }
 
-        // Create and save the bookmark
-        Bookmarks bookmark = new Bookmarks();
-        bookmark.setUser(user);
-        bookmark.setStartup(startup);
-        bookmark.setInvestor(investor); // Can be null if no investor is provided
-
-        Bookmarks savedBookmark = bookmarksService.createBookmark(bookmark);
-        return ResponseEntity.ok(savedBookmark); // Return the created bookmark
+        // Create and save or retrieve existing bookmark (prevents duplicates)
+        Bookmarks savedBookmark = bookmarksService.createOrGetBookmark(user, startup, investor);
+        return ResponseEntity.ok(savedBookmark); // Return the created or existing bookmark
     }
 
     @GetMapping

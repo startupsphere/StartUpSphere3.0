@@ -33,8 +33,45 @@ public class BookmarksService {
         return bookmarksRepository.save(bookmark);
     }
 
+    @CacheEvict(value = "bookmarks", allEntries = true)
+    public Bookmarks createOrGetBookmark(User user, com.startupsphere.capstone.entity.Startup startup, com.startupsphere.capstone.entity.Investor investor) {
+        if (startup != null) {
+            List<Bookmarks> existing = bookmarksRepository.findByUserAndStartup(user, startup);
+            if (!existing.isEmpty()) {
+                return existing.get(0);
+            }
+        } else if (investor != null) {
+            List<Bookmarks> existing = bookmarksRepository.findByUserAndInvestor(user, investor);
+            if (!existing.isEmpty()) {
+                return existing.get(0);
+            }
+        }
+        Bookmarks bookmark = new Bookmarks();
+        bookmark.setUser(user);
+        bookmark.setStartup(startup);
+        bookmark.setInvestor(investor);
+        return bookmarksRepository.save(bookmark);
+    }
+
     public List<Bookmarks> getBookmarksByUser(User user) {
-        return bookmarksRepository.findByUser(user);
+        List<Bookmarks> raw = bookmarksRepository.findByUser(user);
+        Map<String, Bookmarks> uniqueMap = new LinkedHashMap<>();
+        for (Bookmarks b : raw) {
+            String key = null;
+            if (b.getStartup() != null && b.getStartup().getId() != null) {
+                key = "startup_" + b.getStartup().getId();
+            } else if (b.getInvestor() != null && b.getInvestor().getId() != null) {
+                key = "investor_" + b.getInvestor().getId();
+            }
+            if (key != null) {
+                if (!uniqueMap.containsKey(key)) {
+                    uniqueMap.put(key, b);
+                }
+            } else {
+                uniqueMap.put("bookmark_" + b.getId(), b);
+            }
+        }
+        return new java.util.ArrayList<>(uniqueMap.values());
     }
 
     @Cacheable(value = "bookmarks", key = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort.toString()")
@@ -54,19 +91,29 @@ public class BookmarksService {
                 System.out.println("Deleting bookmark with id: " + id);
                 Bookmarks bookmark = bookmarksRepository.findById(id).orElse(null);
                 if (bookmark != null) {
-                    // Remove the bookmark from the user's list
-                    if (bookmark.getUser() != null) {
-                        bookmark.getUser().getBookmarks().remove(bookmark);
+                    User u = bookmark.getUser();
+                    com.startupsphere.capstone.entity.Startup s = bookmark.getStartup();
+                    com.startupsphere.capstone.entity.Investor inv = bookmark.getInvestor();
+                    if (u != null && s != null) {
+                        List<Bookmarks> duplicates = bookmarksRepository.findByUserAndStartup(u, s);
+                        for (Bookmarks dup : duplicates) {
+                            if (dup.getUser() != null) dup.getUser().getBookmarks().remove(dup);
+                            if (dup.getStartup() != null) dup.getStartup().getBookmarks().remove(dup);
+                        }
+                        bookmarksRepository.deleteAll(duplicates);
+                    } else if (u != null && inv != null) {
+                        List<Bookmarks> duplicates = bookmarksRepository.findByUserAndInvestor(u, inv);
+                        for (Bookmarks dup : duplicates) {
+                            if (dup.getUser() != null) dup.getUser().getBookmarks().remove(dup);
+                            if (dup.getInvestor() != null) dup.getInvestor().getBookmarks().remove(dup);
+                        }
+                        bookmarksRepository.deleteAll(duplicates);
+                    } else {
+                        if (bookmark.getUser() != null) bookmark.getUser().getBookmarks().remove(bookmark);
+                        if (bookmark.getStartup() != null) bookmark.getStartup().getBookmarks().remove(bookmark);
+                        if (bookmark.getInvestor() != null) bookmark.getInvestor().getBookmarks().remove(bookmark);
+                        bookmarksRepository.delete(bookmark);
                     }
-                    // Remove the bookmark from the startup's list
-                    if (bookmark.getStartup() != null) {
-                        bookmark.getStartup().getBookmarks().remove(bookmark);
-                    }
-                    // Remove the bookmark from the investor's list
-                    if (bookmark.getInvestor() != null) {
-                        bookmark.getInvestor().getBookmarks().remove(bookmark);
-                    }
-                    bookmarksRepository.delete(bookmark);
                     return true;
                 }
             }

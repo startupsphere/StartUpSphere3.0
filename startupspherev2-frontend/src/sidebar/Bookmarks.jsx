@@ -86,23 +86,35 @@ const Bookmarks = ({
         ? responseData
         : (responseData.content || []);
 
-      const bookmarkedStartups = data
-        .filter(item => item.startup !== null && item.startup !== undefined)
-        .map(item => ({
-          ...item.startup,
-          id: item.id // Use the bookmark's ID for deletion
-        }));
-
-      const bookmarkedStakeholders = data
-        .filter(item => (item.investor || item.stakeholder) !== null && (item.investor || item.stakeholder) !== undefined)
-        .map(item => {
-          const investorData = item.investor || item.stakeholder;
-          return {
-            ...investorData,
+      const seenStartupIds = new Set();
+      const bookmarkedStartups = [];
+      for (const item of data) {
+        if (item.startup && item.startup.id && !seenStartupIds.has(item.startup.id)) {
+          seenStartupIds.add(item.startup.id);
+          bookmarkedStartups.push({
+            ...item.startup,
             id: item.id, // Use the bookmark's ID for deletion
-            realInvestorId: investorData.investorId || investorData.id
-          };
-        });
+            startupId: item.startup.id
+          });
+        }
+      }
+
+      const seenStakeholderIds = new Set();
+      const bookmarkedStakeholders = [];
+      for (const item of data) {
+        const investorData = item.investor || item.stakeholder;
+        if (investorData) {
+          const investorId = investorData.investorId || investorData.id;
+          if (investorId && !seenStakeholderIds.has(investorId)) {
+            seenStakeholderIds.add(investorId);
+            bookmarkedStakeholders.push({
+              ...investorData,
+              id: item.id, // Use the bookmark's ID for deletion
+              realInvestorId: investorId
+            });
+          }
+        }
+      }
 
       setStartups(bookmarkedStartups);
       setStakeholders(bookmarkedStakeholders);

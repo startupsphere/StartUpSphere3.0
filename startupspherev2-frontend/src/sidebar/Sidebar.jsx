@@ -1669,7 +1669,7 @@ export default function Sidebar({
             ? responseData
             : (responseData.content || []);
 
-          const existingBookmark = bookmarks.find(
+          const matchingBookmarks = bookmarks.filter(
             (bookmark) =>
               (targetStartupId && bookmark.startup?.id === targetStartupId) ||
               (targetInvestorId &&
@@ -1677,31 +1677,28 @@ export default function Sidebar({
                   (bookmark.investor?.id && bookmark.investor.id === targetInvestorId)))
           );
 
-          if (existingBookmark) {
-            const deleteResponse = await fetch(
-              `${getBackendUrl()}/api/bookmarks/${existingBookmark.id}`,
-              {
+          if (matchingBookmarks.length > 0) {
+            // Delete all matching bookmarks to clear any duplicates
+            const deletePromises = matchingBookmarks.map((b) =>
+              fetch(`${getBackendUrl()}/api/bookmarks/${b.id}`, {
                 method: "DELETE",
                 headers: headers,
                 credentials: "include",
-              }
+              })
             );
+            await Promise.all(deletePromises);
 
-            if (deleteResponse.ok) {
-              if (startup) {
-                setBookmarkedStartups((prev) =>
-                  prev.filter((id) => id !== startup.id)
-                );
-              } else if (stakeholder) {
-                setBookmarkedStakeholders((prev) =>
-                  prev.filter((id) => id !== targetInvestorId)
-                );
-              }
-              setIsCurrentItemBookmarked(false);
-              toast.success("Bookmark removed successfully!");
-            } else {
-              toast.error("Failed to remove bookmark");
+            if (startup) {
+              setBookmarkedStartups((prev) =>
+                prev.filter((id) => id !== startup.id)
+              );
+            } else if (stakeholder) {
+              setBookmarkedStakeholders((prev) =>
+                prev.filter((id) => id !== targetInvestorId)
+              );
             }
+            setIsCurrentItemBookmarked(false);
+            toast.success("Bookmark removed successfully!");
           }
         }
       } else {
@@ -2740,6 +2737,16 @@ export default function Sidebar({
                   </div>
 
                   <div className="p-1.5 space-y-0.5">
+                    <button
+                      onClick={() => {
+                        setShowTooltip(false);
+                        navigate("/profile");
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <User className="h-4 w-4 text-indigo-600" />
+                      <span>My Profile & Credentials</span>
+                    </button>
                     {currentUser?.role === "ROLE_ADMIN" && (
                       <>
                         <button

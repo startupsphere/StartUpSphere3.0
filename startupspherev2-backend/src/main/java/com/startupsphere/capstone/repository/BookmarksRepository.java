@@ -33,6 +33,11 @@ public interface BookmarksRepository extends JpaRepository<Bookmarks, Long> {
         @Query("DELETE FROM Bookmarks b WHERE b.startup.id = :startupId")
         void deleteByStartupId(@Param("startupId") Long startupId);
 
+        List<Bookmarks> findByUserAndStartup(User user, Startup startup);
+        List<Bookmarks> findByUserAndInvestor(User user, Investor investor);
+        boolean existsByUserAndStartup(User user, Startup startup);
+        boolean existsByUserAndInvestor(User user, Investor investor);
+
         Optional<Bookmarks> findByUserAndStartupAndInvestor(User user, Startup startup, Investor investor);
 
         long countByStartup_Id(Long startupId);
