@@ -4,13 +4,10 @@ import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import {
   User,
   Mail,
-  Shield,
   ShieldCheck,
   Building2,
-  Calendar,
   Award,
   Layers,
-  FileText,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
@@ -19,7 +16,8 @@ import {
   RefreshCw,
   Plus,
   BadgeCheck,
-  Briefcase
+  Briefcase,
+  Coins
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
 import { toast } from "react-toastify";
@@ -79,21 +77,21 @@ export default function ProfilePage() {
   const getRoleLabel = (role) => {
     switch (role) {
       case "ROLE_ADMIN":
-        return { label: "System Administrator", color: "bg-amber-100 text-amber-800 border-amber-300" };
+        return { label: "System Administrator", color: "bg-amber-100 text-amber-900 border-amber-300" };
       case "ROLE_STARTUP":
-        return { label: "Startup Founder", color: "bg-blue-100 text-blue-800 border-blue-300" };
+        return { label: "Startup Founder", color: "bg-blue-100 text-blue-900 border-blue-300" };
       case "ROLE_SME":
-        return { label: "SME / Business Owner", color: "bg-emerald-100 text-emerald-800 border-emerald-300" };
+        return { label: "SME / Business Owner", color: "bg-emerald-100 text-emerald-900 border-emerald-300" };
       case "ROLE_HEI":
-        return { label: "Higher Education Institution", color: "bg-indigo-100 text-indigo-800 border-indigo-300" };
+        return { label: "Higher Education Institution", color: "bg-indigo-100 text-indigo-900 border-indigo-300" };
       case "ROLE_RESEARCH":
-        return { label: "Research Institution", color: "bg-purple-100 text-purple-800 border-purple-300" };
+        return { label: "Research Institution", color: "bg-purple-100 text-purple-900 border-purple-300" };
       case "ROLE_GOVERNMENT":
-        return { label: "Government / Enabler", color: "bg-orange-100 text-orange-800 border-orange-300" };
+        return { label: "Government / Enabler", color: "bg-orange-100 text-orange-900 border-orange-300" };
       case "ROLE_INVESTOR":
-        return { label: "Accredited Investor", color: "bg-teal-100 text-teal-800 border-teal-300" };
+        return { label: "Accredited Investor", color: "bg-teal-100 text-teal-900 border-teal-300" };
       default:
-        return { label: "Standard Member", color: "bg-gray-100 text-gray-800 border-gray-300" };
+        return { label: "Standard Member", color: "bg-slate-100 text-slate-800 border-slate-300" };
     }
   };
 
@@ -115,7 +113,7 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate("/startup-dashboard")}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-indigo-600 bg-white px-3.5 py-2 rounded-xl border border-gray-200/80 shadow-2xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-700 hover:text-indigo-600 bg-white px-3.5 py-2 rounded-xl border border-gray-200/90 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
@@ -125,7 +123,7 @@ export default function ProfilePage() {
             <button
               onClick={fetchProfileData}
               disabled={loading}
-              className="p-2 text-gray-500 hover:text-indigo-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+              className="p-2 text-gray-600 hover:text-indigo-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
               title="Refresh profile"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -141,22 +139,32 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Header Hero Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="h-28 sm:h-32 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-900 relative">
-            <div className="absolute inset-0 bg-white/5 opacity-30 backdrop-blur-3xl"></div>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          {/* Cover Banner */}
+          <div className="h-32 sm:h-36 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 relative">
+            <div className="absolute inset-0 bg-white/5 opacity-40 backdrop-blur-3xl"></div>
+            <div className="absolute top-3.5 right-4 sm:top-4 sm:right-6">
+              <span className={`px-3 py-1 text-xs font-bold rounded-full border shadow-xs ${roleInfo.color}`}>
+                {roleInfo.label}
+              </span>
+            </div>
           </div>
 
-          <div className="px-6 pb-6 pt-0 relative">
-            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-4">
-              <div className="flex items-end gap-4">
-                <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-md shrink-0">
+          {/* User Details & Identity */}
+          <div className="px-6 sm:px-8 pb-6 pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                {/* Floating Avatar Box */}
+                <div className="-mt-14 sm:-mt-16 w-24 h-24 sm:w-26 sm:h-26 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-md shrink-0">
                   {user
                     ? `${user.firstname?.[0] || ""}${user.lastname?.[0] || ""}`.toUpperCase()
                     : "U"}
                 </div>
-                <div className="pb-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+
+                {/* Name, Badge, Email - Sitting 100% in white space with high contrast */}
+                <div className="pt-2 sm:pt-0 pb-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       {user ? `${user.firstname} ${user.lastname}` : "Loading..."}
                     </h1>
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -164,56 +172,82 @@ export default function ProfilePage() {
                       Verified Account
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
+                  <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
                     <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{user?.email || "No email"}</span>
+                    <span>{user?.email || "No email provided"}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className={`px-3 py-1 text-xs font-bold rounded-lg border ${roleInfo.color}`}>
-                  {roleInfo.label}
+              {/* Quick Profile Identifier */}
+              <div className="flex items-center gap-2 pb-1 self-start sm:self-end">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <span>ID: #{user?.id || "—"}</span>
                 </span>
               </div>
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-                <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Total Ventures
-                </span>
-                <span className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 block">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-5 border-t border-slate-100">
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/70 hover:border-indigo-200 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                    Total Ventures
+                  </span>
+                  <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Building2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <span className="text-xl font-black text-slate-900 block">
                   {startups.length}
                 </span>
+                <span className="text-[10.5px] text-slate-400">Registered to account</span>
               </div>
 
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-                <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Gov. Registered
-                </span>
-                <span className="text-lg sm:text-xl font-bold text-emerald-600 mt-0.5 block">
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/70 hover:border-emerald-200 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                    Gov. Registered
+                  </span>
+                  <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <span className="text-xl font-black text-emerald-600 block">
                   {registeredStartups.length}
                 </span>
+                <span className="text-[10.5px] text-slate-400">BIR / SEC / DTI verified</span>
               </div>
 
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-                <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Grants & Subsidies
-                </span>
-                <span className="text-lg sm:text-xl font-bold text-indigo-600 mt-0.5 block">
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/70 hover:border-indigo-200 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                    Grants & Subsidies
+                  </span>
+                  <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Award className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <span className="text-xl font-black text-indigo-700 block truncate">
                   ₱{totalGrantsReceived.toLocaleString()}
                 </span>
+                <span className="text-[10.5px] text-slate-400">DOST / DTI innovation funds</span>
               </div>
 
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-                <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Account Standing
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/70 hover:border-emerald-200 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                    Account Standing
+                  </span>
+                  <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <span className="text-xl font-black text-emerald-700 block flex items-center gap-1">
+                  Active
                 </span>
-                <span className="text-lg sm:text-xl font-bold text-emerald-700 mt-0.5 block flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Active
-                </span>
+                <span className="text-[10.5px] text-emerald-600/90 font-medium">Good standing</span>
               </div>
             </div>
           </div>
@@ -270,8 +304,6 @@ export default function ProfilePage() {
                     <h2 className="text-base sm:text-lg font-bold text-slate-900">
                       Government Certified & Business Compliance
                     </h2>
-                    <TooltipInfo type="GOV_REG" size="sm" />
-                    <TooltipInfo type="BIR" size="sm" />
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
                     Verified business status, regulatory agencies, certificates, and tax compliance records
@@ -285,53 +317,64 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* BIR / Tax Status */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="p-4 rounded-xl bg-slate-50/90 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                       BIR (Certified Status)
                     </span>
                     <TooltipInfo type="BIR" size="xs" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {startups.some((s) => String(s.registrationAgency).toUpperCase().includes("BIR"))
-                      ? "Government Certified"
-                      : startups.some((s) => s.isGovernmentRegistered)
-                      ? "Registered"
-                      : "Pending"}
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <div className="mt-1">
+                    {startups.some((s) => String(s.registrationAgency).toUpperCase().includes("BIR")) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Government Certified
+                      </span>
+                    ) : startups.some((s) => s.isGovernmentRegistered) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Registered
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <AlertCircle className="w-3.5 h-3.5" /> Pending
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                     Official Bureau of Internal Revenue tax documentation & compliance
                   </p>
                 </div>
 
                 {/* Registration Agency */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="p-4 rounded-xl bg-slate-50/90 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                       Primary Agency
                     </span>
                     <TooltipInfo type="GOV_REG" size="xs" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {startups.find((s) => s.registrationAgency)?.registrationAgency ||
-                      (registeredStartups.length > 0 ? "SEC / DTI" : "None Provided")}
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <div className="mt-1">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                      {startups.find((s) => s.registrationAgency)?.registrationAgency ||
+                        (registeredStartups.length > 0 ? "SEC / DTI" : "None Provided")}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                     Corporation / Sole Proprietorship corporate registration
                   </p>
                 </div>
 
                 {/* Subsidies & Grants */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="p-4 rounded-xl bg-slate-50/90 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                       Public Grants & Subsidies
                     </span>
+                    <Coins className="w-3.5 h-3.5 text-indigo-500" />
                   </div>
-                  <p className="text-sm font-semibold text-indigo-700">
+                  <p className="text-lg font-black text-indigo-700 mt-1">
                     ₱{totalGrantsReceived.toLocaleString()}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
                     Recorded DOST, DTI, or national innovation grants received
                   </p>
                 </div>
@@ -345,7 +388,7 @@ export default function ProfilePage() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900">
                     Registered Business Credentials Directory
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Specific registration credentials and TRL readiness per owned venture
                   </p>
                 </div>
@@ -395,7 +438,7 @@ export default function ProfilePage() {
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${
                                   isGov
                                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                     : "bg-amber-50 text-amber-700 border border-amber-200"
@@ -405,15 +448,19 @@ export default function ProfilePage() {
                                 {isGov ? "Registered" : "Pending"}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center font-bold text-indigo-700">
-                              {st.trlLevel || "Level 4"}
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[11px] border border-indigo-100">
+                                <Layers className="w-3 h-3" />
+                                {st.trlLevel || "TRL 1"}
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <button
                                 onClick={() => navigate(`/startup/${st.id}`)}
-                                className="px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer border border-indigo-200/70"
                               >
-                                View Details
+                                <span>View Details</span>
+                                <ExternalLink className="w-3 h-3" />
                               </button>
                             </td>
                           </tr>
