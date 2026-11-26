@@ -3049,21 +3049,21 @@ export default function StartupDashboard({ openAddMethodModal }) {
                   </div>
 
                   {/* Deal Flow & Investor Pipeline Quick Banner (Compact) */}
-                  <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-indigo-950 text-white rounded-xl p-3 sm:p-3.5 mb-2.5 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border border-emerald-800/50">
+                  <div className="bg-white rounded-xl p-3 sm:p-3.5 mb-2.5 shadow-xs hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border border-gray-200/90">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center shrink-0">
-                        <TrendingUp className="w-4 h-4 text-emerald-300" />
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+                        <TrendingUp className="w-4 h-4 text-indigo-600" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-xs sm:text-sm text-white">
+                          <h3 className="font-bold text-xs sm:text-sm text-gray-900">
                             Deal Flow & Investment Inquiries Pipeline
                           </h3>
-                          <span className="text-[9.5px] font-bold px-2 py-0.2 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Active
                           </span>
                         </div>
-                        <p className="text-[11px] text-emerald-100/80 mt-0.5 max-w-xl">
+                        <p className="text-[11px] text-gray-500 mt-0.5 max-w-xl">
                           Review investor screening, founder meetings, due diligence, and term sheets.
                         </p>
                       </div>
@@ -3071,7 +3071,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     <button
                       type="button"
                       onClick={() => navigate("/investments")}
-                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 active:scale-95"
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 active:scale-95"
                     >
                       <span>Open Deal Flow</span>
                       <ArrowRight className="w-3 h-3" />
