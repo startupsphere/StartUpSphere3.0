@@ -40,6 +40,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import loginLogo from "/StartUpSphere_loginLogo.png";
 import FundingBreakdownModal from "../modals/FundingBreakdownModal";
+import StartupComparisonModal from "../modals/StartupComparisonModal";
 import StartupCategoryDiversity from "../components/StartupCategoryDiversity";
 import { fetchStartupSocialMetrics } from "../services/socialEngagementService";
 import TooltipInfo from "../components/TooltipInfo";
@@ -81,6 +82,48 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [logoUrls, setLogoUrls] = useState({});
   const [syncingSocialId, setSyncingSocialId] = useState(null);
   const [isFundingModalOpen, setIsFundingModalOpen] = useState(false);
+
+  // Multi-startup comparison state (for Business Owners with > 1 startups)
+  const [compareStartupIds, setCompareStartupIds] = useState([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  const uniqueOwnedStartups = useMemo(() => {
+    const map = new Map();
+    (startups || []).forEach((s) => {
+      if (s && !s.isDraft && s.id != null && !map.has(String(s.id))) {
+        map.set(String(s.id), s);
+      }
+    });
+    return Array.from(map.values());
+  }, [startups]);
+
+  const hasMultipleStartups = uniqueOwnedStartups.length > 1;
+
+  const toggleCompareStartup = useCallback((id) => {
+    setCompareStartupIds((prev) => {
+      const strId = String(id);
+      const exists = prev.some((item) => String(item) === strId);
+      if (exists) {
+        return prev.filter((item) => String(item) !== strId);
+      }
+      return [...prev, id];
+    });
+  }, []);
+
+  const selectAllForCompare = useCallback(() => {
+    setCompareStartupIds(uniqueOwnedStartups.map((s) => s.id));
+  }, [uniqueOwnedStartups]);
+
+  const clearCompareSelection = useCallback(() => {
+    setCompareStartupIds([]);
+  }, []);
+
+  const handleOpenCompareModal = useCallback(() => {
+    if (compareStartupIds.length < 2 && uniqueOwnedStartups.length >= 2) {
+      setCompareStartupIds(uniqueOwnedStartups.map((s) => s.id));
+    }
+    setIsCompareModalOpen(true);
+  }, [compareStartupIds.length, uniqueOwnedStartups]);
 
   // User Venture Reports state
   const USER_REPORT_METRICS = [
@@ -2450,6 +2493,19 @@ export default function StartupDashboard({ openAddMethodModal }) {
                   ))}
                 </select>
               </div>
+              {hasMultipleStartups && (
+                <button
+                  type="button"
+                  onClick={handleOpenCompareModal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors cursor-pointer whitespace-nowrap"
+                  title="Compare status and metrics across multiple startups"
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  <span>
+                    Compare{compareStartupIds.length >= 2 ? ` (${compareStartupIds.length})` : ""}
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* View Metric Filters - Segmented Control */}
@@ -3700,26 +3756,76 @@ export default function StartupDashboard({ openAddMethodModal }) {
         {/* Professional Startups Table */}
         <div className="mb-4">
           <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/90 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/90 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900">Your Startups</h2>
                 <p className="text-[11px] text-gray-500">
-                  Manage and monitor all your startup listings
+                  {hasMultipleStartups
+                    ? "Manage all your listings or check 2+ startups to compare their status side by side"
+                    : "Manage and monitor all your startup listings"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleAddStartupClick}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Startup</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {hasMultipleStartups && (
+                  <>
+                    {compareStartupIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearCompareSelection}
+                        className="px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-rose-600 bg-white border border-gray-200 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Clear ({compareStartupIds.length})
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleOpenCompareModal}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer border ${
+                        compareStartupIds.length >= 2
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                          : "bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-200"
+                      }`}
+                    >
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      <span>
+                        {compareStartupIds.length >= 2
+                          ? `Compare Selected (${compareStartupIds.length})`
+                          : "Compare Startups"}
+                      </span>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={handleAddStartupClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Startup</span>
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="bg-gray-50/75 border-b border-gray-200">
+                    {hasMultipleStartups && (
+                      <th className="px-3 py-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          title="Select all startups to compare"
+                          checked={
+                            uniqueOwnedStartups.length > 0 &&
+                            compareStartupIds.length === uniqueOwnedStartups.length
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) selectAllForCompare();
+                            else clearCompareSelection();
+                          }}
+                        />
+                      </th>
+                    )}
                     <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Startup Name
                     </th>
@@ -3743,7 +3849,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center">
+                      <td colSpan={hasMultipleStartups ? 7 : 6} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <div className="relative w-12 h-12 mb-4">
                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
@@ -3760,7 +3866,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </tr>
                   ) : displayList.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center">
+                      <td colSpan={hasMultipleStartups ? 7 : 6} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
                             <svg
@@ -3795,6 +3901,9 @@ export default function StartupDashboard({ openAddMethodModal }) {
                   ) : (
                     displayList.map((item) => {
                       const isDraft = !!item.isDraft;
+                      const isSelectedForCompare =
+                        !isDraft &&
+                        compareStartupIds.some((id) => String(id) === String(item.id));
                       const formattedDate = item.foundedDate
                         ? new Date(item.foundedDate).toLocaleDateString()
                         : "N/A";
@@ -3805,12 +3914,32 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           className={`${
                             isDraft
                               ? "bg-amber-50/70"
+                              : isSelectedForCompare
+                              ? "bg-indigo-50/50 hover:bg-indigo-50/80 cursor-pointer"
                               : "hover:bg-gray-50/80 cursor-pointer"
                           } transition-colors duration-150`}
                           onClick={() =>
                             !isDraft && navigate(`/startup/${item.id}`)
                           }
                         >
+                          {hasMultipleStartups && (
+                            <td
+                              className="px-3 py-3 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {!isDraft ? (
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                  checked={isSelectedForCompare}
+                                  onChange={() => toggleCompareStartup(item.id)}
+                                  title="Select startup for comparison"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-gray-300">—</span>
+                              )}
+                            </td>
+                          )}
                           {/* Startup Name + Logo + Location */}
                           <td className="px-3.5 py-3">
                             <div className="flex items-center gap-2.5 min-w-0">
@@ -4305,6 +4434,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
           onClose={() => setIsFundingModalOpen(false)}
           startups={startups}
           selectedStartupId={selectedStartup}
+        />
+
+        {/* Multi-Startup Status & Metrics Comparison Modal */}
+        <StartupComparisonModal
+          isOpen={isCompareModalOpen}
+          onClose={() => setIsCompareModalOpen(false)}
+          startups={uniqueOwnedStartups}
+          selectedIds={compareStartupIds}
+          onToggleId={toggleCompareStartup}
+          onSelectAll={selectAllForCompare}
+          onClearAll={clearCompareSelection}
+          logoUrls={logoUrls}
         />
       </div>
     </div>
