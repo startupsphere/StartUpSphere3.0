@@ -353,41 +353,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
     }
   };
 
-  const [startupStatusFilter, setStartupStatusFilter] = useState("all");
-
-  const categorizedStartups = useMemo(() => {
-    const isApproved = (s) =>
-      !s.isDraft &&
-      (String(s.status || "").toLowerCase() === "approved" || s.isApproved === true);
-
-    const isRejected = (s) =>
-      !s.isDraft &&
-      String(s.status || "").toLowerCase() === "rejected";
-
-    const isInReview = (s) =>
-      !isApproved(s) && !isRejected(s);
-
-    const filterFn = (s) =>
-      !searchQuery ||
-      [s.companyName, s.industry, s.locationName].some((field) =>
-        field?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-    const allApproved = startups.filter((s) => !s.isDraft && isApproved(s) && filterFn(s));
-    const allRejected = startups.filter((s) => !s.isDraft && isRejected(s) && filterFn(s));
-    const allInReview = [
-      ...startups.filter((s) => !s.isDraft && isInReview(s) && filterFn(s)),
-      ...drafts.filter((d) => filterFn(d)).map((d) => ({ ...d, isDraft: true, status: "Draft" })),
-    ];
-
-    return {
-      approved: allApproved,
-      inReview: allInReview,
-      rejected: allRejected,
-      total: allApproved.length + allInReview.length + allRejected.length,
-    };
-  }, [startups, drafts, searchQuery]);
-
   const handleAddStartupClick = () => {
     if (typeof openAddMethodModal === "function") {
       openAddMethodModal();
@@ -3732,412 +3697,295 @@ export default function StartupDashboard({ openAddMethodModal }) {
           </div>
         </div>
 
-        {/* Professional Startups Section with Separate Containers */}
+        {/* Professional Startups Table */}
         <div className="mb-4">
-          <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 overflow-hidden mb-3">
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-200/90 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/90 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-bold text-gray-900">Your Startups</h2>
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    {categorizedStartups.total} Total
-                  </span>
-                </div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900">Your Startups</h2>
                 <p className="text-[11px] text-gray-500">
-                  Organized into separate containers for Approved, In Review, and Rejected ventures
+                  Manage and monitor all your startup listings
                 </p>
               </div>
-
-              {/* Segmented Filter Pills & Add Startup Button */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center p-0.5 bg-gray-200/80 rounded-lg text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setStartupStatusFilter("all")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                      startupStatusFilter === "all"
-                        ? "bg-white text-indigo-700 shadow-2xs"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    All ({categorizedStartups.total})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStartupStatusFilter("approved")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      startupStatusFilter === "approved"
-                        ? "bg-white text-emerald-700 shadow-2xs"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>Approved ({categorizedStartups.approved.length})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStartupStatusFilter("in_review")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      startupStatusFilter === "in_review"
-                        ? "bg-white text-amber-700 shadow-2xs"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    <span>In Review ({categorizedStartups.inReview.length})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStartupStatusFilter("rejected")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      startupStatusFilter === "rejected"
-                        ? "bg-white text-rose-700 shadow-2xs"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                    <span>Rejected ({categorizedStartups.rejected.length})</span>
-                  </button>
-                </div>
-
-                {/* Prominent Add Startup Button */}
-                <button
-                  type="button"
-                  onClick={handleAddStartupClick}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Startup</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleAddStartupClick}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Startup</span>
+              </button>
             </div>
-          </div>
-
-          {/* SEPARATE CONTAINERS */}
-          <div className="space-y-4">
-            {/* 1. APPROVED STARTUPS CONTAINER */}
-            {(startupStatusFilter === "all" || startupStatusFilter === "approved") && (
-              <div className="bg-white rounded-xl shadow-xs border border-emerald-200/90 overflow-hidden">
-                <div className="px-4 py-2.5 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <h3 className="text-xs sm:text-sm font-bold text-emerald-950">Approved Startups</h3>
-                    <span className="px-2 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
-                      {categorizedStartups.approved.length}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-emerald-700 font-medium">Live on map & public leaderboard</span>
-                </div>
-
-                <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <table className="w-full text-left border-collapse table-auto">
-                    <thead>
-                      <tr className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <th className="px-3.5 py-2.5">Startup Name</th>
-                        <th className="px-3.5 py-2.5">Industry</th>
-                        <th className="px-3.5 py-2.5">Founded Date</th>
-                        <th className="px-3.5 py-2.5">Contact</th>
-                        <th className="px-3.5 py-2.5 text-center">Status</th>
-                        <th className="px-3.5 py-2.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {loading ? (
-                        <tr><td colSpan={6} className="py-6 text-center text-xs text-gray-400">Loading approved startups...</td></tr>
-                      ) : categorizedStartups.approved.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-6 text-center text-xs text-gray-400">
-                            No approved startups yet. Once reviewed by administrators, your verified ventures appear here.
-                          </td>
-                        </tr>
-                      ) : (
-                        categorizedStartups.approved.map((item) => (
-                          <tr
-                            key={`approved-${item.id}`}
-                            className="hover:bg-gray-50/80 cursor-pointer transition-colors duration-150"
-                            onClick={() => navigate(`/startup/${item.id}`)}
-                          >
-                            <td className="px-3.5 py-2.5">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                                  {logoUrls[item.id] ? (
-                                    <img src={logoUrls[item.id]} alt={item.companyName} className="w-full h-full object-cover" loading="lazy" />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center text-white font-bold text-xs">
-                                      {(item.companyName || "?")[0].toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="min-w-0 max-w-[200px]">
-                                  <p className="font-bold text-gray-900 truncate text-xs sm:text-sm">{item.companyName}</p>
-                                  <p className="text-[11px] text-gray-500 truncate flex items-center gap-0.5">
-                                    <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                                    <span>{item.locationName || "No location"}</span>
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3.5 py-2.5 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-100 truncate max-w-[130px]">
-                                {item.industry || "N/A"}
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-600">
-                              {item.foundedDate ? new Date(item.foundedDate).toLocaleDateString() : "N/A"}
-                            </td>
-                            <td className="px-3.5 py-2.5">
-                              <div className="min-w-0 max-w-[150px]">
-                                {item.contactEmail ? (
-                                  <a href={`mailto:${item.contactEmail}`} className="text-xs font-medium text-indigo-600 hover:underline block truncate" onClick={(e) => e.stopPropagation()}>{item.contactEmail}</a>
-                                ) : <span className="text-xs text-gray-400">No email</span>}
-                                {item.phoneNumber && <span className="text-[11px] text-gray-400 block truncate">{item.phoneNumber}</span>}
-                              </div>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-md">
-                                <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" /> Approved
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button onClick={() => handleNavigateToUpdate(item)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" title="Edit">
-                                  <Edit size={14} />
-                                </button>
-                                <button onClick={() => handleDeleteClick(item)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Delete">
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* 2. IN REVIEW & DRAFTS CONTAINER */}
-            {(startupStatusFilter === "all" || startupStatusFilter === "in_review") && (
-              <div className="bg-white rounded-xl shadow-xs border border-amber-200/90 overflow-hidden">
-                <div className="px-4 py-2.5 bg-amber-50/70 border-b border-amber-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    <h3 className="text-xs sm:text-sm font-bold text-amber-950">In Review & Drafts</h3>
-                    <span className="px-2 py-0.2 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
-                      {categorizedStartups.inReview.length}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-amber-700 font-medium">Pending admin approval or draft completion</span>
-                </div>
-
-                <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <table className="w-full text-left border-collapse table-auto">
-                    <thead>
-                      <tr className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <th className="px-3.5 py-2.5">Startup Name</th>
-                        <th className="px-3.5 py-2.5">Industry</th>
-                        <th className="px-3.5 py-2.5">Founded Date</th>
-                        <th className="px-3.5 py-2.5">Contact</th>
-                        <th className="px-3.5 py-2.5 text-center">Status</th>
-                        <th className="px-3.5 py-2.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {loading ? (
-                        <tr><td colSpan={6} className="py-6 text-center text-xs text-gray-400">Loading pending startups...</td></tr>
-                      ) : categorizedStartups.inReview.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-6 text-center text-xs text-gray-400">
-                            No startups currently under review or in draft.
-                          </td>
-                        </tr>
-                      ) : (
-                        categorizedStartups.inReview.map((item) => {
-                          const isDraft = !!item.isDraft;
-                          return (
-                            <tr
-                              key={`review-${item.id}`}
-                              className={`${isDraft ? "bg-amber-50/40" : "hover:bg-gray-50/80 cursor-pointer"} transition-colors duration-150`}
-                              onClick={() => !isDraft && navigate(`/startup/${item.id}`)}
+            <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <table className="w-full text-left border-collapse table-auto">
+                <thead>
+                  <tr className="bg-gray-50/75 border-b border-gray-200">
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Startup Name
+                    </th>
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Industry
+                    </th>
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Founded Date
+                    </th>
+                    <th className="px-3.5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-3.5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-3.5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="relative w-12 h-12 mb-4">
+                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                            <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
+                          </div>
+                          <p className="text-gray-600 font-semibold text-sm">
+                            Loading startups...
+                          </p>
+                          <p className="text-gray-400 text-xs mt-1">
+                            Please wait
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : displayList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                            <svg
+                              className="w-8 h-8 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
                             >
-                              <td className="px-3.5 py-2.5">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                                    {logoUrls[item.id] ? (
-                                      <img src={logoUrls[item.id]} alt={item.companyName} className="w-full h-full object-cover" loading="lazy" />
-                                    ) : (
-                                      <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-xs">
-                                        {(item.companyName || "?")[0].toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 max-w-[200px]">
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                      <p className="font-bold text-gray-900 truncate text-xs sm:text-sm">{item.companyName || "Untitled Draft"}</p>
-                                      {isDraft && <span className="px-1.5 py-0.2 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">Draft</span>}
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                              />
+                            </svg>
+                          </div>
+                          <p className="text-gray-900 font-semibold text-base mb-1">
+                            No startups found
+                          </p>
+                          <p className="text-gray-500 text-sm mb-4">
+                            Start by adding your first startup
+                          </p>
+                          <button
+                            onClick={handleAddStartupClick}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+                          >
+                            Add Your Startup
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    displayList.map((item) => {
+                      const isDraft = !!item.isDraft;
+                      const formattedDate = item.foundedDate
+                        ? new Date(item.foundedDate).toLocaleDateString()
+                        : "N/A";
+
+                      return (
+                        <tr
+                          key={`${isDraft ? "draft" : "startup"}-${item.id}`}
+                          className={`${
+                            isDraft
+                              ? "bg-amber-50/70"
+                              : "hover:bg-gray-50/80 cursor-pointer"
+                          } transition-colors duration-150`}
+                          onClick={() =>
+                            !isDraft && navigate(`/startup/${item.id}`)
+                          }
+                        >
+                          {/* Startup Name + Logo + Location */}
+                          <td className="px-3.5 py-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex-shrink-0">
+                                <div className="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                  {logoUrls[item.id] ? (
+                                    <img
+                                      src={logoUrls[item.id]}
+                                      alt={item.companyName}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  ) : logoUrls[item.id] === null ? (
+                                    <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center">
+                                      <span className="text-xs font-bold text-white">
+                                        {(item.companyName ||
+                                          "?")[0].toUpperCase()}
+                                      </span>
                                     </div>
-                                    <p className="text-[11px] text-gray-500 truncate flex items-center gap-0.5">
-                                      <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                                      <span>{item.locationName || "No location"}</span>
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3.5 py-2.5 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-100 truncate max-w-[130px]">
-                                  {item.industry || "N/A"}
-                                </span>
-                              </td>
-                              <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-600">
-                                {item.foundedDate ? new Date(item.foundedDate).toLocaleDateString() : "N/A"}
-                              </td>
-                              <td className="px-3.5 py-2.5">
-                                <div className="min-w-0 max-w-[150px]">
-                                  {item.contactEmail ? (
-                                    <a href={`mailto:${item.contactEmail}`} className="text-xs font-medium text-indigo-600 hover:underline block truncate" onClick={(e) => e.stopPropagation()}>{item.contactEmail}</a>
-                                  ) : <span className="text-xs text-gray-400">No email</span>}
-                                  {item.phoneNumber && <span className="text-[11px] text-gray-400 block truncate">{item.phoneNumber}</span>}
-                                </div>
-                              </td>
-                              <td className="px-3.5 py-2.5 text-center whitespace-nowrap">
-                                {isDraft ? (
-                                  <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 text-[11px] font-semibold rounded-md">Draft</span>
-                                ) : (
-                                  <span className="inline-flex items-center px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold rounded-md">
-                                    <Clock className="w-3 h-3 mr-1 text-amber-600" /> In Review
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-3.5 py-2.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-1.5">
-                                  {isDraft ? (
-                                    <>
-                                      <button onClick={() => navigate(`/add-startup?draftId=${item.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer" title="Continue editing draft">
-                                        <PlayCircle size={13} /> Continue
-                                      </button>
-                                      <button onClick={() => handleDeleteDraftClick(item.id, item.companyName)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Delete draft">
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </>
                                   ) : (
-                                    <>
-                                      <button onClick={() => handleNavigateToUpdate(item)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" title="Edit">
-                                        <Edit size={14} />
-                                      </button>
-                                      <button onClick={() => handleDeleteClick(item)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Delete">
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </>
+                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center animate-pulse">
+                                      <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                      </svg>
+                                    </div>
                                   )}
                                 </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                              </div>
+                              <div className="min-w-0 max-w-[170px] sm:max-w-[210px] lg:max-w-[250px]">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <p className="font-bold text-gray-900 truncate text-xs sm:text-sm" title={item.companyName}>
+                                    {item.companyName || "Untitled Draft"}
+                                  </p>
+                                  {isDraft && (
+                                    <span className="px-1.5 py-0.2 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">
+                                      Draft
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-gray-500 truncate flex items-center gap-0.5" title={item.locationName}>
+                                  <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                  <span className="truncate">{item.locationName || "No location"}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </td>
 
-            {/* 3. REJECTED / NEEDS REVISION CONTAINER */}
-            {(startupStatusFilter === "all" || startupStatusFilter === "rejected") && (
-              <div className="bg-white rounded-xl shadow-xs border border-rose-200/90 overflow-hidden">
-                <div className="px-4 py-2.5 bg-rose-50/70 border-b border-rose-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-600" />
-                    <h3 className="text-xs sm:text-sm font-bold text-rose-950">Needs Revision / Rejected</h3>
-                    <span className="px-2 py-0.2 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-full">
-                      {categorizedStartups.rejected.length}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-rose-700 font-medium">Applications requiring changes or feedback</span>
-                </div>
+                          {/* Industry */}
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-100 truncate max-w-[130px]" title={item.industry}>
+                              {item.industry || "N/A"}
+                            </span>
+                          </td>
 
-                <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <table className="w-full text-left border-collapse table-auto">
-                    <thead>
-                      <tr className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <th className="px-3.5 py-2.5">Startup Name</th>
-                        <th className="px-3.5 py-2.5">Industry</th>
-                        <th className="px-3.5 py-2.5">Founded Date</th>
-                        <th className="px-3.5 py-2.5">Feedback / Reason</th>
-                        <th className="px-3.5 py-2.5 text-center">Status</th>
-                        <th className="px-3.5 py-2.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {loading ? (
-                        <tr><td colSpan={6} className="py-6 text-center text-xs text-gray-400">Loading rejected startups...</td></tr>
-                      ) : categorizedStartups.rejected.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-6 text-center text-xs text-gray-400">
-                            No rejected startups. All your submissions are in good standing.
+                          {/* Founded Date */}
+                          <td className="px-3.5 py-3 whitespace-nowrap text-xs text-gray-600">
+                            {formattedDate}
+                          </td>
+
+                          {/* Contact */}
+                          <td className="px-3.5 py-3">
+                            <div className="min-w-0 max-w-[150px] lg:max-w-[180px]">
+                              {item.contactEmail ? (
+                                <a
+                                  href={`mailto:${item.contactEmail}`}
+                                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline block truncate"
+                                  title={item.contactEmail}
+                                >
+                                  {item.contactEmail}
+                                </a>
+                              ) : (
+                                <span className="text-xs text-gray-400">No email</span>
+                              )}
+                              {item.phoneNumber && (
+                                <span className="text-[11px] text-gray-400 block truncate" title={item.phoneNumber}>
+                                  {item.phoneNumber}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-3.5 py-3 text-center whitespace-nowrap">
+                            {isDraft ? (
+                              <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 text-[11px] font-semibold rounded-md">
+                                Draft
+                              </span>
+                            ) : item.emailVerified ? (
+                              <span className="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 text-[11px] font-semibold rounded-md">
+                                <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
+                                Verified
+                              </span>
+                            ) : (
+                              <button
+                                className="px-2.5 py-1 text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVerifyNow(item.id, item.contactEmail);
+                                }}
+                              >
+                                Verify Now
+                              </button>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td
+                            className="px-3.5 py-3 text-center whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              {isDraft ? (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      navigate(
+                                        `/add-startup?draftId=${item.id}`
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
+                                    title="Continue editing draft"
+                                  >
+                                    <PlayCircle size={13} /> Continue
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteDraftClick(
+                                        item.id,
+                                        item.companyName
+                                      )
+                                    }
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete draft"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleNavigateToUpdate(item)}
+                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Edit"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteClick(item)}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
-                      ) : (
-                        categorizedStartups.rejected.map((item) => (
-                          <tr
-                            key={`rejected-${item.id}`}
-                            className="hover:bg-rose-50/30 cursor-pointer transition-colors duration-150"
-                            onClick={() => navigate(`/startup/${item.id}`)}
-                          >
-                            <td className="px-3.5 py-2.5">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                                  {logoUrls[item.id] ? (
-                                    <img src={logoUrls[item.id]} alt={item.companyName} className="w-full h-full object-cover" loading="lazy" />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold text-xs">
-                                      {(item.companyName || "?")[0].toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="min-w-0 max-w-[200px]">
-                                  <p className="font-bold text-gray-900 truncate text-xs sm:text-sm">{item.companyName}</p>
-                                  <p className="text-[11px] text-gray-500 truncate flex items-center gap-0.5">
-                                    <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                                    <span>{item.locationName || "No location"}</span>
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3.5 py-2.5 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-100 truncate max-w-[130px]">
-                                {item.industry || "N/A"}
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-600">
-                              {item.foundedDate ? new Date(item.foundedDate).toLocaleDateString() : "N/A"}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-xs text-rose-700 max-w-[200px] truncate" title={item.rejectionReason || "Please review and update application details"}>
-                              {item.rejectionReason || "Please update and resubmit application"}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold rounded-md">
-                                <AlertCircle className="w-3 h-3 mr-1 text-rose-600" /> Needs Revision
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button onClick={() => handleNavigateToUpdate(item)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 transition-colors shadow-2xs cursor-pointer" title="Edit & Resubmit">
-                                  <Edit size={13} /> Edit
-                                </button>
-                                <button onClick={() => handleDeleteClick(item)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Delete">
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
           </>

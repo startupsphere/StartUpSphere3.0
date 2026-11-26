@@ -32,6 +32,8 @@ import {
   GraduationCap,
   FlaskConical,
   ShieldCheck,
+  CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -92,6 +94,7 @@ export default function EnhancedStartupReviewSection({
     dateRange: { start: null, end: null },
   });
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [containerView, setContainerView] = useState("all"); // "all" | "inReview" | "approved" | "rejected"
   const [sortConfig, setSortConfig] = useState({
     key: "companyName",
     direction: "asc",
@@ -827,6 +830,26 @@ export default function EnhancedStartupReviewSection({
     return result;
   }, [startups, filters, sortConfig, externalFilteredStartups]);
 
+  const categorizedStartups = useMemo(() => {
+    const isApproved = (s) =>
+      String(s.status || "").toLowerCase() === "approved" || s.isApproved === true;
+    const isRejected = (s) =>
+      String(s.status || "").toLowerCase() === "rejected";
+    const isInReview = (s) =>
+      !isApproved(s) && !isRejected(s);
+
+    const inReview = filteredStartups.filter(isInReview);
+    const approved = filteredStartups.filter(isApproved);
+    const rejected = filteredStartups.filter(isRejected);
+
+    return {
+      inReview,
+      approved,
+      rejected,
+      total: filteredStartups.length,
+    };
+  }, [filteredStartups]);
+
   const totalPages = Math.ceil(filteredStartups.length / itemsPerPage);
   const paginatedStartups = useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage;
@@ -1269,21 +1292,69 @@ export default function EnhancedStartupReviewSection({
         </div>
       )}
 
+      {/* Status Containers Segmented Selector */}
+      <div className="px-5 py-3.5 bg-slate-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex items-center p-1 bg-white rounded-xl border border-gray-200 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setContainerView("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              containerView === "all"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            All 3 Containers ({categorizedStartups.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => setContainerView("inReview")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              containerView === "inReview"
+                ? "bg-amber-500 text-white shadow-xs"
+                : "text-amber-700 hover:bg-amber-50"
+            }`}
+          >
+            <Clock size={13} />
+            <span>Pending Review ({categorizedStartups.inReview.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setContainerView("approved")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              containerView === "approved"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "text-emerald-700 hover:bg-emerald-50"
+            }`}
+          >
+            <ShieldCheck size={13} />
+            <span>Approved ({categorizedStartups.approved.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setContainerView("rejected")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              containerView === "rejected"
+                ? "bg-rose-600 text-white shadow-xs"
+                : "text-rose-700 hover:bg-rose-50"
+            }`}
+          >
+            <AlertTriangle size={13} />
+            <span>Needs Revision ({categorizedStartups.rejected.length})</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-gray-500">
+          Showing <span className="font-semibold text-gray-800">{filteredStartups.length}</span> total entities across status pipelines
+        </div>
+      </div>
+
       {filteredStartups.length === 0 ? (
         <div className="p-10 text-center text-gray-500">
           <Info size={40} className="mx-auto mb-4 text-gray-400" />
-          <p className="text-lg mb-2">
-            No startups found matching your criteria.
-          </p>
-          <p className="text-sm text-gray-400">
-            Try adjusting your filters or search terms.
-          </p>
-          {filters.search ||
-            filters.industry ||
-            filters.status ||
-            filters.region ||
-            filters.dateRange.start ||
-            filters.dateRange.end ? (
+          <p className="text-lg mb-2">No startups found matching your criteria.</p>
+          <p className="text-sm text-gray-400">Try adjusting your filters or search terms.</p>
+          {(filters.search || filters.industry || filters.status || filters.region || filters.dateRange.start || filters.dateRange.end) && (
             <button
               onClick={resetFilters}
               className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors inline-flex items-center"
@@ -1291,310 +1362,408 @@ export default function EnhancedStartupReviewSection({
               <RefreshCw size={16} className="mr-2" />
               Reset All Filters
             </button>
-          ) : null}
+          )}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100 text-gray-700">
-                <th className="p-3 text-left text-sm font-medium border-b w-16">
-                  Photo
-                </th>
-                <th
-                  className="p-3 text-left text-sm font-medium border-b"
-                  onClick={() => handleSort("companyName")}
-                >
-                  <div className="flex items-center cursor-pointer group">
-                    Company
-                    <ArrowUpDown
-                      size={14}
-                      className={`ml-1 ${sortConfig.key === "companyName"
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                        }`}
-                    />
+        <div className="p-4 sm:p-6 space-y-6 bg-slate-50/50">
+          {/* CONTAINER 1: IN REVIEW & PENDING SUBMISSIONS */}
+          {(containerView === "all" || containerView === "inReview") && (
+            <div className="bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-amber-200/80 px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                        In Review & Pending Submissions
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Submissions awaiting compliance verification, documentation checks, and administrator review.
+                      </p>
+                    </div>
                   </div>
-                </th>
-                <th
-                  className="p-3 text-left text-sm font-medium border-b"
-                  onClick={() => handleSort("industry")}
-                >
-                  <div className="flex items-center cursor-pointer group">
-                    Industry
-                    <ArrowUpDown
-                      size={14}
-                      className={`ml-1 ${sortConfig.key === "industry"
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                        }`}
-                    />
-                  </div>
-                </th>
-                <th
-                  className="p-3 text-left text-sm font-medium border-b"
-                  onClick={() => handleSort("foundedDate")}
-                >
-                  <div className="flex items-center cursor-pointer group">
-                    Founded
-                    <ArrowUpDown
-                      size={14}
-                      className={`ml-1 ${sortConfig.key === "foundedDate"
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                        }`}
-                    />
-                  </div>
-                </th>
-                <th
-                  className="p-3 text-left text-sm font-medium border-b"
-                  onClick={() => handleSort("status")}
-                >
-                  <div className="flex items-center cursor-pointer group">
-                    Status
-                    <ArrowUpDown
-                      size={14}
-                      className={`ml-1 ${sortConfig.key === "status"
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                        }`}
-                    />
-                  </div>
-                </th>
-                <th
-                  className="p-3 text-left text-sm font-medium border-b"
-                  onClick={() => handleSort("city")}
-                >
-                  <div className="flex items-center cursor-pointer group">
-                    Location
-                    <ArrowUpDown
-                      size={14}
-                      className={`ml-1 ${sortConfig.key === "city"
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                        }`}
-                    />
-                  </div>
-                </th>
-                <th className="p-3 text-left text-sm font-medium border-b">
-                  Contact
-                </th>
-                <th className="p-3 text-center text-sm font-medium border-b">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedStartups.map((startup) => (
-                <tr
-                  key={startup.id}
-                  className="hover:bg-blue-50 border-b text-gray-500 transition-colors"
-                >
-                  <td className="p-3">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                      <img
-                        src={`${getBackendUrl()}/startups/${startup.id}/photo`}
-                        alt={startup.companyName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div style={{ display: 'none' }} className="w-full h-full flex items-center justify-center">
-                        <Building size={20} className="text-gray-400" />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-medium text-gray-900">
-                        {startup.companyName || "Unnamed Entity"}
-                      </span>
-                      {getActorBadge(startup)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {startup.companyDescription?.substring(0, 80)}
-                      {startup.companyDescription?.length > 80 ? "..." : ""}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center text-sm">
-                      <Briefcase size={14} className="mr-1 text-gray-400" />
-                      {startup.industry || "N/A"}
-                    </div>
-                    {startup.businessActivity && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {startup.businessActivity}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center text-xs">
-                      <Calendar size={14} className="mr-1 text-gray-400" />
-                      {formatDate(startup.foundedDate)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {startup.typeOfCompany || "N/A"}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    {renderStatusBadge(startup.status || "Pending")}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center text-sm">
-                      <Map size={14} className="mr-1 text-gray-400" />
-                      {startup.city || "N/A"}
-                      {startup.province ? `, ${startup.province}` : ""}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center text-sm">
-                      <Mail size={14} className="mr-1 text-gray-400" />
-                      {startup.contactEmail || "N/A"}
-                    </div>
-                    {startup.phoneNumber && (
-                      <div className="text-xs text-gray-500 flex items-center mt-1">
-                        <Phone size={12} className="mr-1 text-gray-400" />
-                        {startup.phoneNumber}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex justify-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedStartup(startup);
-                          setIsPreviewOpen(true);
-                        }}
-                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                        title="Preview Details"
-                        disabled={isActionLoading}
-                      >
-                        <Eye size={16} />
-                      </button>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 self-start sm:self-auto">
+                    {categorizedStartups.inReview.length} Pending Review
+                  </span>
+                </div>
+              </div>
 
-                      {(startup.status === "In Review" ||
-                        startup.status === "Pending") && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(startup)}
-                              className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                              title={isInvestorItem(startup) ? "Accept Investor" : "Approve Startup"}
-                              disabled={isActionLoading}
-                            >
-                              {isActionLoading &&
-                                selectedStartup?.id === startup.id ? (
-                                <Loader size={16} className="animate-spin" />
-                              ) : (
-                                <Check size={16} />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleInitiateReject(startup)}
-                              className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                              title={isInvestorItem(startup) ? "Reject Investor" : "Reject Startup"}
-                              disabled={isActionLoading}
-                            >
-                              {isActionLoading &&
-                                selectedStartup?.id === startup.id ? (
-                                <Loader size={16} className="animate-spin" />
-                              ) : (
-                                <X size={16} />
-                              )}
-                            </button>
-                          </>
-                        )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {filteredStartups.length > 0 && (
-        <div className="p-4 border-t flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Showing page {currentPage} of {totalPages}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className={`p-2 rounded ${currentPage === 1
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:bg-blue-50"
-                }`}
-              aria-label="First page"
-            >
-              <ChevronLeft size={16} className="ml-[-14px]" />
-            </button>
-
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`p-2 rounded ${currentPage === 1
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:bg-blue-50"
-                }`}
-              aria-label="Previous page"
-            ></button>
-
-            <div className="flex space-x-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 flex items-center justify-center rounded ${currentPage === pageNum
-                        ? "bg-blue-600 text-white"
-                        : "hover:bg-blue-50 text-gray-700"
-                      }`}
-                    aria-label={`Page ${pageNum}`}
-                    aria-current={currentPage === pageNum ? "page" : undefined}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+              {categorizedStartups.inReview.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  <CheckCircle2 size={32} className="mx-auto mb-2 text-emerald-400" />
+                  <p className="text-sm font-medium text-gray-600">No submissions currently pending review</p>
+                  <p className="text-xs text-gray-400 mt-1">All incoming venture registrations are cleared.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                      <tr className="text-gray-700 text-xs uppercase tracking-wider font-semibold">
+                        <th className="p-3 text-left w-14">Photo</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("companyName")}>Company</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("industry")}>Industry</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("foundedDate")}>Founded</th>
+                        <th className="p-3 text-left">Status</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("city")}>Location</th>
+                        <th className="p-3 text-left">Contact</th>
+                        <th className="p-3 text-center w-28">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-sm">
+                      {categorizedStartups.inReview.map((startup) => (
+                        <tr key={startup.id} className="hover:bg-amber-50/40 transition-colors">
+                          <td className="p-3">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                              <img
+                                src={`${getBackendUrl()}/startups/${startup.id}/photo`}
+                                alt={startup.companyName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div style={{ display: 'none' }} className="w-full h-full flex items-center justify-center">
+                                <Building size={18} className="text-gray-400" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-gray-900">{startup.companyName || "Unnamed Entity"}</span>
+                              {getActorBadge(startup)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                              {startup.companyDescription?.substring(0, 60)}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center text-xs font-medium text-gray-700">
+                              <Briefcase size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.industry || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            {formatDate(startup.foundedDate)}
+                          </td>
+                          <td className="p-3">
+                            {renderStatusBadge(startup.status || "Pending")}
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="flex items-center">
+                              <Map size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.city || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="truncate max-w-[140px]" title={startup.contactEmail}>
+                              {startup.contactEmail || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <button
+                                onClick={() => {
+                                  setSelectedStartup(startup);
+                                  setIsPreviewOpen(true);
+                                }}
+                                className="p-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                                title="Preview Details"
+                                disabled={isActionLoading}
+                              >
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleApprove(startup)}
+                                className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
+                                title={isInvestorItem(startup) ? "Accept Investor" : "Approve Startup"}
+                                disabled={isActionLoading}
+                              >
+                                {isActionLoading && selectedStartup?.id === startup.id ? (
+                                  <Loader size={15} className="animate-spin" />
+                                ) : (
+                                  <Check size={15} />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleInitiateReject(startup)}
+                                className="p-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                                title={isInvestorItem(startup) ? "Reject Investor" : "Reject Startup"}
+                                disabled={isActionLoading}
+                              >
+                                {isActionLoading && selectedStartup?.id === startup.id ? (
+                                  <Loader size={15} className="animate-spin" />
+                                ) : (
+                                  <X size={15} />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+          )}
 
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded ${currentPage === totalPages
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:bg-blue-50"
-                }`}
-              aria-label="Next page"
-            ></button>
+          {/* CONTAINER 2: APPROVED STARTUPS & PARTNERS */}
+          {(containerView === "all" || containerView === "approved") && (
+            <div className="bg-white rounded-2xl border border-emerald-200/90 shadow-xs overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-b border-emerald-200/80 px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                        Approved Startups & Ecosystem Partners
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Verified startups published live on the 3D ecosystem map, leaderboards, and public directory.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-auto">
+                    {categorizedStartups.approved.length} Approved
+                  </span>
+                </div>
+              </div>
 
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded ${currentPage === totalPages
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:bg-blue-50"
-                }`}
-              aria-label="Last page"
-            >
-              <ChevronRight size={16} className="ml-[-14px]" />
-            </button>
-          </div>
+              {categorizedStartups.approved.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  <Info size={32} className="mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm font-medium text-gray-600">No approved startups found</p>
+                  <p className="text-xs text-gray-400 mt-1">Approve pending submissions above to publish them.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                      <tr className="text-gray-700 text-xs uppercase tracking-wider font-semibold">
+                        <th className="p-3 text-left w-14">Photo</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("companyName")}>Company</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("industry")}>Industry</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("foundedDate")}>Founded</th>
+                        <th className="p-3 text-left">Status</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("city")}>Location</th>
+                        <th className="p-3 text-left">Contact</th>
+                        <th className="p-3 text-center w-24">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-sm">
+                      {categorizedStartups.approved.map((startup) => (
+                        <tr key={startup.id} className="hover:bg-emerald-50/40 transition-colors">
+                          <td className="p-3">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                              <img
+                                src={`${getBackendUrl()}/startups/${startup.id}/photo`}
+                                alt={startup.companyName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div style={{ display: 'none' }} className="w-full h-full flex items-center justify-center">
+                                <Building size={18} className="text-gray-400" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-gray-900">{startup.companyName || "Unnamed Entity"}</span>
+                              {getActorBadge(startup)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                              {startup.companyDescription?.substring(0, 60)}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center text-xs font-medium text-gray-700">
+                              <Briefcase size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.industry || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            {formatDate(startup.foundedDate)}
+                          </td>
+                          <td className="p-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <CheckCircle2 size={12} /> Approved
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="flex items-center">
+                              <Map size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.city || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="truncate max-w-[140px]" title={startup.contactEmail}>
+                              {startup.contactEmail || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <button
+                              onClick={() => {
+                                setSelectedStartup(startup);
+                                setIsPreviewOpen(true);
+                              }}
+                              className="p-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                              title="Preview Details"
+                              disabled={isActionLoading}
+                            >
+                              <Eye size={15} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CONTAINER 3: REJECTED / NEEDS REVISION SUBMISSIONS */}
+          {(containerView === "all" || containerView === "rejected") && (
+            <div className="bg-white rounded-2xl border border-rose-200/90 shadow-xs overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div className="bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border-b border-rose-200/80 px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700">
+                      <AlertTriangle size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                        Rejected / Needs Revision Submissions
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Submissions declined or flagged for documentation issues, compliance revisions, or resubmission.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-300 self-start sm:self-auto">
+                    {categorizedStartups.rejected.length} Needs Revision
+                  </span>
+                </div>
+              </div>
+
+              {categorizedStartups.rejected.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  <CheckCircle2 size={32} className="mx-auto mb-2 text-emerald-400" />
+                  <p className="text-sm font-medium text-gray-600">No rejected or revision-required submissions</p>
+                  <p className="text-xs text-gray-400 mt-1">There are no declined ventures on file.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                      <tr className="text-gray-700 text-xs uppercase tracking-wider font-semibold">
+                        <th className="p-3 text-left w-14">Photo</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("companyName")}>Company</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("industry")}>Industry</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("foundedDate")}>Founded</th>
+                        <th className="p-3 text-left">Status & Notes</th>
+                        <th className="p-3 text-left" onClick={() => handleSort("city")}>Location</th>
+                        <th className="p-3 text-left">Contact</th>
+                        <th className="p-3 text-center w-28">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-sm">
+                      {categorizedStartups.rejected.map((startup) => (
+                        <tr key={startup.id} className="hover:bg-rose-50/40 transition-colors">
+                          <td className="p-3">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                              <img
+                                src={`${getBackendUrl()}/startups/${startup.id}/photo`}
+                                alt={startup.companyName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div style={{ display: 'none' }} className="w-full h-full flex items-center justify-center">
+                                <Building size={18} className="text-gray-400" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-gray-900">{startup.companyName || "Unnamed Entity"}</span>
+                              {getActorBadge(startup)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                              {startup.companyDescription?.substring(0, 60)}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center text-xs font-medium text-gray-700">
+                              <Briefcase size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.industry || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            {formatDate(startup.foundedDate)}
+                          </td>
+                          <td className="p-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+                              <AlertTriangle size={12} /> Rejected
+                            </span>
+                            {(startup.rejectionReason || startup.comments) && (
+                              <p className="text-[11px] text-rose-700 mt-1 line-clamp-1" title={startup.rejectionReason || startup.comments}>
+                                Reason: {startup.rejectionReason || startup.comments}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="flex items-center">
+                              <Map size={13} className="mr-1 text-gray-400 shrink-0" />
+                              {startup.city || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            <div className="truncate max-w-[140px]" title={startup.contactEmail}>
+                              {startup.contactEmail || "N/A"}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <button
+                                onClick={() => {
+                                  setSelectedStartup(startup);
+                                  setIsPreviewOpen(true);
+                                }}
+                                className="p-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                                title="Preview Details"
+                                disabled={isActionLoading}
+                              >
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleApprove(startup)}
+                                className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
+                                title="Re-evaluate & Approve"
+                                disabled={isActionLoading}
+                              >
+                                <RotateCcw size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
