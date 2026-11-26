@@ -333,6 +333,70 @@ public class NotificationService {
         return createNotifications(notifReq);
     }
 
+    public Notifications createInvestmentApplicationNotification(
+            com.startupsphere.capstone.entity.Investor investor,
+            Startup startup,
+            com.startupsphere.capstone.dtos.InvestmentApplicationRequest request,
+            User applicantUser) {
+        if (investor == null || investor.getUserId() == null || startup == null) {
+            return null;
+        }
+
+        NotificationRequest notifReq = new NotificationRequest();
+        String applicantName = request.getApplicantName() != null && !request.getApplicantName().isBlank()
+                ? request.getApplicantName().trim()
+                : (applicantUser != null ? ((applicantUser.getFirstname() != null ? applicantUser.getFirstname() : "") + " " +
+                        (applicantUser.getLastname() != null ? applicantUser.getLastname() : "")).trim() : "A startup founder");
+        if (applicantName.isBlank()) {
+            applicantName = "A startup founder";
+        }
+        String amount = request.getRequestedAmount() != null && !request.getRequestedAmount().isBlank()
+                ? request.getRequestedAmount().trim()
+                : "funding";
+
+        String formattedRemarks = String.format(
+                NotificationRemarks.INVESTMENT_APPLICATION,
+                startup.getCompanyName() != null ? startup.getCompanyName() : "Startup",
+                applicantName,
+                amount
+        );
+        if (formattedRemarks.length() > 250) {
+            formattedRemarks = formattedRemarks.substring(0, 247) + "...";
+        }
+        notifReq.setRemarks(formattedRemarks);
+
+        StringBuilder comments = new StringBuilder();
+        comments.append("Investment Application from Startup: ").append(startup.getCompanyName()).append("\n");
+        comments.append("Applicant: ").append(applicantName).append("\n");
+        if (startup.getIndustry() != null && !startup.getIndustry().isBlank()) {
+            comments.append("Industry: ").append(startup.getIndustry()).append("\n");
+        }
+        if (request.getApplicantEmail() != null && !request.getApplicantEmail().isBlank()) {
+            comments.append("Email: ").append(request.getApplicantEmail().trim()).append("\n");
+        }
+        if (request.getApplicantPhone() != null && !request.getApplicantPhone().isBlank()) {
+            comments.append("Phone: ").append(request.getApplicantPhone().trim()).append("\n");
+        }
+        if (request.getFundingStage() != null && !request.getFundingStage().isBlank()) {
+            comments.append("Funding Stage: ").append(request.getFundingStage()).append("\n");
+        }
+        if (request.getRequestedAmount() != null && !request.getRequestedAmount().isBlank()) {
+            comments.append("Requested Amount: ").append(request.getRequestedAmount()).append("\n");
+        }
+        if (request.getEquityOrTerms() != null && !request.getEquityOrTerms().isBlank()) {
+            comments.append("Preferred Terms: ").append(request.getEquityOrTerms()).append("\n");
+        }
+        if (request.getPitchMessage() != null && !request.getPitchMessage().isBlank()) {
+            comments.append("Pitch / Use of Funds: ").append(request.getPitchMessage().trim());
+        }
+
+        notifReq.setComments(comments.toString());
+        notifReq.setStartupId(startup.getId());
+        notifReq.setUserId(investor.getUserId().getId());
+
+        return createNotifications(notifReq);
+    }
+
     public Notifications processInvestmentDecision(int notificationId, String decision, String notes, User businessOwner) {
         Notifications notif = nrepo.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found with ID: " + notificationId));

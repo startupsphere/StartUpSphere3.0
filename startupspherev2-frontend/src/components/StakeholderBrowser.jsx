@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Search, X, UserPlus, Users, Mail, Phone, MapPin, ChevronRight, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { getBackendUrl } from "../config/apiConfig";
+import { Search, X, UserPlus, Users, Mail, Phone, MapPin, ChevronRight, Loader2, AlertTriangle, CheckCircle2, Send, DollarSign, Briefcase } from "lucide-react";
+import { toast } from "react-toastify";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 
 const StakeholderBrowser = ({
   isOpen,
@@ -10,6 +11,7 @@ const StakeholderBrowser = ({
   startupId
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [stakeholders, setStakeholders] = useState([]);
   const [filteredStakeholders, setFilteredStakeholders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,17 @@ const StakeholderBrowser = ({
   const [pendingStakeholder, setPendingStakeholder] = useState(null);
   const [associationRole, setAssociationRole] = useState("Mentor");
   const [associationStatus, setAssociationStatus] = useState("Active");
+  const [applyingInvestor, setApplyingInvestor] = useState(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const [applicationForm, setApplicationForm] = useState({
+    applicantName: "",
+    applicantEmail: "",
+    applicantPhone: "",
+    fundingStage: "Seed",
+    requestedAmount: "",
+    equityOrTerms: "Equity",
+    pitchMessage: "",
+  });
   const [errorModal, setErrorModal] = useState({
     isOpen: false,
     title: "",
@@ -27,49 +40,102 @@ const StakeholderBrowser = ({
     stakeholderName: "",
   });
 
-  // Fetch all stakeholders from database
+  // Fetch all stakeholders and investors from database
   useEffect(() => {
     if (isOpen) {
       fetchStakeholders();
       fetchStartupStakeholders();
+
+      try {
+        const userStr = localStorage.getItem("user");
+        const storedUser = userStr ? JSON.parse(userStr) : null;
+        if (storedUser) {
+          const fullName = `${storedUser.firstname || storedUser.firstName || ""} ${
+            storedUser.lastname || storedUser.lastName || ""
+          }`.trim();
+          setApplicationForm((prev) => ({
+            ...prev,
+            applicantName: prev.applicantName || fullName,
+            applicantEmail: prev.applicantEmail || storedUser.email || "",
+          }));
+        }
+      } catch {
+        // ignore parse errors
+      }
     }
   }, [isOpen]);
 
-  // Filter stakeholders based on search query
+  // Filter stakeholders based on category and search query
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredStakeholders(stakeholders);
-    } else {
+    let filtered = stakeholders;
+
+    if (categoryFilter === "investors") {
+      filtered = filtered.filter(
+        (item) => item.isInvestor || item.role?.toLowerCase() === "investor"
+      );
+    } else if (categoryFilter === "others") {
+      filtered = filtered.filter(
+        (item) => !item.isInvestor && item.role?.toLowerCase() !== "investor"
+      );
+    }
+
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const filtered = stakeholders.filter(
+      filtered = filtered.filter(
         (stakeholder) =>
           stakeholder.name?.toLowerCase().includes(query) ||
           stakeholder.email?.toLowerCase().includes(query) ||
           stakeholder.role?.toLowerCase().includes(query) ||
           stakeholder.city?.toLowerCase().includes(query) ||
-          stakeholder.province?.toLowerCase().includes(query)
+          stakeholder.province?.toLowerCase().includes(query) ||
+          stakeholder.locationName?.toLowerCase().includes(query) ||
+          stakeholder.biography?.toLowerCase().includes(query)
       );
-      setFilteredStakeholders(filtered);
     }
-  }, [searchQuery, stakeholders]);
+
+    setFilteredStakeholders(filtered);
+  }, [searchQuery, categoryFilter, stakeholders]);
 
   const fetchStakeholders = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${getBackendUrl()}/stakeholders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
 
-      if (!response.ok) {
+      const [stakeholdersRes, investorsRes] = await Promise.all([
+        fetch(`${getBackendUrl()}/stakeholders`, { headers }),
+        fetch(`${getBackendUrl()}/investors/directory`, { headers }).catch(() => null),
+      ]);
+
+      if (!stakeholdersRes.ok) {
         throw new Error("Failed to fetch stakeholders");
       }
 
-      const data = await response.json();
-      setStakeholders(data);
-      setFilteredStakeholders(data);
+      const stakeholdersData = await stakeholdersRes.json();
+      const investorsData =
+        investorsRes && investorsRes.ok ? await investorsRes.json() : [];
+
+      const normalizedInvestors = (Array.isArray(investorsData) ? investorsData : []).map(
+        (inv) => ({
+          id: `investor-${inv.investorId}`,
+          investorId: inv.investorId,
+          isInvestor: true,
+          name: `${inv.firstname || ""} ${inv.lastname || ""}`.trim() || inv.emailAddress || "Investor",
+          email: inv.emailAddress,
+          phoneNumber: inv.contactInformation,
+          locationName: inv.locationName,
+          biography: inv.biography,
+          website: inv.website,
+          role: "Investor",
+          status: inv.status === "Approved" ? "Active" : inv.status || "Active",
+        })
+      );
+
+      const combined = [...normalizedInvestors, ...(Array.isArray(stakeholdersData) ? stakeholdersData : [])];
+      setStakeholders(combined);
+      setFilteredStakeholders(combined);
     } catch (error) {
       console.error("Error fetching stakeholders:", error);
     } finally {
@@ -104,6 +170,11 @@ const StakeholderBrowser = ({
   };
 
   const handleSelectAndAssociate = async (stakeholder) => {
+    if (stakeholder.isInvestor) {
+      setApplyingInvestor(stakeholder);
+      return;
+    }
+
     // Check if stakeholder is already associated
     if (associatedStakeholderIds.has(stakeholder.id)) {
       setErrorModal({
@@ -193,12 +264,62 @@ const StakeholderBrowser = ({
     }
   };
 
+  const handleSubmitInvestmentApplication = async (e) => {
+    e.preventDefault();
+    if (!applyingInvestor || !startupId) return;
+
+    if (!applicationForm.applicantName.trim() || !applicationForm.applicantEmail.trim()) {
+      toast.warning("Please provide your name and contact email.");
+      return;
+    }
+    if (!applicationForm.requestedAmount.trim()) {
+      toast.warning("Please specify your requested investment amount.");
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/investors/${applyingInvestor.investorId}/apply-investment`,
+        {
+          method: "POST",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify({
+            ...applicationForm,
+            startupId: Number(startupId),
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Failed to submit investment application");
+      }
+
+      toast.success(`Investment application sent to ${applyingInvestor.name}!`);
+      setApplyingInvestor(null);
+      setApplicationForm((prev) => ({
+        ...prev,
+        requestedAmount: "",
+        pitchMessage: "",
+      }));
+    } catch (error) {
+      console.error("Error applying for investment:", error);
+      toast.error(error.message || "Failed to submit investment application.");
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   const handleClose = () => {
     setSearchQuery("");
+    setCategoryFilter("all");
     setSelectedStakeholder(null);
     setIsAssociating(false);
     setShowRoleModal(false);
     setPendingStakeholder(null);
+    setApplyingInvestor(null);
     onClose();
   };
 
@@ -258,15 +379,53 @@ const StakeholderBrowser = ({
             </button>
           </div>
 
-          {/* Results count */}
-          <div className="mt-3 text-sm text-gray-600">
-            {loading ? (
-              <span>Loading stakeholders...</span>
-            ) : (
-              <span>
-                Showing {filteredStakeholders.length} of {stakeholders.length} stakeholders
-              </span>
-            )}
+          {/* Category Filter Tabs & Results count */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("all")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+                  categoryFilter === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                All ({stakeholders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("investors")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+                  categoryFilter === "investors"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                Investors ({stakeholders.filter((s) => s.isInvestor || s.role?.toLowerCase() === "investor").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("others")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+                  categoryFilter === "others"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                Other Stakeholders ({stakeholders.filter((s) => !s.isInvestor && s.role?.toLowerCase() !== "investor").length})
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600">
+              {loading ? (
+                <span>Loading stakeholders...</span>
+              ) : (
+                <span>
+                  Showing {filteredStakeholders.length} of {stakeholders.length} stakeholders
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -327,11 +486,19 @@ const StakeholderBrowser = ({
                                 ASSOCIATED
                               </span>
                             )}
-                            <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                              stakeholder.isInvestor || stakeholder.role?.toLowerCase() === "investor"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}>
                               {stakeholder.role || "Stakeholder"}
                             </span>
                           </div>
                         </div>
+
+                        {stakeholder.biography && (
+                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">{stakeholder.biography}</p>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                           {stakeholder.email && (
@@ -348,26 +515,38 @@ const StakeholderBrowser = ({
                             </div>
                           )}
 
-                          {(stakeholder.city || stakeholder.province) && (
+                          {(stakeholder.city || stakeholder.province || stakeholder.locationName) && (
                             <div className="flex items-center md:col-span-2">
                               <MapPin size={14} className="mr-2 text-gray-400 flex-shrink-0" />
                               <span className="truncate">
-                                {[stakeholder.city, stakeholder.province]
-                                  .filter(Boolean)
-                                  .join(", ")}
+                                {[stakeholder.city, stakeholder.province].filter(Boolean).join(", ") ||
+                                  stakeholder.locationName}
                               </span>
                             </div>
                           )}
                         </div>
 
                         {stakeholder.status && (
-                          <div className="mt-2">
+                          <div className="mt-2 flex items-center justify-between gap-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stakeholder.status === "Active"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-gray-100 text-gray-800"
                               }`}>
                               {stakeholder.status}
                             </span>
+                            {stakeholder.isInvestor && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setApplyingInvestor(stakeholder);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Send size={13} />
+                                Apply for Investment
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -505,6 +684,169 @@ const StakeholderBrowser = ({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply for Investment Modal */}
+      {applyingInvestor && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Briefcase className="text-emerald-600" size={20} />
+                  Apply for Investment
+                </h3>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Send your funding request to <span className="font-semibold">{applyingInvestor.name}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApplyingInvestor(null)}
+                disabled={isApplying}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitInvestmentApplication} className="px-6 py-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Applicant Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={applicationForm.applicantName}
+                    onChange={(e) => setApplicationForm((prev) => ({ ...prev, applicantName: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Contact Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={applicationForm.applicantEmail}
+                    onChange={(e) => setApplicationForm((prev) => ({ ...prev, applicantEmail: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={applicationForm.applicantPhone}
+                    onChange={(e) => setApplicationForm((prev) => ({ ...prev, applicantPhone: e.target.value }))}
+                    placeholder="+63 9XX XXX XXXX"
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Funding Stage
+                  </label>
+                  <select
+                    value={applicationForm.fundingStage}
+                    onChange={(e) => setApplicationForm((prev) => ({ ...prev, fundingStage: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="Pre-Seed">Pre-Seed</option>
+                    <option value="Seed">Seed</option>
+                    <option value="Series A">Series A</option>
+                    <option value="Series B+">Series B+</option>
+                    <option value="Growth / Expansion">Growth / Expansion</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Requested Amount <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={applicationForm.requestedAmount}
+                      onChange={(e) => setApplicationForm((prev) => ({ ...prev, requestedAmount: e.target.value }))}
+                      placeholder="e.g. ₱500,000"
+                      className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Preferred Terms
+                  </label>
+                  <select
+                    value={applicationForm.equityOrTerms}
+                    onChange={(e) => setApplicationForm((prev) => ({ ...prev, equityOrTerms: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="Equity">Equity</option>
+                    <option value="Convertible Note">Convertible Note</option>
+                    <option value="Revenue Share">Revenue Share</option>
+                    <option value="Debt / Loan">Debt / Loan</option>
+                    <option value="Open to Discussion">Open to Discussion</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Pitch Summary &amp; Use of Funds
+                </label>
+                <textarea
+                  rows={3}
+                  value={applicationForm.pitchMessage}
+                  onChange={(e) => setApplicationForm((prev) => ({ ...prev, pitchMessage: e.target.value }))}
+                  placeholder="Describe your startup traction and how the investment will be used..."
+                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setApplyingInvestor(null)}
+                  disabled={isApplying}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isApplying}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isApplying ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      Submit Application
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

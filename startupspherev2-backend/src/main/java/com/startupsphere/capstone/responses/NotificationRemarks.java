@@ -14,4 +14,5 @@ public class NotificationRemarks {
     public static final String INVESTMENT_ACCEPTED_OWNER = "You accepted the investment proposal from %s for '%s'. The investor has been notified and will reach out soon.";
     public static final String INVESTMENT_REJECTED_INVESTOR = "%s declined your investment interest for '%s' at this time.";
     public static final String INVESTMENT_REJECTED_OWNER = "You declined the investment proposal from %s for '%s'.";
+    public static final String INVESTMENT_APPLICATION = "New investment application from '%s' (%s) requesting %s";
 }

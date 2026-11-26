@@ -7,7 +7,8 @@ export default function Verification({
   setSelectedTab, 
   startupId, 
   contactEmail, 
-  resetForm
+  resetForm,
+  onVerified
 }) {
   const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState("");
@@ -54,7 +55,9 @@ export default function Verification({
       if (response.ok) {
         toast.success("Email verified successfully!");
         setVerificationModal(false);
-        if (setSelectedTab) {
+        if (onVerified) {
+          onVerified();
+        } else if (setSelectedTab) {
           setSelectedTab("Upload Data");
         }
       } else {

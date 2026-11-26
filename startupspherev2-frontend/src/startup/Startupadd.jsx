@@ -6720,6 +6720,14 @@ const handleSubmit = async () => {
           startupId={startupId}
           contactEmail={formData.contactEmail}
           resetForm={resetForm}
+          onVerified={() => {
+            if (actor === "ROLE_INVESTOR") {
+              toast.success("Email verified! Your investor application has been sent to the admin for verification.");
+              navigate("/startup-dashboard");
+            } else {
+              setSelectedTab("Upload Data");
+            }
+          }}
         />
       )}
 

@@ -341,6 +341,9 @@ export default function Startupmap({
       const rawStartups = data.content || [];
       const now = new Date();
       const startups = rawStartups.filter((s) => {
+        if (s.role === "ROLE_INVESTOR") {
+          return false;
+        }
         if (s.isArchived || s.activityStatus === "ARCHIVED" || s.activityStatus === "INACTIVE") {
           return false;
         }
@@ -480,15 +483,54 @@ export default function Startupmap({
   const loadStakeholders = async (map) => {
     try {
       console.log("Loading stakeholders...");
-      const response = await fetch(
-        `${getBackendUrl()}/stakeholders`,
-        { credentials: "include" }
-      );
+      const [response, approvedRes, investorsRes] = await Promise.all([
+        fetch(`${getBackendUrl()}/stakeholders`, { credentials: "include" }),
+        fetch(`${getBackendUrl()}/startups/approved?page=0&size=500`, { credentials: "include" }).catch(() => null),
+        fetch(`${getBackendUrl()}/investors/directory`, { credentials: "include" }).catch(() => null),
+      ]);
       if (!response.ok) {
         console.error("Failed to load stakeholders:", response.status);
         return [];
       }
-      const stakeholders = await response.json();
+      const rawStakeholders = await response.json();
+      const approvedJson = approvedRes && approvedRes.ok ? await approvedRes.json() : {};
+      const approvedInvestorStartups = (approvedJson.content || [])
+        .filter((s) => s.role === "ROLE_INVESTOR")
+        .map((s) => ({
+          id: `startup-investor-${s.id}`,
+          name: s.companyName || "Investor",
+          email: s.contactEmail,
+          phoneNumber: s.phoneNumber,
+          region: s.region,
+          city: s.city,
+          province: s.province,
+          locationName: s.locationName,
+          locationLat: s.locationLat,
+          locationLng: s.locationLng,
+          organization: s.typeOfCompany || "Registered Investor",
+          sector: "Investor",
+        }));
+
+      const investorsJson = investorsRes && investorsRes.ok ? await investorsRes.json() : [];
+      const standaloneInvestors = (Array.isArray(investorsJson) ? investorsJson : [])
+        .filter((inv) => inv.status === "Approved")
+        .map((inv) => ({
+          id: `investor-${inv.investorId}`,
+          name: `${inv.firstname || ""} ${inv.lastname || ""}`.trim() || inv.emailAddress || "Investor",
+          email: inv.emailAddress,
+          phoneNumber: inv.contactInformation,
+          locationName: inv.locationName,
+          locationLat: inv.locationLat,
+          locationLng: inv.locationLang,
+          organization: "Registered Investor",
+          sector: "Investor",
+        }));
+
+      const stakeholders = [
+        ...(Array.isArray(rawStakeholders) ? rawStakeholders : []),
+        ...approvedInvestorStartups,
+        ...standaloneInvestors,
+      ];
       console.log("Stakeholders loaded:", stakeholders.length);
 
       // Filter out stakeholders without location data and ensure coordinates are valid

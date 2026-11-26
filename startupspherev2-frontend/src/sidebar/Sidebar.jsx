@@ -17,6 +17,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Award, Sparkles, User, RotateCcw, DollarSign, FileCheck, FileX, Clock, Users } from "lucide-react";
 import InvestmentInterestModal from "../modals/InvestmentInterestModal";
+import FindInvestorsModal from "../modals/FindInvestorsModal";
 import GroqAiChat from "../components/GroqAiChat";
 import { MdClose, MdOutlineLink, MdLocationOn } from "react-icons/md";
 import { FaRegHeart, FaRegBookmark, FaPhone, FaFacebook } from "react-icons/fa";
@@ -164,6 +165,7 @@ const StakeholderCard = memo(({ stakeholder, onClick }) => {
     if (city && province) return `${city}, ${province}`;
     if (city) return city;
     if (province) return province;
+    if (stakeholder.locationName) return stakeholder.locationName;
     return "Location N/A";
   };
 
@@ -187,7 +189,11 @@ const StakeholderCard = memo(({ stakeholder, onClick }) => {
               {stakeholder.name || "Unnamed Stakeholder"}
             </h3>
             {stakeholder.sector && (
-              <span className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/60 truncate max-w-[90px]">
+              <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded border truncate max-w-[90px] ${
+                stakeholder.isInvestor
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-indigo-50 text-indigo-700 border-indigo-100/60"
+              }`}>
                 {stakeholder.sector}
               </span>
             )}
@@ -259,6 +265,8 @@ export default function Sidebar({
   const [stakeholders, setStakeholders] = useState([]);
   const [newNotifications, setNewNotifications] = useState([]);
   const [stakeholder, setStakeholder] = useState(null); // For viewing a stakeholder
+  const [applyInvestorTarget, setApplyInvestorTarget] = useState(null);
+  const [userOwnedStartups, setUserOwnedStartups] = useState([]);
   const [viewingType, setViewingType] = useState("startups"); // Toggle between startups and stakeholders
   const [viewingStartup, setViewingStartup] = useState(null); // New state for viewing mode
   const [viewingStakeholder, setViewingStakeholder] = useState(null);
@@ -1036,8 +1044,8 @@ export default function Sidebar({
         throw new Error("Network response was not ok: ", data);
       }
 
-      // Extract startups from paginated response
-      const startups = data.content || [];
+      // Extract startups from paginated response (exclude ROLE_INVESTOR which is shown under Stakeholders)
+      const startups = (data.content || []).filter((s) => s.role !== "ROLE_INVESTOR");
       console.log("Fetched startups:", startups); // Debug log
       setStartups(startups);
     } catch (error) {
@@ -1051,17 +1059,72 @@ export default function Sidebar({
   const fetchStakeholders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${getBackendUrl()}/stakeholders`,
-        {
-          credentials: "include",
-        }
-      );
-      const data = await response.json();
-      console.log("Fetched stakeholders:", data);
+      const [stakeholdersRes, investorsRes, approvedStartupsRes] = await Promise.all([
+        fetch(`${getBackendUrl()}/stakeholders`, { credentials: "include" }),
+        fetch(`${getBackendUrl()}/investors/directory`, { credentials: "include" }).catch(() => null),
+        fetch(`${getBackendUrl()}/startups/approved?page=0&size=500`, { credentials: "include" }).catch(() => null),
+      ]);
 
-      // Set the stakeholders data
-      setStakeholders(data);
+      const stakeholdersData = stakeholdersRes.ok ? await stakeholdersRes.json() : [];
+      const investorsData = investorsRes && investorsRes.ok ? await investorsRes.json() : [];
+      const approvedStartupsJson = approvedStartupsRes && approvedStartupsRes.ok ? await approvedStartupsRes.json() : {};
+      const approvedInvestorStartups = (approvedStartupsJson.content || []).filter(
+        (s) => s.role === "ROLE_INVESTOR"
+      );
+
+      const normalizedStandaloneInvestors = (Array.isArray(investorsData) ? investorsData : []).map((inv) => ({
+        id: `investor-${inv.investorId}`,
+        investorId: inv.investorId,
+        isInvestor: true,
+        role: "ROLE_INVESTOR",
+        firstname: inv.firstname,
+        lastname: inv.lastname,
+        name: `${inv.firstname || ""} ${inv.lastname || ""}`.trim() || inv.emailAddress || "Investor",
+        email: inv.emailAddress,
+        emailAddress: inv.emailAddress,
+        phoneNumber: inv.contactInformation,
+        locationName: inv.locationName,
+        locationLat: inv.locationLat,
+        locationLng: inv.locationLang,
+        biography: inv.biography,
+        website: inv.website,
+        facebook: inv.facebook,
+        linkedIn: inv.linkedin,
+        sector: "Investor",
+        organization: "Registered Investor",
+        status: inv.status,
+      }));
+
+      const normalizedStartupInvestors = approvedInvestorStartups.map((s) => ({
+        id: `startup-investor-${s.id}`,
+        startupInvestorId: s.id,
+        isInvestor: true,
+        role: "ROLE_INVESTOR",
+        name: s.companyName || "Investor",
+        email: s.contactEmail,
+        phoneNumber: s.phoneNumber,
+        region: s.region,
+        city: s.city,
+        province: s.province,
+        locationName: s.locationName,
+        locationLat: s.locationLat,
+        locationLng: s.locationLng,
+        biography: s.companyDescription || s.businessActivity,
+        website: s.website,
+        facebook: s.facebook,
+        linkedIn: s.linkedIn,
+        sector: "Investor",
+        organization: s.typeOfCompany || "Registered Investor",
+        status: s.status,
+      }));
+
+      const combined = [
+        ...normalizedStartupInvestors,
+        ...normalizedStandaloneInvestors,
+        ...(Array.isArray(stakeholdersData) ? stakeholdersData : []),
+      ];
+
+      setStakeholders(combined);
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -1288,14 +1351,14 @@ export default function Sidebar({
     setContainerMode(null);
 
     // Increment views on the backend by sending a PUT request
-    fetch(
-      `${getBackendUrl()}/stakeholders/${stakeholder.id
-      }/increment-views`,
-      {
-        method: "PUT",
-        credentials: "include",
-      }
-    )
+    const viewEndpoint = stakeholder.isInvestor
+      ? `${getBackendUrl()}/investors/${stakeholder.investorId}/increment-views`
+      : `${getBackendUrl()}/stakeholders/${stakeholder.id}/increment-views`;
+
+    fetch(viewEndpoint, {
+      method: "PUT",
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           console.log("Views incremented successfully");
@@ -1352,9 +1415,39 @@ export default function Sidebar({
     }
 
     // Add the stakeholder to recents and update the UI
-    addToRecents("stakeholder", stakeholder.id);
+    if (!stakeholder.isInvestor) {
+      addToRecents("stakeholder", stakeholder.id);
+    }
     setStakeholder(stakeholder);
     setShowSearchContainer(false);
+  };
+
+  const handleApplyToInvestor = async (investorItem) => {
+    if (!isAuthenticated) {
+      toast.info("Please log in to apply for investment.");
+      setShowLogin(true);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${getBackendUrl()}/startups/my-startups/details`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      });
+      const data = res.ok ? await res.json() : [];
+      const myStartups = Array.isArray(data) ? data : [];
+      if (myStartups.length === 0) {
+        toast.warning("You need at least one registered startup to apply for investment.");
+        return;
+      }
+      setUserOwnedStartups(myStartups);
+      setApplyInvestorTarget(investorItem);
+    } catch (err) {
+      console.error("Error loading user startups:", err);
+      toast.error("Could not load your startups. Please try again.");
+    }
   };
 
   useEffect(() => {
@@ -1792,6 +1885,7 @@ export default function Sidebar({
           "organization",
           "city",
           "province",
+          "locationName",
           "sector",
           "biography",
           "phoneNumber",
@@ -1812,7 +1906,11 @@ export default function Sidebar({
 
         const matchesQuery = !query || fieldsToCheck.some(f => safeFieldCheck(item[f], query));
 
-        const matchesActorType = currentFilters.actorType === "All" || (item.role || "ROLE_STARTUP") === currentFilters.actorType;
+        const matchesActorType =
+          currentFilters.actorType === "All" ||
+          (currentFilters.actorType === "OTHER"
+            ? item.role !== "ROLE_INVESTOR"
+            : (item.role || "ROLE_STARTUP") === currentFilters.actorType);
 
         const agencyStr = String(item.registrationAgency || "").toUpperCase();
         const matchesGovReg =
@@ -3403,25 +3501,45 @@ export default function Sidebar({
                   </div>
                 </>
               ) : (
-                <div className="relative col-span-2">
-                  <select
-                    value={filters.stakeholders.searchField || "All"}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFilters((prev) => ({
-                        ...prev,
-                        stakeholders: { ...prev.stakeholders, searchField: value },
-                      }));
-                    }}
-                    className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-3 pr-7 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
-                  >
-                    <option value="All">Search In: All Fields</option>
-                    <option value="name">Name</option>
-                    <option value="organization">Organization</option>
-                    <option value="sector">Sector</option>
-                    <option value="biography">Biography</option>
-                  </select>
-                </div>
+                <>
+                  <div className="relative">
+                    <select
+                      value={filters.stakeholders.actorType || "All"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          stakeholders: { ...prev.stakeholders, actorType: value },
+                        }));
+                      }}
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-2 pr-6 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
+                      title="Filter by stakeholder type"
+                    >
+                      <option value="All">All Stakeholders</option>
+                      <option value="ROLE_INVESTOR">Investors</option>
+                      <option value="OTHER">Other Stakeholders</option>
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <select
+                      value={filters.stakeholders.searchField || "All"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFilters((prev) => ({
+                          ...prev,
+                          stakeholders: { ...prev.stakeholders, searchField: value },
+                        }));
+                      }}
+                      className="bg-white text-gray-900 text-[11.5px] font-semibold rounded-lg pl-3 pr-7 py-2 border border-blue-200/60 shadow-xs focus:ring-2 focus:ring-blue-400 focus:outline-none w-full cursor-pointer truncate"
+                    >
+                      <option value="All">Search In: All Fields</option>
+                      <option value="name">Name</option>
+                      <option value="organization">Organization</option>
+                      <option value="sector">Sector</option>
+                      <option value="biography">Biography</option>
+                    </select>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -3925,6 +4043,23 @@ export default function Sidebar({
               </div>
             </div>
           </div>
+
+          {/* Apply for Investment Action for Investors */}
+          {stakeholder.isInvestor && (
+            <div className="px-6 py-4 bg-emerald-50/70 border-b border-emerald-100">
+              <button
+                type="button"
+                onClick={() => handleApplyToInvestor(stakeholder)}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <BsBriefcase className="h-4 w-4" />
+                Apply for Investment
+              </button>
+              <p className="text-[11px] text-emerald-800 mt-1.5 text-center">
+                Submit your startup pitch and funding request to this investor
+              </p>
+            </div>
+          )}
 
           {/* Contact Information Section - Enhanced UI */}
           <div className="px-6 py-6 border-b border-gray-200 bg-white">
@@ -5351,6 +5486,14 @@ export default function Sidebar({
         onClose={() => setIsInvestmentModalOpen(false)}
         startup={investmentTargetStartup || startup}
         currentUser={currentUser || user}
+      />
+
+      {/* Apply for Investment Modal (from Browse Directory -> Stakeholders -> Investors) */}
+      <FindInvestorsModal
+        isOpen={Boolean(applyInvestorTarget)}
+        onClose={() => setApplyInvestorTarget(null)}
+        startups={userOwnedStartups}
+        initialInvestor={applyInvestorTarget}
       />
 
       {/* Verified Certificate Pop-up Window / Modal */}

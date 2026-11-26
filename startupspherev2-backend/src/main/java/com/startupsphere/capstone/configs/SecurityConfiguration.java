@@ -46,6 +46,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.HEAD, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/startups", "/startups/**").permitAll()
+                        .requestMatchers("/investors", "/investors/**").permitAll()
                         .requestMatchers("/stakeholders", "/stakeholders/**").permitAll()
                         .requestMatchers("/startup-stakeholders", "/startup-stakeholders/**").permitAll()
                         .requestMatchers("/api/likes", "/api/likes/**").permitAll()

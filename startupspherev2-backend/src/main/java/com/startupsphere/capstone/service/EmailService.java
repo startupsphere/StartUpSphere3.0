@@ -615,6 +615,82 @@ public class EmailService {
                 + "</html>";
     }
 
+    public boolean sendInvestmentApplicationEmail(String toEmail, String investorName, String companyName,
+                                                  String applicantName, String applicantEmail, String applicantPhone,
+                                                  String fundingStage, String requestedAmount, String equityOrTerms,
+                                                  String pitchMessage) {
+        if (toEmail == null || toEmail.isBlank()) return false;
+        String subject = "New Investment Application from " + (companyName != null ? companyName : "A Startup") + " - StartupSphere";
+        String safeCompany = companyName != null ? companyName : "Startup";
+        String safeInvestor = investorName != null ? investorName : "Investor";
+        String htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;'>"
+                + "<div style='background: #1d3557; color: #ffffff; padding: 20px; border-radius: 8px 8px 0 0;'>"
+                + "<h2 style='margin: 0;'>New Investment Application</h2>"
+                + "<p style='margin: 4px 0 0; opacity: 0.9;'>StartupSphere Philippines</p></div>"
+                + "<div style='padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;'>"
+                + "<p>Hello <strong>" + safeInvestor + "</strong>,</p>"
+                + "<p><strong>" + safeCompany + "</strong> has submitted an investment application to you on StartupSphere.</p>"
+                + "<table style='width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;'>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Applicant:</td><td style='padding: 6px 0;'><strong>" + (applicantName != null ? applicantName : "N/A") + "</strong></td></tr>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Email:</td><td style='padding: 6px 0;'>" + (applicantEmail != null ? applicantEmail : "N/A") + "</td></tr>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Phone:</td><td style='padding: 6px 0;'>" + (applicantPhone != null && !applicantPhone.isBlank() ? applicantPhone : "N/A") + "</td></tr>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Funding Stage:</td><td style='padding: 6px 0;'>" + (fundingStage != null ? fundingStage : "N/A") + "</td></tr>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Requested Amount:</td><td style='padding: 6px 0;'><strong>" + (requestedAmount != null ? requestedAmount : "To be discussed") + "</strong></td></tr>"
+                + "<tr><td style='padding: 6px 0; color: #64748b;'>Preferred Terms:</td><td style='padding: 6px 0;'>" + (equityOrTerms != null ? equityOrTerms : "Open to discussion") + "</td></tr>"
+                + "</table>"
+                + (pitchMessage != null && !pitchMessage.isBlank()
+                        ? "<div style='background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;'><strong>Pitch / Use of Funds:</strong><p style='margin: 6px 0 0;'>" + pitchMessage + "</p></div>"
+                        : "")
+                + "<p style='margin-top: 20px; font-size: 12px; color: #64748b;'>Log in to StartupSphere to view your notifications and connect with the founder.</p>"
+                + "</div></div>";
+
+        String brevoKey = getEffectiveBrevoKey();
+        if (brevoKey != null && !brevoKey.isBlank()) {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+                Map<String, Object> map = new HashMap<>();
+                map.put("sender", Map.of("name", "StartupSphere", "email", "startupsphere2026@gmail.com"));
+                map.put("to", List.of(Map.of("email", toEmail, "name", safeInvestor)));
+                map.put("subject", subject);
+                map.put("htmlContent", htmlBody);
+                String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                        .header("api-key", brevoKey)
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(10))
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    logger.info("Investment application email delivered via Brevo to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to send investment application email via Brevo: {}", e.getMessage());
+            }
+        }
+
+        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+            try {
+                MimeMessage msg = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+                String senderAddress = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
+                helper.setFrom(senderAddress, "StartupSphere");
+                helper.setTo(toEmail);
+                helper.setSubject(subject);
+                helper.setText(htmlBody, true);
+                mailSender.send(msg);
+                return true;
+            } catch (Exception e) {
+                logger.warn("Failed to send investment application email via SMTP: {}", e.getMessage());
+            }
+        }
+        return false;
+    }
+
     public boolean sendInvestmentInterestEmail(String toEmail, String companyName, String investorName,
                                               String investorEmail, String investorPhone, String investorType,
                                               String amountRange, String processType, String messageContent) {
