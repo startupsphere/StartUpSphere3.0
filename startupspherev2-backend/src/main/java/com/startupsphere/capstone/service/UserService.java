@@ -27,6 +27,30 @@ public class UserService {
     }
 
 
+    public Optional<User> findById(Integer id) {
+        return userRepository.findById(id);
+    }
+
+    public User updateProfile(Integer id, String displayUsername, String contactNumber, String profilePicture, boolean removeProfilePicture) {
+        return userRepository.findById(id)
+                .map(existingUser -> {
+                    if (displayUsername != null) {
+                        String trimmed = displayUsername.trim();
+                        existingUser.setDisplayUsername(trimmed.isEmpty() ? null : trimmed);
+                    }
+                    if (contactNumber != null) {
+                        String trimmed = contactNumber.trim();
+                        existingUser.setContactNumber(trimmed.isEmpty() ? null : trimmed);
+                    }
+                    if (removeProfilePicture) {
+                        existingUser.setProfilePicture(null);
+                    } else if (profilePicture != null && !profilePicture.isBlank()) {
+                        existingUser.setProfilePicture(profilePicture);
+                    }
+                    return userRepository.save(existingUser);
+                }).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     public User updateUser(Integer id, User updatedUser) {
         return userRepository.findById(id)
                 .map(existingUser -> {

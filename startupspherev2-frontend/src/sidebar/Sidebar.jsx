@@ -278,6 +278,16 @@ export default function Sidebar({
   const [likedStartups, setLikedStartups] = useState([]); // For liked startups
   const [user, setUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const handleProfileUpdated = (event) => {
+      if (event?.detail) {
+        setCurrentUser((prev) => ({ ...(prev || {}), ...event.detail }));
+      }
+    };
+    window.addEventListener("user-profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("user-profile-updated", handleProfileUpdated);
+  }, []);
   const [loadingImage, setLoadingImage] = useState(false); // New state for image loading
   const [isCurrentItemBookmarked, setIsCurrentItemBookmarked] = useState(false);
   const [notificationTooltip, setNotificationTooltip] = useState(false);
@@ -2607,15 +2617,27 @@ export default function Sidebar({
                   aria-label="Profile"
                 >
                   <div
-                    className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md ring-2 ring-blue-500/20"
-                    style={{
-                      background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
-                      color: "#ffffff"
-                    }}
+                    className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md ring-2 ring-blue-500/20 overflow-hidden"
+                    style={
+                      currentUser?.profilePicture
+                        ? { backgroundColor: "#f1f5f9" }
+                        : {
+                            background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                            color: "#ffffff"
+                          }
+                    }
                   >
-                    {currentUser
-                      ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
-                      : "U"}
+                    {currentUser?.profilePicture ? (
+                      <img
+                        src={currentUser.profilePicture}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : currentUser ? (
+                      `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+                    ) : (
+                      "U"
+                    )}
                   </div>
                   <span
                     className="absolute left-full top-1/2 -translate-y-1/2 ml-3.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-slate-800 pointer-events-none z-50"
@@ -2656,15 +2678,27 @@ export default function Sidebar({
                 <div className="absolute bottom-2 left-full ml-3.5 w-72 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[60] overflow-hidden animate-fade-in">
                   <div className="flex items-center gap-3 p-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white">
                     <div
-                      className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm"
-                      style={{
-                        background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
-                        color: "#ffffff"
-                      }}
+                      className="h-10 w-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm overflow-hidden"
+                      style={
+                        currentUser?.profilePicture
+                          ? { backgroundColor: "#f1f5f9" }
+                          : {
+                              background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                              color: "#ffffff"
+                            }
+                      }
                     >
-                      {currentUser
-                        ? `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
-                        : "U"}
+                      {currentUser?.profilePicture ? (
+                        <img
+                          src={currentUser.profilePicture}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : currentUser ? (
+                        `${currentUser.firstname?.[0] ?? ""}${currentUser.lastname?.[0] ?? ""}`.toUpperCase()
+                      ) : (
+                        "U"
+                      )}
                     </div>
                     <div className="min-w-0 flex-1 pr-1">
                       <div className="text-sm font-bold text-slate-900 truncate">

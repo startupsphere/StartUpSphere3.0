@@ -60,6 +60,15 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String role; // New role attribute
 
+    @Column(name = "display_username", length = 100)
+    private String displayUsername;
+
+    @Column(name = "contact_number", length = 50)
+    private String contactNumber;
+
+    @Column(name = "profile_picture", columnDefinition = "TEXT")
+    private String profilePicture;
+
     @Column(name = "reset_password_code")
     @JsonIgnore
     private String resetPasswordCode;
@@ -240,6 +249,33 @@ public class User implements UserDetails {
 
     public User setResetPasswordCodeExpiresAt(LocalDateTime resetPasswordCodeExpiresAt) {
         this.resetPasswordCodeExpiresAt = resetPasswordCodeExpiresAt;
+        return this;
+    }
+
+    public String getDisplayUsername() {
+        return displayUsername;
+    }
+
+    public User setDisplayUsername(String displayUsername) {
+        this.displayUsername = displayUsername;
+        return this;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public User setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
+        return this;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public User setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
         return this;
     }
 
