@@ -182,12 +182,6 @@ export default function StartupDashboard({ openAddMethodModal }) {
     fetchGlobalMetrics();
   }, []);
 
-  const [isAddMethodModalOpen, setIsAddMethodModalOpen] = useState(false);
-
-  const handleAddStartupClick = () => {
-    setIsAddMethodModalOpen(true);
-  };
-
   // State for editing
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
