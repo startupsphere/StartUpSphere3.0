@@ -24,6 +24,15 @@ import {
   CheckCircle2,
   ChevronRight,
   RefreshCw,
+  Coins,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  BadgeCheck,
+  Sparkles,
 } from "lucide-react";
 import EditLocationMap from "../3dmap/EditLocationMap";
 import {
@@ -118,6 +127,38 @@ export default function UpdateStartup() {
   const [selectedCity, setSelectedCity] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState(null);
   const [showRemoveLogoModal, setShowRemoveLogoModal] = useState(false);
+
+  // Funding breakdown & change tracking state
+  const [originalFunding, setOriginalFunding] = useState(
+    initialStartupData.totalStartupFundingReceived != null
+      ? Number(initialStartupData.totalStartupFundingReceived)
+      : null
+  );
+  const [closedDeals, setClosedDeals] = useState([]);
+  const [showFundingExplainer, setShowFundingExplainer] = useState(false);
+
+  // Fetch real closed deals for this startup from Deal Flow
+  useEffect(() => {
+    if (!id) return;
+    const fetchDeals = async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/investments/received`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const deals = (json.data || []).filter(
+            (d) => d.startup && String(d.startup.id) === String(id) && d.stage === "CLOSED_DEAL"
+          );
+          setClosedDeals(deals);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchDeals();
+  }, [id]);
 
   useEffect(() => {
     if (formData.foundedDate) {
@@ -261,6 +302,9 @@ export default function UpdateStartup() {
       }
 
       setFormData(formattedData);
+      if (data.totalStartupFundingReceived != null) {
+        setOriginalFunding(Number(data.totalStartupFundingReceived));
+      }
       
       // Logo will be fetched by the dedicated useEffect hook
     } catch (error) {
@@ -1747,11 +1791,201 @@ export default function UpdateStartup() {
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Enter the total amount of funding received (optional)</p>
-                {formData.totalStartupFundingReceived > 0 && (
-                  <p className="text-xs text-green-600 mt-1 font-medium">
-                    Total Funding: ₱{Number(formData.totalStartupFundingReceived).toLocaleString()}
-                  </p>
-                )}
+                {/* Live Funding Breakdown & Change Tracker */}
+                {(() => {
+                  const currentFundingNum = Number(formData.totalStartupFundingReceived || 0);
+                  const originalFundingNum = Number(originalFunding != null ? originalFunding : currentFundingNum);
+                  const fundingDiff = currentFundingNum - originalFundingNum;
+                  const parseDealAmount = (str) => {
+                    if (!str) return 0;
+                    const num = parseFloat(String(str).replace(/[^0-9.]/g, ""));
+                    return isNaN(num) ? 0 : num;
+                  };
+                  const closedDealsTotal = closedDeals.reduce(
+                    (sum, d) => sum + parseDealAmount(d.amountRange || d.message),
+                    0
+                  );
+                  const grantsNum = Number(formData.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
+                  const equityNum = Math.max(0, currentFundingNum - grantsNum);
+
+                  return (
+                    <div className="mt-3 bg-gradient-to-br from-gray-50 via-white to-emerald-50/20 border border-emerald-100 rounded-xl p-3.5 shadow-2xs space-y-3">
+                      {/* Summary & Difference Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
+                        <div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block">
+                            Active Funding Amount
+                          </span>
+                          <div className="flex items-baseline gap-2 mt-0.5">
+                            <span className="text-xl font-black text-gray-900">
+                              ₱{currentFundingNum.toLocaleString()}
+                            </span>
+                            {originalFunding != null && (
+                              <>
+                                {fundingDiff > 0 ? (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" />
+                                    +₱{fundingDiff.toLocaleString()} (New Increase)
+                                  </span>
+                                ) : fundingDiff < 0 ? (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <ArrowDownRight className="w-3.5 h-3.5 text-amber-600" />
+                                    -₱{Math.abs(fundingDiff).toLocaleString()} (Decrease)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 font-semibold bg-gray-100/90 px-2 py-0.5 rounded-full">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    Matches Saved Profile
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {originalFunding != null && fundingDiff !== 0 && (
+                          <div className="text-right">
+                            <span className="text-[11px] text-gray-400 block font-medium">Previous Baseline</span>
+                            <span className="text-xs font-bold text-gray-600 line-through">
+                              ₱{originalFundingNum.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Funding Composition Breakdown */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                            <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                            Funding Composition Breakdown
+                          </span>
+                          <span className="text-[11px] text-gray-400">
+                            Combined Sources
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {/* 1. Founder Equity / Private Capital */}
+                          <div className="bg-white border border-gray-200/90 rounded-lg p-2.5 shadow-3xs">
+                            <span className="text-[11px] font-medium text-gray-500 block">
+                              Declared Venture / Seed
+                            </span>
+                            <span className="text-sm font-black text-gray-900 block mt-0.5">
+                              ₱{equityNum.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-gray-400 block mt-0.5">
+                              Direct / Founder equity
+                            </span>
+                          </div>
+
+                          {/* 2. Government Grants */}
+                          <div className="bg-white border border-gray-200/90 rounded-lg p-2.5 shadow-3xs">
+                            <span className="text-[11px] font-medium text-gray-500 block">
+                              Government Subsidies
+                            </span>
+                            <span className="text-sm font-black text-gray-900 block mt-0.5">
+                              ₱{grantsNum.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
+                              {formData.registrationAgency && formData.registrationAgency !== "Unregistered"
+                                ? `${formData.registrationAgency} Subsidy`
+                                : "Grants & R&D support"}
+                            </span>
+                          </div>
+
+                          {/* 3. Deal Flow Closed Rounds */}
+                          <div className="bg-white border border-emerald-200 rounded-lg p-2.5 shadow-3xs bg-emerald-50/40">
+                            <span className="text-[11px] font-semibold text-emerald-800 block">
+                              Deal Flow Closed
+                            </span>
+                            <span className="text-sm font-black text-emerald-900 block mt-0.5">
+                              ₱{closedDealsTotal.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-emerald-700 block mt-0.5 font-medium">
+                              {closedDeals.length} closed investor deal(s)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* If there are verified closed deals from Deal Flow */}
+                        {closedDeals.length > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 space-y-1.5">
+                            <span className="text-[11px] font-bold text-gray-700 block">
+                              Verified Deal Flow Rounds:
+                            </span>
+                            {closedDeals.map((deal) => {
+                              const dealDate = deal.updatedAt
+                                ? deal.updatedAt.split("T")[0]
+                                : deal.createdAt
+                                  ? deal.createdAt.split("T")[0]
+                                  : "Completed";
+                              return (
+                                <div
+                                  key={deal.id}
+                                  className="flex items-center justify-between text-xs bg-white border border-emerald-200/80 rounded-md px-2.5 py-1.5 shadow-3xs"
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span className="font-bold text-gray-800">
+                                      {deal.investorName || "Angel Investor"}
+                                    </span>
+                                    <span className="text-[11px] text-gray-400">
+                                      • {deal.processType || "Direct Investment"}
+                                    </span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-emerald-700 block">
+                                      ₱{parseDealAmount(deal.amountRange || deal.message).toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 block">{dealDate}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* How funding changes are tracked accordion */}
+                      <div className="pt-1.5 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setShowFundingExplainer(!showFundingExplainer)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
+                        >
+                          <Info className="w-3.5 h-3.5 text-blue-600" />
+                          <span>How does StartUpSphere track and update your funding?</span>
+                          {showFundingExplainer ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-blue-600" />
+                          )}
+                        </button>
+
+                        {showFundingExplainer && (
+                          <div className="mt-2 text-xs text-gray-700 bg-blue-50/80 border border-blue-200 rounded-lg p-3 space-y-2 leading-relaxed">
+                            <p className="font-bold text-blue-950 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                              Funding Lifecycle & Change Rules:
+                            </p>
+                            <ul className="space-y-1.5 list-disc list-inside text-gray-700">
+                              <li>
+                                <strong>1. Profile Baseline:</strong> Entering an amount here sets your startup's registered base venture capital and seed investment.
+                              </li>
+                              <li>
+                                <strong>2. Deal Flow Inquiries:</strong> When an investor inquires and the negotiation reaches <strong>Closed / Funded</strong>, the agreed ticket size is automatically added to your portfolio with verified investor and date stamps.
+                              </li>
+                              <li>
+                                <strong>3. Dynamic Ecosystem Sync:</strong> Any change you save here immediately updates the <strong>Total Venture Funding</strong> card on your Founder Dashboard, your startup's public card, and boosts your <strong>Investment Readiness Score</strong> in the ecosystem rankings.
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Business Activity */}

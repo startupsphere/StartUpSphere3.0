@@ -40,6 +40,9 @@ public class NotificationService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private com.startupsphere.capstone.repository.InvestmentInterestRepository investmentInterestRepository;
+
     @CacheEvict(value = "notifications", allEntries = true)
     public Notifications createNotifications(NotificationRequest request) {
         Notifications notification = new Notifications();
@@ -435,14 +438,8 @@ public class NotificationService {
             }
         }
 
-        // If accepted and amount found, update startup total funding and rounds
-        if (isAccepted && startup != null && parsedAmount != null && parsedAmount > 0) {
-            double currentFund = startup.getTotalStartupFundingReceived();
-            startup.setTotalStartupFundingReceived(currentFund + parsedAmount);
-            int rounds = startup.getNumberOfFundingRounds();
-            startup.setNumberOfFundingRounds(rounds + 1);
-            srepo.save(startup);
-        }
+        // When accepted, keep in initial deal stage (INITIAL_REVIEW or direct pitch) so founder and investor can negotiate and advance through stages until CLOSED_DEAL
+        // NOTE: Total funding reflects once the deal reaches CLOSED_DEAL (Closed / Funded) in the pipeline!
 
         // Update the original notification comments to append decision record
         String decisionStatus = isAccepted ? "ACCEPTED" : "REJECTED";
@@ -513,6 +510,50 @@ public class NotificationService {
                     logger.warn("Failed to dispatch investment decision email to {}: {}", targetEmail, ex.getMessage());
                 }
             }).start();
+        }
+
+        // 4. Synchronize Deal Flow & Pipeline Management (InvestmentInterest)
+        try {
+            if (startup != null && startup.getId() != null) {
+                List<com.startupsphere.capstone.entity.InvestmentInterest> existingInterests =
+                        investmentInterestRepository.findByStartup_IdOrderByCreatedAtDesc(startup.getId());
+                com.startupsphere.capstone.entity.InvestmentInterest targetInterest = null;
+
+                // Match existing interest by investor email or investorUser
+                for (com.startupsphere.capstone.entity.InvestmentInterest ii : existingInterests) {
+                    if (investorEmail != null && investorEmail.equalsIgnoreCase(ii.getInvestorEmail())) {
+                        targetInterest = ii;
+                        break;
+                    }
+                    if (investorUser != null && ii.getInvestorUser() != null && investorUser.getId().equals(ii.getInvestorUser().getId())) {
+                        targetInterest = ii;
+                        break;
+                    }
+                }
+
+                // If not found, create a new record so deal flow has full tracking
+                if (targetInterest == null) {
+                    targetInterest = new com.startupsphere.capstone.entity.InvestmentInterest();
+                    targetInterest.setStartup(startup);
+                    targetInterest.setInvestorUser(investorUser);
+                    targetInterest.setInvestorName(investorName);
+                    targetInterest.setInvestorEmail(investorEmail);
+                    targetInterest.setInvestorType("Verified Investor / Backer");
+                    targetInterest.setAmountRange(parsedAmount != null && parsedAmount > 0 ? "₱" + String.format("%,.0f", parsedAmount) : "Undisclosed");
+                    targetInterest.setProcessType("Direct Platform Inquiry");
+                    targetInterest.setMessage(commentsStr);
+                }
+
+                // Reflect stage: If ACCEPTED -> move to INITIAL_REVIEW (Screening & Discussion) so both parties can progress deals through stages to CLOSED_DEAL. If REJECTED -> PASSED (Archived).
+                targetInterest.setStage(isAccepted ? "INITIAL_REVIEW" : "PASSED");
+                String updatedNotes = (targetInterest.getNotes() != null && !targetInterest.getNotes().isBlank())
+                        ? targetInterest.getNotes() + "\n[Decision]: " + decisionStatus + (notes != null && !notes.isBlank() ? " - " + notes.trim() : "")
+                        : "[Decision]: " + decisionStatus + (notes != null && !notes.isBlank() ? " - " + notes.trim() : "");
+                targetInterest.setNotes(updatedNotes);
+                investmentInterestRepository.save(targetInterest);
+            }
+        } catch (Exception ex) {
+            logger.error("Failed to sync investment interest deal flow on decision: {}", ex.getMessage());
         }
 
         return notif;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import {
   X,
   ShieldCheck,
@@ -27,27 +28,42 @@ export default function FundingBreakdownModal({
   const [newAmount, setNewAmount] = useState("");
   const [newCertified, setNewCertified] = useState(true);
   const [newStartupTargetId, setNewStartupTargetId] = useState("");
+  const [liveDeals, setLiveDeals] = useState([]);
 
   useEffect(() => {
     setActiveStartupFilter(selectedStartupId);
   }, [selectedStartupId]);
 
-  // Initial seed generator for funding records strictly based on what was inputted during registration
+  // Fetch real closed/funded deals from backend
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchClosedDeals = async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/investments/received`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setLiveDeals(json.data || []);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchClosedDeals();
+  }, [isOpen]);
+
+  // Generate funding records strictly based on real closed investments and explicit registration fields
   const generateRecordsForStartup = (st) => {
     const records = [];
     const stName = st.companyName || "Your Startup";
     const stId = st.id;
-    const foundedYear = st.foundedDate ? new Date(st.foundedDate).getFullYear() : 2024;
-    const stFunding = Number(st.totalStartupFundingReceived || 0);
+    const registeredDate = st.createdAt ? st.createdAt.split("T")[0] : (st.foundedDate || "2026-01-15");
     const stCapital = Number(st.paidUpCapital || 0);
     const stGrants = Number(st.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
 
-    // If nothing was inputted during registration (funding is 0 or blank), return no records (strictly 0)
-    if (stFunding <= 0 && stCapital <= 0 && stGrants <= 0) {
-      return records;
-    }
-
-    // 1. Paid-up / Founder Capital (only if explicitly entered > 0)
+    // 1. Paid-up / Founder Capital (only if explicitly entered during registration > 0)
     if (stCapital > 0) {
       records.push({
         id: `${stId}-cap`,
@@ -55,7 +71,7 @@ export default function FundingBreakdownModal({
         startupName: stName,
         origin: "Founder Paid-Up Equity & Initial Capital",
         funder: `${stName} Founding Team`,
-        dateFunded: `${foundedYear}-01-15`,
+        dateFunded: registeredDate,
         amount: stCapital,
         certified: true,
         category: "Equity / Paid-Up Capital",
@@ -71,43 +87,49 @@ export default function FundingBreakdownModal({
         origin: "Government Innovation & R&D Subsidy",
         funder:
           st.registrationAgency && st.registrationAgency !== "Unregistered"
-            ? `${st.registrationAgency} Technology Startup Assistance`
-            : "DOST-PCIEERD Startup Research Grant",
-        dateFunded: `${foundedYear}-06-20`,
+            ? `${st.registrationAgency} Technology Assistance`
+            : "Government Grant",
+        dateFunded: registeredDate,
         amount: stGrants,
         certified: Boolean(st.isGovernmentRegistered),
         category: "Government Grant",
       });
     }
 
-    // 3. Private Funding / Stage Round (from totalStartupFundingReceived)
-    const privateFund = Math.max(0, stFunding - stGrants);
-    if (privateFund > 0) {
-      const stage = st.fundingStage || "Seed Stage";
-      records.push({
-        id: `${stId}-invest`,
-        startupId: stId,
-        startupName: stName,
-        origin: `${stage} Angel / Venture Disbursement`,
-        funder: "Regional Angel Investor Syndicate & Partners",
-        dateFunded: `${foundedYear}-10-05`,
-        amount: privateFund,
-        certified: true,
-        category: "Private Investment",
-      });
-    } else if (stFunding > 0 && records.length === 0) {
-      records.push({
-        id: `${stId}-total`,
-        startupId: stId,
-        startupName: stName,
-        origin: "Seed Capital & Venture Program Allocation",
-        funder: "Ecosystem Accelerator & Investment Fund",
-        dateFunded: `${foundedYear}-08-12`,
-        amount: stFunding,
-        certified: true,
-        category: "Accelerator / Seed",
-      });
-    }
+    // 3. Real Closed Investments through Deal Flow (with accurate investment timestamp)
+    const matchingDeals = liveDeals.filter(
+      (d) => d.startup && String(d.startup.id) === String(stId) && d.stage === "CLOSED_DEAL"
+    );
+
+    matchingDeals.forEach((deal) => {
+      const dealDate = deal.updatedAt
+        ? deal.updatedAt.split("T")[0]
+        : deal.createdAt
+          ? deal.createdAt.split("T")[0]
+          : new Date().toISOString().split("T")[0];
+
+      const parseNum = (str) => {
+        if (!str) return 0;
+        const cleaned = String(str).replace(/[^0-9.]/g, "");
+        const val = parseFloat(cleaned);
+        return isNaN(val) ? 0 : val;
+      };
+
+      const amt = parseNum(deal.amountRange || deal.message);
+      if (amt > 0) {
+        records.push({
+          id: `deal-${deal.id}`,
+          startupId: stId,
+          startupName: stName,
+          origin: `${deal.processType || "Direct Equity"} Investment Round`,
+          funder: deal.investorName || "Angel / Venture Capital Backer",
+          dateFunded: dealDate,
+          amount: amt,
+          certified: true,
+          category: "Private Investment",
+        });
+      }
+    });
 
     return records;
   };
@@ -120,12 +142,13 @@ export default function FundingBreakdownModal({
     return records;
   };
 
-  const STORAGE_KEY = "startupsphere_user_funding_records_v2";
+  const STORAGE_KEY = "startupsphere_user_funding_records_v3";
 
   const [fundingRecords, setFundingRecords] = useState(() => {
     try {
-      // Clear legacy storage that had artificial 100k defaults
+      // Clear legacy storage that had artificial synthetic records
       localStorage.removeItem("startupsphere_user_funding_records");
+      localStorage.removeItem("startupsphere_user_funding_records_v2");
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -137,38 +160,15 @@ export default function FundingBreakdownModal({
     return generateInitialRecords();
   });
 
-  // Synchronize records with startups list: ensure all startups have records and startup names are up to date
+  // Synchronize records with startups and live deals (always reflect real transactions and dates)
   useEffect(() => {
     if (!startups || startups.length === 0) return;
-
-    setFundingRecords((prevRecords) => {
-      const existingStartupIds = new Set(prevRecords.map((r) => String(r.startupId)));
-      const missingStartups = startups.filter((s) => !existingStartupIds.has(String(s.id)));
-
-      let updated = prevRecords.map((record) => {
-        const matched = startups.find((s) => String(s.id) === String(record.startupId));
-        if (matched && matched.companyName && matched.companyName !== record.startupName) {
-          return { ...record, startupName: matched.companyName };
-        }
-        return record;
-      });
-
-      if (missingStartups.length > 0) {
-        const newRecords = [];
-        missingStartups.forEach((st) => {
-          newRecords.push(...generateRecordsForStartup(st));
-        });
-        updated = [...updated, ...newRecords];
-      }
-
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch {
-        // ignore
-      }
-      return updated;
+    const records = [];
+    startups.forEach((st) => {
+      records.push(...generateRecordsForStartup(st));
     });
-  }, [startups]);
+    setFundingRecords(records);
+  }, [startups, liveDeals]);
 
   // Persist records
   const saveRecords = (updated) => {
