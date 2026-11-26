@@ -60,8 +60,8 @@ public class BookmarksService {
             String key = null;
             if (b.getStartup() != null && b.getStartup().getId() != null) {
                 key = "startup_" + b.getStartup().getId();
-            } else if (b.getInvestor() != null && b.getInvestor().getId() != null) {
-                key = "investor_" + b.getInvestor().getId();
+            } else if (b.getInvestor() != null && b.getInvestor().getInvestorId() != null) {
+                key = "investor_" + b.getInvestor().getInvestorId();
             }
             if (key != null) {
                 if (!uniqueMap.containsKey(key)) {
