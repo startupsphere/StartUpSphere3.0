@@ -25,6 +25,7 @@ import { toast } from "react-toastify";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [startups, setStartups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -154,11 +155,36 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                 {/* Floating Avatar Box */}
-                <div className="relative z-10 -mt-10 sm:-mt-12 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-lg ring-1 ring-slate-200/60 shrink-0">
-                  {user
-                    ? `${user.firstname?.[0] || ""}${user.lastname?.[0] || ""}`.toUpperCase()
-                    : "U"}
-                </div>
+                {(() => {
+                  const profileImg = !avatarError && (user?.profilePicture || user?.avatarUrl || user?.photoUrl);
+                  const initials = user
+                    ? `${user.firstname?.[0] ?? ""}${user.lastname?.[0] ?? ""}`.toUpperCase() || "U"
+                    : "U";
+                  return (
+                    <div
+                      className="relative z-10 -mt-10 sm:-mt-12 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-blue-600 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-lg ring-2 ring-blue-500/20 overflow-hidden shrink-0 select-none"
+                      style={
+                        profileImg
+                          ? { backgroundColor: "#f1f5f9" }
+                          : {
+                              background: "linear-gradient(135deg, #2563eb 0%, #4338ca 100%)",
+                              color: "#ffffff",
+                            }
+                      }
+                    >
+                      {profileImg ? (
+                        <img
+                          src={profileImg}
+                          alt={`${user?.firstname || "User"} profile`}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        <span>{initials}</span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Name, Badge, Email - Sitting 100% in white space with high contrast */}
                 <div className="pt-2 sm:pt-3 pb-0.5">
