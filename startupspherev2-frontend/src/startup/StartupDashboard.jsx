@@ -371,12 +371,14 @@ export default function StartupDashboard({ openAddMethodModal }) {
     views: {},
     bookmarks: {},
     likes: {},
+    funding: {},
   });
   const [selectedEngagementMonths, setSelectedEngagementMonths] = useState(months);
   const [selectedMetrics, setSelectedMetrics] = useState({
-    likes: true,
-    bookmarks: true,
     views: true,
+    bookmarks: true,
+    likes: true,
+    funding: true,
   });
   const [leftChartTab, setLeftChartTab] = useState("growth");
 
@@ -421,10 +423,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
     });
   };
   const handleSelectAllMetrics = () => {
-    setSelectedMetrics({ likes: true, bookmarks: true, views: true });
+    setSelectedMetrics({ views: true, bookmarks: true, likes: true, funding: true });
   };
 
-  // Grouped Column Chart Data for Monthly Engagement
+  // Grouped Column Chart Data for Monthly Engagement and Funding
   const groupedChartData = useMemo(() => {
     const activeMonths = months.filter((m) => selectedEngagementMonths.includes(m));
     const labels = activeMonths.map((m) => monthShortMap[m] || m);
@@ -439,6 +441,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         borderRadius: 4,
         barPercentage: 0.8,
         categoryPercentage: 0.8,
+        yAxisID: "y",
       });
     }
 
@@ -451,6 +454,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         borderRadius: 4,
         barPercentage: 0.8,
         categoryPercentage: 0.8,
+        yAxisID: "y",
       });
     }
 
@@ -463,13 +467,27 @@ export default function StartupDashboard({ openAddMethodModal }) {
         borderRadius: 4,
         barPercentage: 0.8,
         categoryPercentage: 0.8,
+        yAxisID: "y",
+      });
+    }
+
+    if (selectedMetrics.funding) {
+      datasets.push({
+        label: "Funding",
+        data: activeMonths.map((m) => Number(rawEngagement.funding?.[m] || 0)),
+        backgroundColor: "#6366f1",
+        hoverBackgroundColor: "#4f46e5",
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.8,
+        yAxisID: "y1",
       });
     }
 
     return { labels, datasets };
   }, [rawEngagement, selectedEngagementMonths, selectedMetrics, months, monthShortMap]);
 
-  // Options for Grouped Column Chart
+  // Options for Grouped Column Chart with Dual Y-Axis (Engagement Counts vs Funding in PHP)
   const groupedChartOptions = useMemo(() => ({
     maintainAspectRatio: false,
     responsive: true,
@@ -502,7 +520,12 @@ export default function StartupDashboard({ openAddMethodModal }) {
           size: 11,
         },
         callbacks: {
-          label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toLocaleString()}`,
+          label: (context) => {
+            if (context.dataset.label === "Funding") {
+              return ` Funding: ₱${Number(context.parsed.y || 0).toLocaleString()}`;
+            }
+            return ` ${context.dataset.label}: ${context.parsed.y.toLocaleString()}`;
+          },
         },
       },
     },
@@ -517,12 +540,46 @@ export default function StartupDashboard({ openAddMethodModal }) {
         },
       },
       y: {
+        type: "linear",
+        display: true,
+        position: "left",
+        title: {
+          display: true,
+          text: "Engagement Count",
+          font: { size: 10, weight: "600" },
+          color: "#64748b",
+        },
         grid: {
           color: "rgba(0, 0, 0, 0.05)",
         },
         ticks: {
           font: { size: 10 },
           color: "#64748b",
+          precision: 0,
+        },
+        beginAtZero: true,
+      },
+      y1: {
+        type: "linear",
+        display: Boolean(selectedMetrics.funding),
+        position: "right",
+        title: {
+          display: true,
+          text: "Funding (PHP)",
+          font: { size: 10, weight: "600" },
+          color: "#6366f1",
+        },
+        grid: {
+          drawOnChartArea: false,
+        },
+        ticks: {
+          font: { size: 10 },
+          color: "#6366f1",
+          callback: (value) => {
+            if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`;
+            if (value >= 1000) return `₱${(value / 1000).toFixed(0)}k`;
+            return `₱${value}`;
+          },
         },
         beginAtZero: true,
       },
@@ -532,7 +589,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       axis: "x",
       intersect: false,
     },
-  }), []);
+  }), [selectedMetrics.funding]);
 
   // Growth Rate Bar Chart Data
   const growthRateData = useMemo(() => {
@@ -791,6 +848,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         views: {},
         bookmarks: {},
         likes: {},
+        funding: {},
       });
       setEngagementData({
         labels: months,
@@ -1432,7 +1490,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const fetchAllStartupsEngagementData = async () => {
     try {
       setError(null);
-      const [viewsResponse, bookmarksResponse, likesResponse] =
+      const [viewsResponse, bookmarksResponse, likesResponse, investmentsResponse] =
         await Promise.all([
           fetch(
             `${
@@ -1461,6 +1519,15 @@ export default function StartupDashboard({ openAddMethodModal }) {
               credentials: "include",
             }
           ),
+          fetch(
+            `${
+              getBackendUrl()
+            }/api/investments/received`,
+            {
+              headers: getAuthHeaders(),
+              credentials: "include",
+            }
+          ),
         ]);
 
       const viewsData = viewsResponse.ok ? await viewsResponse.json() : {};
@@ -1469,13 +1536,43 @@ export default function StartupDashboard({ openAddMethodModal }) {
         : {};
       const likesData = likesResponse.ok ? await likesResponse.json() : {};
 
-      console.log("All startups engagement data:", {
+      // Compute actual funding received per month across all user's startups
+      const fundingByMonth = {};
+      months.forEach((m) => {
+        fundingByMonth[m] = 0;
+      });
+
+      if (investmentsResponse.ok) {
+        const invJson = await investmentsResponse.json();
+        const investments = invJson.data || [];
+        investments.forEach((deal) => {
+          if (deal.stage === "CLOSED_DEAL" || deal.fundDisbursed === true) {
+            const dateStr = deal.updatedAt || deal.createdAt;
+            if (dateStr) {
+              const d = new Date(dateStr);
+              if (!isNaN(d.getTime())) {
+                const monthName = months[d.getMonth()];
+                if (monthName) {
+                  const cleaned = String(deal.amountRange || deal.message || "0").replace(/[^0-9.]/g, "");
+                  const parsedAmt = parseFloat(cleaned);
+                  if (!isNaN(parsedAmt) && parsedAmt > 0) {
+                    fundingByMonth[monthName] = (fundingByMonth[monthName] || 0) + parsedAmt;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      console.log("All startups engagement & funding data:", {
         views: viewsData,
         bookmarks: bookmarksData,
         likes: likesData,
+        funding: fundingByMonth,
       });
 
-      updateEngagementChart(viewsData, bookmarksData, likesData);
+      updateEngagementChart(viewsData, bookmarksData, likesData, fundingByMonth);
     } catch (error) {
       console.error("Error fetching engagement data for all startups:", error);
     }
@@ -1484,7 +1581,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const fetchSingleStartupEngagementData = async (startupId) => {
     try {
       setError(null);
-      const [viewsResponse, bookmarksResponse, likesResponse] =
+      const [viewsResponse, bookmarksResponse, likesResponse, investmentsResponse] =
         await Promise.all([
           fetch(
             `${
@@ -1513,6 +1610,15 @@ export default function StartupDashboard({ openAddMethodModal }) {
               credentials: "include",
             }
           ),
+          fetch(
+            `${
+              getBackendUrl()
+            }/api/investments/received`,
+            {
+              headers: getAuthHeaders(),
+              credentials: "include",
+            }
+          ),
         ]);
 
       const viewsData = viewsResponse.ok ? await viewsResponse.json() : {};
@@ -1521,13 +1627,46 @@ export default function StartupDashboard({ openAddMethodModal }) {
         : {};
       const likesData = likesResponse.ok ? await likesResponse.json() : {};
 
-      console.log("Single startup engagement data:", {
+      const fundingByMonth = {};
+      months.forEach((m) => {
+        fundingByMonth[m] = 0;
+      });
+
+      if (investmentsResponse.ok) {
+        const invJson = await investmentsResponse.json();
+        const investments = invJson.data || [];
+        investments.forEach((deal) => {
+          if (
+            deal.startup &&
+            String(deal.startup.id) === String(startupId) &&
+            (deal.stage === "CLOSED_DEAL" || deal.fundDisbursed === true)
+          ) {
+            const dateStr = deal.updatedAt || deal.createdAt;
+            if (dateStr) {
+              const d = new Date(dateStr);
+              if (!isNaN(d.getTime())) {
+                const monthName = months[d.getMonth()];
+                if (monthName) {
+                  const cleaned = String(deal.amountRange || deal.message || "0").replace(/[^0-9.]/g, "");
+                  const parsedAmt = parseFloat(cleaned);
+                  if (!isNaN(parsedAmt) && parsedAmt > 0) {
+                    fundingByMonth[monthName] = (fundingByMonth[monthName] || 0) + parsedAmt;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      console.log("Single startup engagement & funding data:", {
         views: viewsData,
         bookmarks: bookmarksData,
         likes: likesData,
+        funding: fundingByMonth,
       });
 
-      updateEngagementChart(viewsData, bookmarksData, likesData);
+      updateEngagementChart(viewsData, bookmarksData, likesData, fundingByMonth);
     } catch (error) {
       console.error(
         `Error fetching engagement data for startup ID ${startupId}:`,
@@ -1536,16 +1675,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
     }
   };
 
-  const updateEngagementChart = (viewsData, bookmarksData, likesData) => {
+  const updateEngagementChart = (viewsData, bookmarksData, likesData, fundingData = {}) => {
     const normalizedViewsData = typeof viewsData === "object" ? viewsData : {};
     const normalizedBookmarksData =
       typeof bookmarksData === "object" ? bookmarksData : {};
     const normalizedLikesData = typeof likesData === "object" ? likesData : {};
+    const normalizedFundingData = typeof fundingData === "object" ? fundingData : {};
 
     setRawEngagement({
       views: normalizedViewsData,
       bookmarks: normalizedBookmarksData,
       likes: normalizedLikesData,
+      funding: normalizedFundingData,
     });
 
     const viewsValues = months.map((month) => normalizedViewsData[month] || 0);
@@ -1553,6 +1694,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
       (month) => normalizedBookmarksData[month] || 0
     );
     const likesValues = months.map((month) => normalizedLikesData[month] || 0);
+    const fundingValues = months.map((month) => normalizedFundingData[month] || 0);
 
     setEngagementData({
       labels: months,
@@ -1575,6 +1717,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
           label: "Likes",
           data: likesValues,
           borderColor: "#3b82f6",
+          fill: false,
+          tension: 0.1,
+        },
+        {
+          label: "Funding",
+          data: fundingValues,
+          borderColor: "#6366f1",
           fill: false,
           tension: 0.1,
         },
@@ -3381,10 +3530,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                   <div>
                     <h2 className="text-xs sm:text-sm font-bold text-gray-900 mb-0.5">
-                      Monthly Engagement (Grouped Columns)
+                      Engagement Over Time (Grouped Columns)
                     </h2>
                     <p className="text-[11px] text-gray-500">
-                      Likes, bookmarks, and views grouped per month
+                      Views, bookmarks, likes, and funding per month across your ventures
                     </p>
                   </div>
 
@@ -3433,6 +3582,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
                       title="Toggle Likes column"
                     >
                       Likes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMetric("funding")}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-colors cursor-pointer ${
+                        selectedMetrics.funding
+                          ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-300"
+                          : "bg-gray-50 text-gray-400 border-gray-200"
+                      }`}
+                      title="Toggle Funding column"
+                    >
+                      Funding
                     </button>
                   </div>
                 </div>
