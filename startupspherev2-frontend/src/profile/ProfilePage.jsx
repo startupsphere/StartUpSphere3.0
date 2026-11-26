@@ -141,8 +141,7 @@ export default function ProfilePage() {
         {/* Profile Header Hero Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
           {/* Cover Banner */}
-          <div className="h-32 sm:h-36 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 relative">
-            <div className="absolute inset-0 bg-white/5 opacity-40 backdrop-blur-3xl"></div>
+          <div className="h-24 sm:h-28 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 relative z-0">
             <div className="absolute top-3.5 right-4 sm:top-4 sm:right-6">
               <span className={`px-3 py-1 text-xs font-bold rounded-full border shadow-xs ${roleInfo.color}`}>
                 {roleInfo.label}
@@ -151,18 +150,18 @@ export default function ProfilePage() {
           </div>
 
           {/* User Details & Identity */}
-          <div className="px-6 sm:px-8 pb-6 pt-0">
+          <div className="px-6 sm:px-8 pb-6 pt-0 relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                 {/* Floating Avatar Box */}
-                <div className="-mt-14 sm:-mt-16 w-24 h-24 sm:w-26 sm:h-26 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-md shrink-0">
+                <div className="relative z-10 -mt-10 sm:-mt-12 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center border-4 border-white shadow-lg ring-1 ring-slate-200/60 shrink-0">
                   {user
                     ? `${user.firstname?.[0] || ""}${user.lastname?.[0] || ""}`.toUpperCase()
                     : "U"}
                 </div>
 
                 {/* Name, Badge, Email - Sitting 100% in white space with high contrast */}
-                <div className="pt-2 sm:pt-0 pb-1">
+                <div className="pt-2 sm:pt-3 pb-0.5">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       {user ? `${user.firstname} ${user.lastname}` : "Loading..."}
@@ -189,7 +188,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-5 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-5 mt-5 border-t border-slate-100">
               <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/70 hover:border-indigo-200 transition-colors">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
@@ -310,9 +309,15 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
-                  Regulatory Verified
-                </span>
+                {registeredStartups.length > 0 ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                    Regulatory Verified
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 self-start sm:self-auto">
+                    Verification Pending
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
