@@ -28,6 +28,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { PIPELINE_STAGES } from "./InvestmentInquiriesPage";
+import StageHistoryBullets from "./StageHistoryBullets";
 
 export const INVESTMENT_FOCUS_OPTIONS = [
   "Direct Equity / Seed Round",
@@ -93,8 +94,15 @@ export default function InvestorPortfolioPage() {
         const startupsData = await stRes.json();
         const list = Array.isArray(startupsData) ? startupsData : startupsData.content || [];
         setAllStartups(list);
-        if (list.length > 0 && !expressForm.startupId) {
-          setExpressForm((prev) => ({ ...prev, startupId: list[0].id }));
+        const eligible = list.filter((s) => {
+          const status = s.status?.trim() || "";
+          const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+          const isRejected = status.toLowerCase() === "rejected";
+          const isVerified = Boolean(s.emailVerified);
+          return isApproved && isVerified && !isRejected;
+        });
+        if (eligible.length > 0 && !expressForm.startupId) {
+          setExpressForm((prev) => ({ ...prev, startupId: eligible[0].id }));
         }
       }
     } catch (err) {
@@ -177,7 +185,7 @@ export default function InvestorPortfolioPage() {
     if (targetIndex < 0 || targetIndex >= PIPELINE_STAGES.length) return;
 
     const targetStage = PIPELINE_STAGES[targetIndex].id;
-    handleUpdateStage(deal.id, targetStage, deal.notes);
+    handleUpdateStage(deal.id, targetStage, "");
   };
 
   // Submit real investment interest to any startup
@@ -186,6 +194,26 @@ export default function InvestorPortfolioPage() {
     if (!expressForm.startupId) {
       toast.error("Please select a target startup to invest in");
       return;
+    }
+
+    const targetSt = allStartups.find((s) => String(s.id) === String(expressForm.startupId));
+    if (targetSt) {
+      const status = targetSt.status?.trim() || "";
+      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+      const isRejected = status.toLowerCase() === "rejected";
+      const isVerified = Boolean(targetSt.emailVerified);
+      if (isRejected) {
+        toast.error("Investors cannot invest in rejected businesses.");
+        return;
+      }
+      if (!isVerified) {
+        toast.error("Investors cannot invest in unverified businesses.");
+        return;
+      }
+      if (!isApproved) {
+        toast.error("Investors can only invest in verified and accepted businesses.");
+        return;
+      }
     }
 
     setSubmittingInterest(true);
@@ -232,12 +260,26 @@ export default function InvestorPortfolioPage() {
     }
   };
 
+  // Only verified, accepted and non-rejected startups are eligible to receive investments
+  const isEligibleStartup = (s) => {
+    if (!s) return false;
+    const status = s.status?.trim() || "";
+    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+    const isRejected = status.toLowerCase() === "rejected";
+    const isVerified = Boolean(s.emailVerified);
+    return isApproved && isVerified && !isRejected;
+  };
+
+  const eligibleStartups = useMemo(() => {
+    return allStartups.filter(isEligibleStartup);
+  }, [allStartups]);
+
   // Filtered & de-duplicated investments (1 authentic card per startup based on chosen investment focus)
   const filteredInvestments = useMemo(() => {
     // 1. Group by startup to select only the best/most specific card per startup
     const uniqueMap = new Map();
     for (const item of investments) {
-      if (!item || !item.startup || !item.startup.id) continue;
+      if (!item || !item.startup || !item.startup.id || !isEligibleStartup(item.startup)) continue;
       const stId = item.startup.id;
       if (!uniqueMap.has(stId)) {
         uniqueMap.set(stId, item);
@@ -282,7 +324,7 @@ export default function InvestorPortfolioPage() {
   const uniqueAllInvestments = useMemo(() => {
     const uniqueMap = new Map();
     for (const item of investments) {
-      if (!item || !item.startup || !item.startup.id) continue;
+      if (!item || !item.startup || !item.startup.id || !isEligibleStartup(item.startup)) continue;
       const stId = item.startup.id;
       if (!uniqueMap.has(stId)) {
         uniqueMap.set(stId, item);
@@ -302,7 +344,7 @@ export default function InvestorPortfolioPage() {
     (i) => i.stage !== "CLOSED_DEAL" && i.stage !== "PASSED"
   ).length;
   const closedInvestments = useMemo(() => {
-    return uniqueAllInvestments.filter((i) => i.stage === "CLOSED_DEAL");
+    return uniqueAllInvestments.filter((i) => i.stage === "CLOSED_DEAL" && isEligibleStartup(i.startup));
   }, [uniqueAllInvestments]);
   const closedCount = closedInvestments.length;
 
@@ -601,12 +643,8 @@ export default function InvestorPortfolioPage() {
                         </div>
                       </div>
 
-                      {/* Investor Notes */}
-                      {deal.notes && (
-                        <div className="mt-2.5 text-[11px] text-gray-600 bg-gray-50 p-2.5 rounded-xl border border-gray-100 italic">
-                          "{deal.notes}"
-                        </div>
-                      )}
+                      {/* Stage Updates & History in Bullet Form with Expand Icon */}
+                      <StageHistoryBullets rawNotes={deal.notes} theme="amber" />
                     </div>
 
                     {/* Footer Actions */}
@@ -629,7 +667,7 @@ export default function InvestorPortfolioPage() {
                         onClick={() => {
                           setActiveModal(deal);
                           setNewStageInput(deal.stage || "NEW_INQUIRY");
-                          setNotesInput(deal.notes || "");
+                          setNotesInput("");
                         }}
                         className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
                       >
@@ -682,7 +720,7 @@ export default function InvestorPortfolioPage() {
                               onClick={() => {
                                 setActiveModal(deal);
                                 setNewStageInput(deal.stage || "NEW_INQUIRY");
-                                setNotesInput(deal.notes || "");
+                                setNotesInput("");
                               }}
                             >
                               <p className="text-xs font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
@@ -783,20 +821,25 @@ export default function InvestorPortfolioPage() {
 
             <form onSubmit={handleExpressInterestSubmit} className="p-5 sm:p-6 space-y-3.5 text-xs">
               <div>
-                <label className="font-bold text-gray-700 block mb-1">Select Target Startup *</label>
+                <label className="font-bold text-gray-700 block mb-1">Select Target Startup * (Verified & Accepted Only)</label>
                 <select
                   value={expressForm.startupId}
                   onChange={(e) => setExpressForm({ ...expressForm, startupId: e.target.value })}
                   className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-semibold text-gray-900 focus:ring-2 focus:ring-amber-500/30"
                   required
                 >
-                  <option value="">-- Choose a Startup to Invest In --</option>
-                  {allStartups.map((s) => (
+                  <option value="">-- Choose a Verified & Accepted Startup to Invest In --</option>
+                  {eligibleStartups.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.companyName} {s.industry ? `(${s.industry})` : ""}
+                      {s.companyName} {s.industry ? `(${s.industry})` : ""} - Verified & Approved
                     </option>
                   ))}
                 </select>
+                {eligibleStartups.length === 0 && (
+                  <p className="text-[11px] text-red-600 mt-1">
+                    No verified and accepted businesses available for investment. Investors cannot invest in rejected or unverified businesses.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -942,9 +985,7 @@ export default function InvestorPortfolioPage() {
                   <label className="font-bold text-gray-700 block text-xs">
                     Stage Progress & Activity History:
                   </label>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 max-h-40 overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
-                    {activeModal.notes}
-                  </div>
+                  <StageHistoryBullets rawNotes={activeModal.notes} defaultExpanded={true} theme="amber" />
                 </div>
               )}
 
