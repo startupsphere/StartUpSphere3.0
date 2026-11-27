@@ -531,63 +531,75 @@ export default function VentureLeaderboardRanking() {
 
                     {/* 4-Pillar Score Breakdown */}
                     <div className="mt-5 pt-4 border-t border-gray-100">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                        {/* Growth */}
-                        <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-100/70">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-blue-700 mb-1">
-                            <span className="uppercase tracking-wider">Growth Index</span>
-                            <span className="font-bold">{venture.growthScore}%</span>
+                      {venture.isRanked ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                          {/* Growth */}
+                          <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-100/70">
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-blue-700 mb-1">
+                              <span className="uppercase tracking-wider">Growth Index</span>
+                              <span className="font-bold">{venture.growthScore}%</span>
+                            </div>
+                            <div className="w-full bg-blue-100/60 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, venture.growthScore))}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-blue-100/60 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.max(0, venture.growthScore))}%` }}
-                            />
-                          </div>
-                        </div>
 
-                        {/* Investment */}
-                        <div className="bg-purple-50/60 rounded-xl p-3 border border-purple-100/70">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-purple-700 mb-1">
-                            <span className="uppercase tracking-wider">Investment Readiness</span>
-                            <span className="font-bold">{venture.investmentScore}%</span>
+                          {/* Investment */}
+                          <div className="bg-purple-50/60 rounded-xl p-3 border border-purple-100/70">
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-purple-700 mb-1">
+                              <span className="uppercase tracking-wider">Investment Readiness</span>
+                              <span className="font-bold">{venture.investmentScore}%</span>
+                            </div>
+                            <div className="w-full bg-purple-100/60 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-purple-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, venture.investmentScore))}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-purple-100/60 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-purple-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.max(0, venture.investmentScore))}%` }}
-                            />
-                          </div>
-                        </div>
 
-                        {/* Ecosystem */}
-                        <div className="bg-pink-50/60 rounded-xl p-3 border border-pink-100/70">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-pink-700 mb-1">
-                            <span className="uppercase tracking-wider">Ecosystem Impact</span>
-                            <span className="font-bold">{venture.ecosystemScore}%</span>
+                          {/* Ecosystem */}
+                          <div className="bg-pink-50/60 rounded-xl p-3 border border-pink-100/70">
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-pink-700 mb-1">
+                              <span className="uppercase tracking-wider">Ecosystem Impact</span>
+                              <span className="font-bold">{venture.ecosystemScore}%</span>
+                            </div>
+                            <div className="w-full bg-pink-100/60 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-pink-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, venture.ecosystemScore))}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-pink-100/60 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-pink-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.max(0, venture.ecosystemScore))}%` }}
-                            />
-                          </div>
-                        </div>
 
-                        {/* Engagement */}
-                        <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-100/70">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-amber-800 mb-1">
-                            <span className="uppercase tracking-wider">Engagement</span>
-                            <span className="font-bold">{venture.engagementScore}%</span>
-                          </div>
-                          <div className="w-full bg-amber-100/60 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-amber-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.max(0, venture.engagementScore))}%` }}
-                            />
+                          {/* Engagement */}
+                          <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-100/70">
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-amber-800 mb-1">
+                              <span className="uppercase tracking-wider">Engagement</span>
+                              <span className="font-bold">{venture.engagementScore}%</span>
+                            </div>
+                            <div className="w-full bg-amber-100/60 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-amber-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, venture.engagementScore))}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-800">
+                          <div className="flex items-center gap-2">
+                            <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>
+                              {venture.status ? `Status: ${venture.status}. ` : ""}
+                              This venture will be scored and assigned its official leaderboard position once reviewed and approved.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -2540,6 +2540,9 @@ export default function Sidebar({
                               : "text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 hover:scale-105 active:scale-95"
                             }`}
                           onClick={() => {
+                            setShowRecents(false);
+                            setShowSearchContainer(false);
+                            setShowBookmarks(false);
                             setShowGeminiAi(false);
                             navigate("/venture-rankings");
                           }}

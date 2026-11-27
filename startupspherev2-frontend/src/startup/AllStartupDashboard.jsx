@@ -108,30 +108,6 @@ export default function AllStartupDashboard() {
   const [activeSearch, setActiveSearch] = useState("");
   const [archiveSearch, setArchiveSearch] = useState("");
 
-  // Logged-in user's own startups for prominent leaderboard ranking
-  const [myStartups, setMyStartups] = useState([]);
-  const [myStartupsLoading, setMyStartupsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchMyStartups = async () => {
-      try {
-        setMyStartupsLoading(true);
-        const res = await fetch(`${getBackendUrl()}/startups/my-startups/details`, {
-          headers: getAuthHeaders(),
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMyStartups(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        console.error("Failed to load user startups for ranking:", err);
-      } finally {
-        setMyStartupsLoading(false);
-      }
-    };
-    fetchMyStartups();
-  }, [refreshTrigger]);
 
   useEffect(() => {
     setOverviewPage(0);
