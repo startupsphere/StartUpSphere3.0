@@ -25,6 +25,7 @@ import {
   FileText,
   DollarSign,
 } from "lucide-react";
+import StageHistoryBullets from "./StageHistoryBullets";
 
 export const PIPELINE_STAGES = [
   {
@@ -143,8 +144,15 @@ export default function InvestmentInquiriesPage() {
         const startupsData = await stRes.json();
         const list = Array.isArray(startupsData) ? startupsData : startupsData.content || [];
         setUserStartups(list);
-        if (list.length > 0 && !logForm.startupId) {
-          setLogForm((prev) => ({ ...prev, startupId: list[0].id }));
+        const eligible = list.filter((s) => {
+          const status = s.status?.trim() || "";
+          const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+          const isRejected = status.toLowerCase() === "rejected";
+          const isVerified = Boolean(s.emailVerified);
+          return isApproved && isVerified && !isRejected;
+        });
+        if (eligible.length > 0 && !logForm.startupId) {
+          setLogForm((prev) => ({ ...prev, startupId: eligible[0].id }));
         }
       }
     } catch (err) {
@@ -218,7 +226,7 @@ export default function InvestmentInquiriesPage() {
     if (targetIndex < 0 || targetIndex >= PIPELINE_STAGES.length) return;
 
     const targetStage = PIPELINE_STAGES[targetIndex].id;
-    handleUpdateStage(deal.id, targetStage, deal.notes);
+    handleUpdateStage(deal.id, targetStage, "");
   };
 
   // Submit real inbound inquiry
@@ -227,6 +235,26 @@ export default function InvestmentInquiriesPage() {
     if (!logForm.investorName.trim()) {
       toast.error("Please enter the investor or organization name");
       return;
+    }
+
+    const targetSt = userStartups.find((s) => String(s.id) === String(logForm.startupId));
+    if (targetSt) {
+      const status = targetSt.status?.trim() || "";
+      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+      const isRejected = status.toLowerCase() === "rejected";
+      const isVerified = Boolean(targetSt.emailVerified);
+      if (isRejected) {
+        toast.error("Investors cannot invest in rejected businesses.");
+        return;
+      }
+      if (!isVerified) {
+        toast.error("Investors cannot invest in unverified businesses.");
+        return;
+      }
+      if (!isApproved) {
+        toast.error("Investors can only invest in verified and accepted businesses.");
+        return;
+      }
     }
 
     setSubmittingInquiry(true);
@@ -270,6 +298,17 @@ export default function InvestmentInquiriesPage() {
     }
   };
 
+  // Only verified, accepted and non-rejected startups can receive investments
+  const eligibleUserStartups = useMemo(() => {
+    return userStartups.filter((s) => {
+      const status = s.status?.trim() || "";
+      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+      const isRejected = status.toLowerCase() === "rejected";
+      const isVerified = Boolean(s.emailVerified);
+      return isApproved && isVerified && !isRejected;
+    });
+  }, [userStartups]);
+
   // Extract unique startups for filter
   const uniqueStartups = useMemo(() => {
     const map = new Map();
@@ -286,11 +325,21 @@ export default function InvestmentInquiriesPage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [inquiries, userStartups]);
 
+  // Only verified, accepted and non-rejected startups are eligible to receive investments
+  const isEligibleStartup = (s) => {
+    if (!s) return false;
+    const status = s.status?.trim() || "";
+    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+    const isRejected = status.toLowerCase() === "rejected";
+    const isVerified = Boolean(s.emailVerified);
+    return isApproved && isVerified && !isRejected;
+  };
+
   // Filter & de-duplicate inquiries (1 authentic card per startup based on chosen investment focus)
   const filteredInquiries = useMemo(() => {
     const uniqueMap = new Map();
     for (const item of inquiries) {
-      if (!item || !item.startup || !item.startup.id) continue;
+      if (!item || !item.startup || !item.startup.id || !isEligibleStartup(item.startup)) continue;
       const key = `${item.startup.id}-${item.investorEmail || item.investorName || "inv"}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, item);
@@ -333,7 +382,7 @@ export default function InvestmentInquiriesPage() {
   const uniqueAllInquiries = useMemo(() => {
     const uniqueMap = new Map();
     for (const item of inquiries) {
-      if (!item || !item.startup || !item.startup.id) continue;
+      if (!item || !item.startup || !item.startup.id || !isEligibleStartup(item.startup)) continue;
       const key = `${item.startup.id}-${item.investorEmail || item.investorName || "inv"}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, item);
@@ -352,7 +401,7 @@ export default function InvestmentInquiriesPage() {
   const activeDealsCount = uniqueAllInquiries.filter(
     (i) => i.stage !== "CLOSED_DEAL" && i.stage !== "PASSED"
   ).length;
-  const closedDealsCount = uniqueAllInquiries.filter((i) => i.stage === "CLOSED_DEAL").length;
+  const closedDealsCount = uniqueAllInquiries.filter((i) => i.stage === "CLOSED_DEAL" && isEligibleStartup(i.startup)).length;
 
   return (
     <div className="min-h-screen bg-slate-50/60 pb-20">
@@ -560,7 +609,7 @@ export default function InvestmentInquiriesPage() {
                               onClick={() => {
                                 setActiveDealModal(deal);
                                 setNewStageInput(deal.stage || "NEW_INQUIRY");
-                                setNotesInput(deal.notes || "");
+                                setNotesInput("");
                               }}
                             >
                               <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -598,11 +647,7 @@ export default function InvestmentInquiriesPage() {
                                 </div>
                               )}
 
-                              {deal.notes && (
-                                <p className="text-[10.5px] text-gray-600 mt-2 line-clamp-2 bg-gray-50 p-1.5 rounded border border-gray-100 italic">
-                                  "{deal.notes}"
-                                </p>
-                              )}
+                              <StageHistoryBullets rawNotes={deal.notes} theme="emerald" />
                             </div>
 
                             {/* Quick Pipeline Stage Action Controls */}
@@ -732,7 +777,7 @@ export default function InvestmentInquiriesPage() {
                               onClick={() => {
                                 setActiveDealModal(deal);
                                 setNewStageInput(deal.stage || "NEW_INQUIRY");
-                                setNotesInput(deal.notes || "");
+                                setNotesInput("");
                               }}
                               className="px-3 py-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 font-bold rounded-lg border border-gray-200 text-xs transition-colors cursor-pointer"
                             >
@@ -782,21 +827,26 @@ export default function InvestmentInquiriesPage() {
 
             <form onSubmit={handleCreateInquirySubmit} className="p-5 sm:p-6 space-y-3.5 text-xs">
               {/* Target Startup */}
-              {userStartups.length > 0 && (
+              {eligibleUserStartups.length > 0 ? (
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Target Startup *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Target Startup * (Verified & Accepted Only)</label>
                   <select
                     value={logForm.startupId}
                     onChange={(e) => setLogForm({ ...logForm, startupId: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
                     required
                   >
-                    {userStartups.map((s) => (
+                    {eligibleUserStartups.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.companyName}
+                        {s.companyName} - Verified & Approved
                       </option>
                     ))}
                   </select>
+                </div>
+              ) : (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800">
+                  <p className="font-semibold text-red-900">Ineligible to Receive Investments</p>
+                  <p className="mt-0.5">Your startup must be verified and approved by the administrator before inquiries and investments can be logged.</p>
                 </div>
               )}
 
@@ -1041,15 +1091,13 @@ export default function InvestmentInquiriesPage() {
                 </select>
               </div>
 
-              {/* Full Stage History & Audit Trail */}
+              {/* Full Stage History & Audit Trail in Bullet Form with Expand Icon */}
               {activeDealModal.notes && (
                 <div className="space-y-1.5 pt-2 border-t border-gray-100">
                   <label className="font-bold text-gray-700 block text-xs">
                     Stage Progress & Activity History:
                   </label>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 max-h-40 overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
-                    {activeDealModal.notes}
-                  </div>
+                  <StageHistoryBullets rawNotes={activeDealModal.notes} defaultExpanded={true} theme="emerald" />
                 </div>
               )}
 
