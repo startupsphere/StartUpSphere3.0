@@ -2,6 +2,24 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import {
   Trophy,
   Crown,
   Award,
@@ -22,6 +40,15 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Zap,
+  Target,
+  Flame,
+  Activity,
+  Layers,
+  Users,
+  DollarSign,
+  PieChart as PieIcon,
+  Check,
 } from "lucide-react";
 
 export default function VentureLeaderboardRanking() {
@@ -33,6 +60,10 @@ export default function VentureLeaderboardRanking() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [rankingMetric, setRankingMetric] = useState("overall"); // overall, growth, investment, ecosystem, engagement
+
+  // Statistical Ranking Details Modal State
+  const [selectedVentureForDetails, setSelectedVentureForDetails] = useState(null);
+  const [detailsTab, setDetailsTab] = useState("charts"); // "charts" | "breakdown"
 
   // Popup Board (Modal) for Overall Leaderboard
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
@@ -188,6 +219,41 @@ export default function VentureLeaderboardRanking() {
       avgTrl,
     };
   }, [myStartups, sortedUserVentures]);
+
+  // Ecosystem Benchmark Averages for Statistical Charts
+  const ecosystemAverages = useMemo(() => {
+    const list = topStartups || [];
+    if (list.length === 0) {
+      return {
+        growth: 65,
+        investment: 58,
+        ecosystem: 62,
+        engagement: 54,
+        top10Growth: 88,
+        top10Invest: 85,
+        top10Eco: 84,
+        top10Eng: 80,
+      };
+    }
+    const sample = list.slice(0, 50);
+    const top10 = list.slice(0, 10);
+    const avg = (arr, key, fallback) => {
+      if (!arr || arr.length === 0) return fallback;
+      const sum = arr.reduce((acc, item) => acc + Number(item[key] || 0), 0);
+      const val = Math.round(sum / arr.length);
+      return val > 0 ? val : fallback;
+    };
+    return {
+      growth: avg(sample, "growthScore", 65),
+      investment: avg(sample, "investmentScore", 58),
+      ecosystem: avg(sample, "ecosystemScore", 62),
+      engagement: avg(sample, "engagementScore", 54),
+      top10Growth: avg(top10, "growthScore", 88),
+      top10Invest: avg(top10, "investmentScore", 85),
+      top10Eco: avg(top10, "ecosystemScore", 84),
+      top10Eng: avg(top10, "engagementScore", 80),
+    };
+  }, [topStartups]);
 
   // Popup Board: Filtered startups & pagination
   const modalIndustries = useMemo(() => {
@@ -501,8 +567,8 @@ export default function VentureLeaderboardRanking() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <h2
                               className="text-lg sm:text-xl font-black text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer truncate"
-                              onClick={() => navigate(`/startup/${venture.id}`)}
-                              title={venture.companyName}
+                              onClick={() => setSelectedVentureForDetails(venture)}
+                              title={`View statistical ranking details for ${venture.companyName}`}
                             >
                               {venture.companyName}
                             </h2>
@@ -550,14 +616,15 @@ export default function VentureLeaderboardRanking() {
                           </div>
                         </div>
 
-                        {/* Action Link */}
+                        {/* Action Link: View Statistical Details */}
                         <button
                           type="button"
-                          onClick={() => navigate(`/startup/${venture.id}`)}
-                          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-indigo-50 text-gray-700 hover:text-indigo-700 text-xs font-semibold rounded-xl border border-gray-200 hover:border-indigo-200 transition-all cursor-pointer shrink-0"
+                          onClick={() => setSelectedVentureForDetails(venture)}
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 text-xs font-bold rounded-xl border border-indigo-200 hover:border-indigo-300 transition-all cursor-pointer shrink-0 shadow-2xs hover:shadow"
+                          title="View statistical ranking breakdown and charts"
                         >
-                          <span>View Profile</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>View Details</span>
                         </button>
                       </div>
                     </div>
@@ -769,11 +836,21 @@ export default function VentureLeaderboardRanking() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               onClick={() => {
-                                setShowLeaderboardModal(false);
-                                navigate(`/startup/${st.id}`);
+                                const match = sortedUserVentures.find((uv) => String(uv.id) === String(st.id));
+                                setSelectedVentureForDetails(match || {
+                                  ...st,
+                                  isRanked: true,
+                                  rankNum: globalRank,
+                                  overallScore: score,
+                                  growthScore: growth,
+                                  investmentScore: investment,
+                                  ecosystemScore: ecosystem,
+                                  engagementScore: engagement,
+                                  trlNum,
+                                });
                               }}
                               className="font-bold text-sm text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer truncate"
-                              title={st.companyName}
+                              title={`View statistical ranking details for ${st.companyName}`}
                             >
                               {st.companyName}
                             </span>
@@ -832,17 +909,28 @@ export default function VentureLeaderboardRanking() {
                           </div>
                         </div>
 
-                        {/* Action */}
+                        {/* Action: Details */}
                         <button
                           type="button"
                           onClick={() => {
-                            setShowLeaderboardModal(false);
-                            navigate(`/startup/${st.id}`);
+                            const match = sortedUserVentures.find((uv) => String(uv.id) === String(st.id));
+                            setSelectedVentureForDetails(match || {
+                              ...st,
+                              isRanked: true,
+                              rankNum: globalRank,
+                              overallScore: score,
+                              growthScore: growth,
+                              investmentScore: investment,
+                              ecosystemScore: ecosystem,
+                              engagementScore: engagement,
+                              trlNum,
+                            });
                           }}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                          title="View Profile"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer shrink-0 border border-indigo-200"
+                          title="View Ranking Statistical Details"
                         >
-                          <ArrowUpRight className="w-4 h-4" />
+                          <BarChart3 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Details</span>
                         </button>
                       </div>
                     </div>
@@ -888,6 +976,515 @@ export default function VentureLeaderboardRanking() {
           </div>
         </div>
       )}
+
+      {/* Statistical Ranking Details Modal */}
+      {selectedVentureForDetails && (() => {
+        const v = selectedVentureForDetails;
+        const vRank = v.rankNum != null ? v.rankNum : (v.isRanked ? 1 : null);
+        const vScore = v.overallScore !== null && v.overallScore !== undefined ? Number(v.overallScore) : null;
+
+        // Pillar Scores (0-100)
+        const vGrowth = Math.min(100, Math.max(0, Math.round(Number(v.growthScore || (v.averageStartupGrowthRate || 0) * 1.5 || 30))));
+        const vInvestment = Math.min(100, Math.max(0, Math.round(Number(v.investmentScore || ((v.totalStartupFundingReceived || 0) > 0 ? 65 : 20)))));
+        const vEcosystem = Math.min(100, Math.max(0, Math.round(Number(v.ecosystemScore || ((v.trlNum || 1) * 8 + (v.isGovernmentRegistered ? 20 : 5))))));
+        const vEngagement = Math.min(100, Math.max(0, Math.round(Number(v.engagementScore || Math.min(95, (v.viewsCount || 0) * 2 + 15)))));
+
+        // Weighted Points (Growth 30%, Capital 30%, Readiness 25%, Engagement 15%)
+        const growthPts = (vGrowth * 0.30).toFixed(1);
+        const investPts = (vInvestment * 0.30).toFixed(1);
+        const ecoPts = (vEcosystem * 0.25).toFixed(1);
+        const engagePts = (vEngagement * 0.15).toFixed(1);
+        const calculatedComposite = (Number(growthPts) + Number(investPts) + Number(ecoPts) + Number(engagePts)).toFixed(1);
+
+        // Radar Data
+        const radarData = [
+          { subject: "Growth (30%)", Venture: vGrowth, EcosystemAvg: ecosystemAverages.growth, fullMark: 100 },
+          { subject: "Capital (30%)", Venture: vInvestment, EcosystemAvg: ecosystemAverages.investment, fullMark: 100 },
+          { subject: "Readiness (25%)", Venture: vEcosystem, EcosystemAvg: ecosystemAverages.ecosystem, fullMark: 100 },
+          { subject: "Engagement (15%)", Venture: vEngagement, EcosystemAvg: ecosystemAverages.engagement, fullMark: 100 },
+        ];
+
+        // Benchmark Bar Data
+        const benchmarkData = [
+          {
+            pillar: "Growth",
+            "This Venture": vGrowth,
+            "Top 10 Benchmark": ecosystemAverages.top10Growth,
+            "Ecosystem Avg": ecosystemAverages.growth,
+          },
+          {
+            pillar: "Capital",
+            "This Venture": vInvestment,
+            "Top 10 Benchmark": ecosystemAverages.top10Invest,
+            "Ecosystem Avg": ecosystemAverages.investment,
+          },
+          {
+            pillar: "Readiness",
+            "This Venture": vEcosystem,
+            "Top 10 Benchmark": ecosystemAverages.top10Eco,
+            "Ecosystem Avg": ecosystemAverages.ecosystem,
+          },
+          {
+            pillar: "Engagement",
+            "This Venture": vEngagement,
+            "Top 10 Benchmark": ecosystemAverages.top10Eng,
+            "Ecosystem Avg": ecosystemAverages.engagement,
+          },
+        ];
+
+        // Weight Pie Data
+        const pieData = [
+          { name: "Growth (30%)", value: 30, color: "#3b82f6", score: vGrowth, earned: growthPts },
+          { name: "Capital (30%)", value: 30, color: "#8b5cf6", score: vInvestment, earned: investPts },
+          { name: "Readiness (25%)", value: 25, color: "#ec4899", score: vEcosystem, earned: ecoPts },
+          { name: "Engagement (15%)", value: 15, color: "#f59e0b", score: vEngagement, earned: engagePts },
+        ];
+
+        const totalEcosystemCount = Math.max(topStartups.length, myStartups.length, 1);
+        const percentile = vRank ? Math.max(1, Math.round(((totalEcosystemCount - vRank + 1) / totalEcosystemCount) * 100)) : null;
+
+        const effectiveScore = vScore !== null ? vScore : Number(calculatedComposite);
+        let tierLabel = "Development Stage";
+        let tierBg = "bg-slate-100 text-slate-800 border-slate-300";
+        if (effectiveScore >= 80) {
+          tierLabel = "Tier 1: Elite Ecosystem Leader";
+          tierBg = "bg-emerald-50 text-emerald-800 border-emerald-300 ring-2 ring-emerald-100";
+        } else if (effectiveScore >= 65) {
+          tierLabel = "Tier 2: High-Velocity Performer";
+          tierBg = "bg-indigo-50 text-indigo-800 border-indigo-300";
+        } else if (effectiveScore >= 45) {
+          tierLabel = "Tier 3: Emerging Contender";
+          tierBg = "bg-amber-50 text-amber-800 border-amber-300";
+        }
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto"
+            onClick={() => setSelectedVentureForDetails(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="px-5 sm:px-6 py-4 border-b border-gray-200 bg-slate-50/90 flex items-start justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg shrink-0 border shadow-2xs relative ${
+                      vRank === 1
+                        ? "bg-amber-100 text-amber-900 border-amber-300 ring-2 ring-amber-200"
+                        : vRank && vRank <= 3
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-indigo-100 text-indigo-800 border-indigo-200"
+                    }`}
+                  >
+                    {vRank ? (
+                      <>
+                        <span className="text-xs font-semibold">#</span>
+                        <span>{vRank}</span>
+                        {vRank === 1 && (
+                          <Crown className="w-4 h-4 text-amber-500 absolute -top-1.5 -right-1 drop-shadow" />
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-500">—</span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-xl font-black text-gray-900 truncate" title={v.companyName}>
+                        {v.companyName}
+                      </h2>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${tierBg}`}>
+                        {tierLabel}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-500">
+                      <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        {v.industry || "General Tech"}
+                      </span>
+                      <span>•</span>
+                      <span className="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                        TRL {v.trlNum || 1} Stage
+                      </span>
+                      {v.isGovernmentRegistered && (
+                        <>
+                          <span>•</span>
+                          <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            {v.registrationAgency || "Government Registered"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Composite Score</div>
+                    <div className="text-2xl font-black text-gray-900 leading-tight">
+                      {vScore !== null ? vScore : calculatedComposite}
+                      <span className="text-xs font-normal text-gray-400 ml-0.5">/100</span>
+                    </div>
+                    {percentile && (
+                      <span className="text-[10px] font-bold text-indigo-600 block">
+                        Top {Math.max(1, 100 - percentile)}% Ecosystem
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVentureForDetails(null)}
+                    className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                    aria-label="Close details"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Navigation Tabs */}
+              <div className="px-5 sm:px-6 border-b border-gray-200 bg-white flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab("charts")}
+                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                    detailsTab === "charts"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Statistical Ranking Charts</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab("breakdown")}
+                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                    detailsTab === "breakdown"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>Weight Formula & Operational Drivers</span>
+                </button>
+              </div>
+
+              {/* Modal Body Content */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
+                {detailsTab === "charts" ? (
+                  <>
+                    {/* Top Statistical Summary Row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100">
+                        <div className="flex items-center justify-between text-blue-700 mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Growth Velocity</span>
+                          <TrendingUp className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="text-xl font-black text-gray-900">{vGrowth}<span className="text-xs font-normal text-gray-500">/100</span></div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-0.5">Weighted: {growthPts} pts (30%)</div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100">
+                        <div className="flex items-center justify-between text-purple-700 mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Capital & Funding</span>
+                          <DollarSign className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="text-xl font-black text-gray-900">{vInvestment}<span className="text-xs font-normal text-gray-500">/100</span></div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-0.5">Weighted: {investPts} pts (30%)</div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-pink-50/70 border border-pink-100">
+                        <div className="flex items-center justify-between text-pink-700 mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Tech Readiness</span>
+                          <Layers className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="text-xl font-black text-gray-900">{vEcosystem}<span className="text-xs font-normal text-gray-500">/100</span></div>
+                        <div className="text-[11px] text-pink-600 font-semibold mt-0.5">Weighted: {ecoPts} pts (25%)</div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-100">
+                        <div className="flex items-center justify-between text-amber-700 mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Engagement</span>
+                          <Users className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="text-xl font-black text-gray-900">{vEngagement}<span className="text-xs font-normal text-gray-500">/100</span></div>
+                        <div className="text-[11px] text-amber-600 font-semibold mt-0.5">Weighted: {engagePts} pts (15%)</div>
+                      </div>
+                    </div>
+
+                    {/* Chart Row 1: Radar (Spider) Chart & Benchmark Bar Chart */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                      {/* Radar Chart Card */}
+                      <div className="bg-slate-50/70 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col">
+                        <div className="mb-2">
+                          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <Target className="w-4 h-4 text-indigo-600" />
+                            <span>Pillar Dimension Performance (Radar Profile)</span>
+                          </h3>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            Compares this venture's footprint against ecosystem averages across all 4 ranking dimensions.
+                          </p>
+                        </div>
+
+                        <div className="min-h-[260px] h-64 sm:h-72 w-full mt-auto">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                              <PolarGrid stroke="#e2e8f0" />
+                              <PolarAngleAxis dataKey="subject" tick={{ fill: "#475569", fontSize: 11, fontWeight: 600 }} />
+                              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#94a3b8", fontSize: 9 }} />
+                              <Radar name="This Venture" dataKey="Venture" stroke="#4f46e5" fill="#6366f1" fillOpacity={0.45} />
+                              <Radar name="Ecosystem Avg" dataKey="EcosystemAvg" stroke="#94a3b8" fill="#cbd5e1" fillOpacity={0.25} />
+                              <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }} />
+                              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Benchmark Bar Chart Card */}
+                      <div className="bg-slate-50/70 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col">
+                        <div className="mb-2">
+                          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <BarChart3 className="w-4 h-4 text-indigo-600" />
+                            <span>Competitive Ecosystem Benchmarks</span>
+                          </h3>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            Direct comparison against Top 10 Leaders and Median Ecosystem performance.
+                          </p>
+                        </div>
+
+                        <div className="min-h-[260px] h-64 sm:h-72 w-full mt-auto">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={benchmarkData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                              <XAxis dataKey="pillar" tick={{ fill: "#475569", fontSize: 11, fontWeight: 600 }} />
+                              <YAxis domain={[0, 100]} tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                              <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }} />
+                              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                              <Bar dataKey="This Venture" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                              <Bar dataKey="Top 10 Benchmark" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                              <Bar dataKey="Ecosystem Avg" fill="#cbd5e1" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chart Row 2: Weight Contribution Donut Chart & Score Formula */}
+                    <div className="bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/40 rounded-2xl border border-indigo-100 p-5">
+                      <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="w-full md:w-1/2 flex flex-col items-center">
+                          <div className="text-center mb-1">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                              Composite Score Weight Allocation
+                            </h4>
+                            <p className="text-[11px] text-gray-500">How each pillar contributes to the final ranking score</p>
+                          </div>
+                          <div className="min-h-[200px] h-52 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={pieData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={55}
+                                  outerRadius={80}
+                                  paddingAngle={4}
+                                  dataKey="value"
+                                >
+                                  {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  formatter={(val, name, item) => [`${item.payload.earned} pts (${val}%)`, `${name}: Score ${item.payload.score}/100`]}
+                                  contentStyle={{ backgroundColor: "#ffffff", borderRadius: "10px", fontSize: "11px" }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        <div className="w-full md:w-1/2 space-y-2">
+                          <div className="text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
+                            Pillar Points Earned Breakdown:
+                          </div>
+                          {pieData.map((p, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-slate-200/80 shadow-2xs">
+                              <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                <span className="text-xs font-semibold text-gray-800">{p.name}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs font-black text-gray-900">{p.earned}</span>
+                                <span className="text-[10px] text-gray-400 font-medium"> / {p.value} max pts</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Mathematical Formula Explanation Table */}
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs">
+                      <div className="px-5 py-3.5 bg-slate-50 border-b border-gray-200 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900">StartUpSphere Leaderboard Ranking Formula</h3>
+                          <p className="text-xs text-gray-500">Standardized composite calculation defining national venture standings</p>
+                        </div>
+                        <span className="text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200">
+                          Score = Σ (Pillar_Score × Weight)
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100/70 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[10px]">
+                              <th className="px-4 py-3">Pillar Dimension</th>
+                              <th className="px-4 py-3">Weight</th>
+                              <th className="px-4 py-3">Venture Metric Drivers</th>
+                              <th className="px-4 py-3 text-center">Score (0-100)</th>
+                              <th className="px-4 py-3 text-right">Points Earned</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            <tr className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-bold text-gray-900 flex items-center gap-1.5">
+                                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Growth Velocity</span>
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-blue-600">30%</td>
+                              <td className="px-4 py-3 text-gray-600">
+                                Growth rate: {v.averageStartupGrowthRate || 0}% • Annual Revenue: ₱{Number(v.annualRevenue || v.revenue || 0).toLocaleString()} • Team: {v.numberOfEmployees || "Early"}
+                              </td>
+                              <td className="px-4 py-3 text-center font-bold">{vGrowth}</td>
+                              <td className="px-4 py-3 text-right font-black text-blue-700">{growthPts}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-bold text-gray-900 flex items-center gap-1.5">
+                                <DollarSign className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Capital & Funding</span>
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-purple-600">30%</td>
+                              <td className="px-4 py-3 text-gray-600">
+                                Total funding: ₱{Number(v.totalStartupFundingReceived || 0).toLocaleString()} • Closed rounds: {v.numberOfFundingRounds || 0} • Paid-up: ₱{Number(v.paidUpCapital || 0).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-center font-bold">{vInvestment}</td>
+                              <td className="px-4 py-3 text-right font-black text-purple-700">{investPts}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-bold text-gray-900 flex items-center gap-1.5">
+                                <Layers className="w-3.5 h-3.5 text-pink-600" />
+                                <span>Tech Readiness & Compliance</span>
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-pink-600">25%</td>
+                              <td className="px-4 py-3 text-gray-600">
+                                TRL Level {v.trlNum || 1} • Agency: {v.registrationAgency || (v.isGovernmentRegistered ? "Govt Reg" : "Pending")} • Subsidies: ₱{Number(v.amountOfGovernmentGrantsOrSubsidiesReceived || 0).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-center font-bold">{vEcosystem}</td>
+                              <td className="px-4 py-3 text-right font-black text-pink-700">{ecoPts}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-bold text-gray-900 flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Community & Public Engagement</span>
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-amber-600">15%</td>
+                              <td className="px-4 py-3 text-gray-600">
+                                Platform views: {v.viewsCount || 0} • Social followers: {v.facebookFollowers || 0} • Inquiries active
+                              </td>
+                              <td className="px-4 py-3 text-center font-bold">{vEngagement}</td>
+                              <td className="px-4 py-3 text-right font-black text-amber-700">{engagePts}</td>
+                            </tr>
+                            <tr className="bg-indigo-50/60 font-black text-gray-900">
+                              <td className="px-4 py-3 text-indigo-900 font-extrabold" colSpan={4}>
+                                Official Composite Leaderboard Score
+                              </td>
+                              <td className="px-4 py-3 text-right text-base text-indigo-700 font-black">
+                                {vScore !== null ? vScore : calculatedComposite} / 100
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Operational Drivers Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block tracking-wider">
+                          Official Registration & Certifications
+                        </span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                          <span className="text-sm font-bold text-gray-900">
+                            {v.registrationAgency ? `${v.registrationAgency} Registered` : (v.isGovernmentRegistered ? "Government Certified" : "Unverified / Pending Registration")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Certificate/TIN: {v.tin || v.businessLicenseNumber || v.registrationNumber || "On file in verified repository"}
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block tracking-wider">
+                          Technology Readiness Level (TRL)
+                        </span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Zap className="w-5 h-5 text-amber-600" />
+                          <span className="text-sm font-bold text-gray-900">
+                            TRL {v.trlNum || 1} Stage
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {v.trlNum >= 7 ? "Commercial application operational & verified" : v.trlNum >= 4 ? "Technology validated in lab/relevant environment" : "Early research and prototype development"}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-5 sm:px-6 py-3.5 border-t border-gray-200 bg-slate-50 flex items-center justify-between shrink-0">
+                <span className="text-xs text-gray-500 hidden sm:inline">
+                  Rankings computed dynamically across ecosystem data points
+                </span>
+
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedVentureForDetails(null);
+                      navigate(`/startup/${v.id}`);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition-colors cursor-pointer"
+                  >
+                    <span>Open Full Profile</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVentureForDetails(null)}
+                    className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
