@@ -2187,23 +2187,6 @@ export default function Sidebar({
                   <button
                     onClick={() => {
                       setShowTooltip(false);
-                      window.dispatchEvent(
-                        new CustomEvent("switch-startup-dashboard-tab", {
-                          detail: { tab: "rankings" },
-                        })
-                      );
-                      navigate("/all-startup-dashboard", {
-                        state: { activeTab: "rankings" },
-                      });
-                    }}
-                    className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                  >
-                    <Award className="mr-2 h-4 w-4 text-indigo-600" />
-                    Startup Leaderboard & Rankings
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowTooltip(false);
                       navigate("/investments");
                     }}
                     className="cursor-pointer flex items-center w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
@@ -2845,25 +2828,7 @@ export default function Sidebar({
                           <span>All Startups & Rankings</span>
                         </button>
                       </>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setShowTooltip(false);
-                          window.dispatchEvent(
-                            new CustomEvent("switch-startup-dashboard-tab", {
-                              detail: { tab: "rankings" },
-                            })
-                          );
-                          navigate("/all-startup-dashboard", {
-                            state: { activeTab: "rankings" },
-                          });
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <Award className="h-4 w-4 text-indigo-600" />
-                        <span>Startup Leaderboard & Rankings</span>
-                      </button>
-                    )}
+                    ) : null}
                     <button
                       onClick={() => {
                         setShowTooltip(false);
