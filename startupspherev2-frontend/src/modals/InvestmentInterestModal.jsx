@@ -13,6 +13,7 @@ import {
   Building,
   CheckCircle,
   HelpCircle,
+  AlertCircle,
 } from "lucide-react";
 
 export default function InvestmentInterestModal({
@@ -89,6 +90,20 @@ export default function InvestmentInterestModal({
     }
   };
 
+  const status = startup?.status?.trim() || "";
+  const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+  const isRejected = status.toLowerCase() === "rejected";
+  const isVerified = Boolean(startup?.emailVerified);
+  const isEligible = isApproved && isVerified && !isRejected;
+
+  const ineligibilityReason = isRejected
+    ? "This business has been marked as Rejected. Investors cannot invest in rejected businesses."
+    : !isVerified
+    ? "This business is not verified. Investors cannot invest in unverified businesses."
+    : !isApproved
+    ? `This business is currently ${status || "under review"}. Investors can only invest in verified and accepted businesses.`
+    : "";
+
   const validate = () => {
     const errs = {};
     if (!formData.investorName.trim()) {
@@ -108,6 +123,10 @@ export default function InvestmentInterestModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isEligible) {
+      toast.error(ineligibilityReason);
+      return;
+    }
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -190,13 +209,25 @@ export default function InvestmentInterestModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-          {/* Info callout */}
-          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-950">
-            <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-            <p>
-              Submitting places this opportunity directly into <strong>Deal Flow / Pipeline Management</strong>. Both you and the business founder can monitor initial screening, meetings, due diligence, and term sheets.
-            </p>
-          </div>
+          {/* Warning banner if startup is not eligible */}
+          {!isEligible ? (
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-800">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-900">Investment Restricted</p>
+                <p className="mt-0.5">{ineligibilityReason}</p>
+                <p className="mt-1 text-[11px] text-red-700">Investors may only submit investment proposals and deploy capital to verified and accepted businesses in the platform.</p>
+              </div>
+            </div>
+          ) : (
+            /* Info callout */
+            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-950">
+              <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <p>
+                Submitting places this opportunity directly into <strong>Deal Flow / Pipeline Management</strong>. Both you and the business founder can monitor initial screening, meetings, due diligence, and term sheets.
+              </p>
+            </div>
+          )}
 
           {/* Investor Name & Email (2 columns) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -407,15 +438,21 @@ export default function InvestmentInterestModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 rounded-lg shadow-md shadow-blue-500/25 transition-all flex items-center gap-1.5 cursor-pointer border-0"
-              style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+              disabled={isSubmitting || !isEligible}
+              className={`px-5 py-2.5 text-xs font-semibold rounded-lg shadow-md transition-all flex items-center gap-1.5 border-0 ${
+                !isEligible
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                  : "text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 shadow-blue-500/25 cursor-pointer"
+              }`}
+              style={isEligible ? { backgroundColor: "#2563eb", color: "#ffffff" } : {}}
             >
               {isSubmitting ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span className="text-white">Sending Interest...</span>
                 </>
+              ) : !isEligible ? (
+                <span>Investment Unavailable</span>
               ) : (
                 <>
                   <Send size={13} className="text-white" />
