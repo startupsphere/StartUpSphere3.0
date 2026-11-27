@@ -2559,164 +2559,176 @@ export default function AllStartupDashboard() {
           <div className="space-y-6">
             {/* Prominently Display Logged-In User's Own Startup Ranking */}
             {myStartups && myStartups.length > 0 ? (
-              <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-900 rounded-2xl shadow-xl p-5 sm:p-6 text-white border border-indigo-700/60 relative overflow-hidden">
-                <div className="absolute -right-10 -bottom-10 w-56 h-56 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute right-10 top-0 w-32 h-32 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
-
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-indigo-800/60">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 border border-amber-300 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/20">
-                      <Trophy className="w-5 h-5 text-slate-950" />
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200/90 mb-6">
+                {/* Header Section matching application theme */}
+                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-white px-5 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
+                        <Trophy className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <span>Your Venture Leaderboard Ranking</span>
+                          <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                            {myStartups.length} {myStartups.length === 1 ? "Venture" : "Ventures"} Owned
+                          </span>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {isFiltered
+                            ? `Standing in ${[selectedIndustry !== 'All' ? selectedIndustry : null, selectedGovReg !== 'All' ? selectedGovReg : null, selectedTrlStage !== 'All' ? selectedTrlStage : null].filter(Boolean).join(' • ')} based on verified scoring metrics`
+                            : "Official standing in the Philippine innovation ecosystem based on verified scoring metrics"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
-                        <span>Your Venture Leaderboard Ranking</span>
-                        <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-600/80 text-indigo-100 font-semibold border border-indigo-400/30">
-                          {myStartups.length} {myStartups.length === 1 ? "Venture" : "Ventures"} Owned
-                        </span>
-                      </h3>
-                      <p className="text-xs text-indigo-200 mt-0.5">
-                        {isFiltered
-                          ? `Filtered standing in ${[selectedIndustry !== 'All' ? selectedIndustry : null, selectedGovReg !== 'All' ? selectedGovReg : null, selectedTrlStage !== 'All' ? selectedTrlStage : null].filter(Boolean).join(' • ')} based on verified scoring metrics`
-                          : "Official standing in the Philippine innovation ecosystem based on verified scoring metrics"}
-                      </p>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-indigo-700 border border-indigo-200 shadow-2xs">
+                        Leaderboard Metric: <strong className="ml-1 capitalize">{rankingMetric} Score</strong>
+                      </span>
                     </div>
                   </div>
-
-                  <span className="text-[11px] font-medium px-3 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700 text-indigo-200">
-                    Leaderboard Metric: <strong className="text-white capitalize">{rankingMetric} Score</strong>
-                  </span>
                 </div>
 
-                {/* Grid of User-Owned Startups Rankings */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {myStartups.map((mySt) => {
-                    const matchIndex = topStartups.findIndex(
-                      (ts) => String(ts.id) === String(mySt.id)
-                    );
-                    const isRanked = matchIndex !== -1;
-                    const rankedItem = isRanked ? topStartups[matchIndex] : null;
-                    const rankNum = isRanked ? (rankedItem.rank || matchIndex + 1) : null;
-                    const overallScore = rankedItem ? (rankedItem.overallScore ?? rankedItem.score ?? 0) : null;
-                    const growthScore = rankedItem ? (rankedItem.growthScore ?? 0) : null;
-                    const investmentScore = rankedItem ? (rankedItem.investmentScore ?? 0) : null;
-                    const ecosystemScore = rankedItem ? (rankedItem.ecosystemScore ?? 0) : null;
-                    const engagementScore = rankedItem ? (rankedItem.engagementScore ?? 0) : null;
+                {/* User Startups Responsive Grid */}
+                <div className="p-4 sm:p-5 bg-slate-50/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                    {myStartups.map((mySt) => {
+                      const matchIndex = topStartups.findIndex(
+                        (ts) => String(ts.id) === String(mySt.id)
+                      );
+                      const isRanked = matchIndex !== -1;
+                      const rankedItem = isRanked ? topStartups[matchIndex] : null;
+                      const rankNum = isRanked ? (rankedItem.rank || matchIndex + 1) : null;
+                      const overallScore = rankedItem ? (rankedItem.overallScore ?? rankedItem.score ?? 0) : null;
+                      const growthScore = rankedItem ? (rankedItem.growthScore ?? 0) : null;
+                      const investmentScore = rankedItem ? (rankedItem.investmentScore ?? 0) : null;
+                      const ecosystemScore = rankedItem ? (rankedItem.ecosystemScore ?? 0) : null;
+                      const engagementScore = rankedItem ? (rankedItem.engagementScore ?? 0) : null;
 
-                    const rawTrl = String(mySt.trlLevel || "");
-                    const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
+                      const rawTrl = String(mySt.trlLevel || "");
+                      const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
 
-                    return (
-                      <div
-                        key={mySt.id}
-                        className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 hover:border-white/30 transition-all flex flex-col justify-between"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="relative shrink-0 flex flex-col items-center">
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-500 to-yellow-400 text-slate-950 font-black text-lg flex items-center justify-center shadow-lg shadow-amber-500/20 border-2 border-amber-300">
-                                {isRanked ? (
-                                  <>
-                                    <span className="text-xs font-semibold">#</span>
-                                    <span>{rankNum}</span>
-                                  </>
-                                ) : (
-                                  <span className="text-xs font-medium">N/A</span>
+                      return (
+                        <div
+                          key={mySt.id}
+                          className="bg-white rounded-xl p-4 border border-gray-200/90 hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Rank Badge */}
+                              <div className="relative shrink-0 flex flex-col items-center">
+                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm border shadow-2xs ${
+                                  !isRanked
+                                    ? "bg-gray-100 text-gray-400 border-gray-200"
+                                    : rankNum <= 3
+                                    ? "bg-amber-50 text-amber-900 border-amber-300 ring-2 ring-amber-100"
+                                    : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                }`}>
+                                  {isRanked ? (
+                                    <>
+                                      <span className="text-[10px] font-semibold">#</span>
+                                      <span>{rankNum}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs font-medium">N/A</span>
+                                  )}
+                                </div>
+                                {rankNum === 1 && (
+                                  <Crown className="w-3.5 h-3.5 text-amber-500 absolute -top-2 -right-1 drop-shadow" />
                                 )}
+                                <span className="text-[8.5px] font-bold uppercase tracking-wider text-gray-400 mt-1">
+                                  {isFiltered ? "Category" : "Global"}
+                                </span>
                               </div>
-                              {rankNum === 1 && (
-                                <Crown className="w-4 h-4 text-amber-300 absolute -top-2 -right-1 drop-shadow" />
-                              )}
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-300/90 mt-1">
-                                {isFiltered ? "Category Rank" : "Global Rank"}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <h4
-                                className="font-bold text-base text-white hover:text-amber-300 transition-colors cursor-pointer truncate"
-                                onClick={() => navigate(`/startup/${mySt.id}`)}
-                                title={mySt.companyName}
-                              >
-                                {mySt.companyName}
-                              </h4>
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                                  {mySt.industry || "General Tech"}
-                                </span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                                  TRL {trlNum}
-                                </span>
-                                {mySt.registrationAgency === "BIR" || mySt.isGovernmentRegistered ? (
-                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-                                    <CheckCircle2 className="w-2.5 h-2.5" />
-                                    {mySt.registrationAgency || "Govt Reg"}
+
+                              <div className="min-w-0">
+                                <h4
+                                  className="font-bold text-sm text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer truncate"
+                                  onClick={() => navigate(`/startup/${mySt.id}`)}
+                                  title={mySt.companyName}
+                                >
+                                  {mySt.companyName}
+                                </h4>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                    {mySt.industry || "General Tech"}
                                   </span>
-                                ) : null}
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                                    TRL {trlNum}
+                                  </span>
+                                  {(mySt.registrationAgency === "BIR" || mySt.isGovernmentRegistered) && (
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                      {mySt.registrationAgency || "Govt Reg"}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="text-[9.5px] uppercase font-bold text-gray-400 tracking-wider">
+                                Score
+                              </div>
+                              <div className="text-xl font-black text-gray-900 leading-tight">
+                                {overallScore !== null ? overallScore : "—"}
+                                <span className="text-[10px] font-normal text-gray-400">/100</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <div className="text-[10px] uppercase font-bold text-indigo-200 tracking-wider">
-                              Overall Score
+                          {/* Metric Scores Breakdown */}
+                          {isRanked ? (
+                            <div className="grid grid-cols-4 gap-1.5 pt-2.5 border-t border-gray-100 text-center">
+                              <div className="bg-blue-50/70 rounded-md p-1 border border-blue-100/60">
+                                <span className="block text-[8.5px] text-blue-600 font-semibold uppercase">Growth</span>
+                                <span className="text-[11px] font-bold text-gray-800">{growthScore}%</span>
+                              </div>
+                              <div className="bg-purple-50/70 rounded-md p-1 border border-purple-100/60">
+                                <span className="block text-[8.5px] text-purple-600 font-semibold uppercase">Invest</span>
+                                <span className="text-[11px] font-bold text-gray-800">{investmentScore}%</span>
+                              </div>
+                              <div className="bg-pink-50/70 rounded-md p-1 border border-pink-100/60">
+                                <span className="block text-[8.5px] text-pink-600 font-semibold uppercase">Eco</span>
+                                <span className="text-[11px] font-bold text-gray-800">{ecosystemScore}%</span>
+                              </div>
+                              <div className="bg-amber-50/70 rounded-md p-1 border border-amber-100/60">
+                                <span className="block text-[8.5px] text-amber-700 font-semibold uppercase">Engage</span>
+                                <span className="text-[11px] font-bold text-gray-800">{engagementScore}%</span>
+                              </div>
                             </div>
-                            <div className="text-2xl font-black text-amber-300">
-                              {overallScore !== null ? overallScore : "—"}
-                              <span className="text-xs font-normal text-indigo-200">/100</span>
+                          ) : (
+                            <div className="p-2 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] text-amber-800 flex items-center justify-between gap-2 mt-1">
+                              <span className="truncate">Outside current filter</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedIndustry("All");
+                                  setSelectedGovReg("All");
+                                  setSelectedTrlStage("All");
+                                }}
+                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer shrink-0"
+                              >
+                                Reset Filters
+                              </button>
                             </div>
-                          </div>
+                          )}
                         </div>
-
-                        {/* Metric Scores Breakdown */}
-                        {isRanked ? (
-                          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10 text-center">
-                            <div className="bg-black/20 rounded-lg p-1.5">
-                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Growth</span>
-                              <span className="text-xs font-bold text-white">{growthScore}%</span>
-                            </div>
-                            <div className="bg-black/20 rounded-lg p-1.5">
-                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Investment</span>
-                              <span className="text-xs font-bold text-white">{investmentScore}%</span>
-                            </div>
-                            <div className="bg-black/20 rounded-lg p-1.5">
-                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Ecosystem</span>
-                              <span className="text-xs font-bold text-white">{ecosystemScore}%</span>
-                            </div>
-                            <div className="bg-black/20 rounded-lg p-1.5">
-                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Engagement</span>
-                              <span className="text-xs font-bold text-white">{engagementScore}%</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-2.5 rounded-lg bg-black/30 border border-amber-400/20 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-2">
-                            <span>Startup outside current filter category ({[selectedIndustry !== "All" && selectedIndustry, selectedGovReg !== "All" && selectedGovReg, selectedTrlStage !== "All" && selectedTrlStage].filter(Boolean).join(", ") || "Filtered"})</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedIndustry("All");
-                                setSelectedGovReg("All");
-                                setSelectedTrlStage("All");
-                              }}
-                              className="text-[10px] font-bold underline hover:text-white cursor-pointer shrink-0"
-                            >
-                              Reset Filters
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : !loading && myStartups && myStartups.length === 0 && role !== "ROLE_ADMIN" ? (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                    <Trophy className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    <Trophy className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 text-sm sm:text-base">Track Your Startup on the Leaderboard</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       Register your venture to benchmark its performance, TRL maturity, and ecosystem ranking.
                     </p>
                   </div>
