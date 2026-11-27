@@ -193,13 +193,32 @@ public class NotificationController {
     public ResponseEntity<ApiResponse> getUserNotificationById(@PathVariable int id) {
         try {
             Integer currentUserId = SecurityUtils.getCurrentUserId();
+            User currentUser = SecurityUtils.getCurrentUser();
+            String currentEmail = currentUser != null ? currentUser.getEmail() : null;
             logger.info("Fetching notification id: {} for user: {}", id, currentUserId);
 
             // Get the notification from the repository
             Notifications notification = notificationService.getNotificationById(id);
 
-            // Check if the notification belongs to the current user
-            if (notification.getUser() != null && notification.getUser().getId().equals(currentUserId)) {
+            // Check if the notification belongs to the current user (by ID, email, or startup ownership)
+            boolean isAuthorized = false;
+            if (notification.getUser() != null) {
+                if (notification.getUser().getId() != null && notification.getUser().getId().equals(currentUserId)) {
+                    isAuthorized = true;
+                } else if (currentEmail != null && notification.getUser().getEmail() != null && notification.getUser().getEmail().equalsIgnoreCase(currentEmail)) {
+                    isAuthorized = true;
+                }
+            }
+            if (!isAuthorized && notification.getStartup() != null) {
+                Startup s = notification.getStartup();
+                if (s.getUser() != null && (s.getUser().getId().equals(currentUserId) || (currentEmail != null && s.getUser().getEmail() != null && s.getUser().getEmail().equalsIgnoreCase(currentEmail)))) {
+                    isAuthorized = true;
+                } else if (currentEmail != null && s.getContactEmail() != null && s.getContactEmail().equalsIgnoreCase(currentEmail)) {
+                    isAuthorized = true;
+                }
+            }
+
+            if (isAuthorized) {
                 return ResponseEntity.ok()
                         .body(new ApiResponse(true, "Notification fetched successfully", notification));
             } else {
