@@ -20,6 +20,15 @@ export default function FundingBreakdownModal({
   startups = [],
   selectedStartupId = "all",
 }) {
+  // Only approved and accepted startups are counted in funding (exclude in review and rejected)
+  const approvedStartups = useMemo(() => {
+    return (startups || []).filter((s) => {
+      if (!s || s.isDraft) return false;
+      const status = s.status?.trim() || "";
+      return status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+    });
+  }, [startups]);
+
   const [activeStartupFilter, setActiveStartupFilter] = useState(selectedStartupId);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [newOrigin, setNewOrigin] = useState("");
@@ -56,6 +65,13 @@ export default function FundingBreakdownModal({
 
   // Generate funding records strictly based on real closed investments and explicit registration fields
   const generateRecordsForStartup = (st) => {
+    if (!st || st.isDraft) return [];
+    const status = st.status?.trim() || "";
+    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+    const isRejected = status.toLowerCase() === "rejected";
+    const isVerified = Boolean(st.emailVerified);
+    if (!isApproved || !isVerified || isRejected) return []; // In review, unverified and rejected businesses are excluded from funding
+
     const records = [];
     const stName = st.companyName || "Your Startup";
     const stId = st.id;
@@ -136,7 +152,7 @@ export default function FundingBreakdownModal({
 
   const generateInitialRecords = () => {
     const records = [];
-    startups.forEach((st) => {
+    approvedStartups.forEach((st) => {
       records.push(...generateRecordsForStartup(st));
     });
     return records;
@@ -160,15 +176,18 @@ export default function FundingBreakdownModal({
     return generateInitialRecords();
   });
 
-  // Synchronize records with startups and live deals (always reflect real transactions and dates)
+  // Synchronize records with approved startups and live deals (always reflect real transactions and dates)
   useEffect(() => {
-    if (!startups || startups.length === 0) return;
+    if (!approvedStartups || approvedStartups.length === 0) {
+      setFundingRecords([]);
+      return;
+    }
     const records = [];
-    startups.forEach((st) => {
+    approvedStartups.forEach((st) => {
       records.push(...generateRecordsForStartup(st));
     });
     setFundingRecords(records);
-  }, [startups, liveDeals]);
+  }, [approvedStartups, liveDeals]);
 
   // Persist records
   const saveRecords = (updated) => {
@@ -222,9 +241,9 @@ export default function FundingBreakdownModal({
     return fundingRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   }, [fundingRecords]);
 
-  // Subtotal per startup for multi-startup view
+  // Subtotal per startup for multi-startup view (approved startups only)
   const startupSubtotals = useMemo(() => {
-    return startups.map((s) => {
+    return approvedStartups.map((s) => {
       const records = fundingRecords.filter((r) => String(r.startupId) === String(s.id));
       const total = records.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
       return {
@@ -323,9 +342,9 @@ export default function FundingBreakdownModal({
                     : "bg-white/15 text-white hover:bg-white/25"
                 }`}
               >
-                All Startups ({startups.length})
+                All Approved Startups ({approvedStartups.length})
               </button>
-              {startups.map((s) => (
+              {approvedStartups.map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -500,17 +519,17 @@ export default function FundingBreakdownModal({
                   />
                 </div>
 
-                {startups.length > 1 ? (
+                {approvedStartups.length > 1 ? (
                   <div>
                     <label className="font-semibold text-gray-700 block mb-1">
                       Which Startup the Investor Funded <span className="text-rose-500">*</span>
                     </label>
                     <select
-                      value={newStartupTargetId || activeStartupFilter !== "all" ? activeStartupFilter : startups[0]?.id}
+                      value={newStartupTargetId || (activeStartupFilter !== "all" ? activeStartupFilter : approvedStartups[0]?.id)}
                       onChange={(e) => setNewStartupTargetId(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-medium"
                     >
-                      {startups.map((s) => (
+                      {approvedStartups.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.companyName}
                         </option>
