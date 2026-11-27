@@ -18,6 +18,10 @@ import {
   Coins,
   ArrowUpRight,
   Info,
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function VentureLeaderboardRanking() {
@@ -29,6 +33,13 @@ export default function VentureLeaderboardRanking() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [rankingMetric, setRankingMetric] = useState("overall"); // overall, growth, investment, ecosystem, engagement
+
+  // Popup Board (Modal) for Overall Leaderboard
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+  const [modalSearch, setModalSearch] = useState("");
+  const [modalIndustry, setModalIndustry] = useState("All");
+  const [modalPage, setModalPage] = useState(0);
+  const modalItemsPerPage = 10;
 
   const fetchData = async () => {
     try {
@@ -178,6 +189,37 @@ export default function VentureLeaderboardRanking() {
     };
   }, [myStartups, sortedUserVentures]);
 
+  // Popup Board: Filtered startups & pagination
+  const modalIndustries = useMemo(() => {
+    const set = new Set();
+    (topStartups || []).forEach((s) => {
+      if (s.industry) set.add(s.industry);
+    });
+    return ["All", ...Array.from(set).sort()];
+  }, [topStartups]);
+
+  const modalFilteredStartups = useMemo(() => {
+    let list = topStartups || [];
+    if (modalIndustry !== "All") {
+      list = list.filter((s) => s.industry === modalIndustry);
+    }
+    if (modalSearch.trim()) {
+      const q = modalSearch.toLowerCase().trim();
+      list = list.filter(
+        (s) =>
+          (s.companyName && s.companyName.toLowerCase().includes(q)) ||
+          (s.industry && s.industry.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [topStartups, modalIndustry, modalSearch]);
+
+  const modalTotalPages = Math.max(1, Math.ceil(modalFilteredStartups.length / modalItemsPerPage));
+  const modalPageStartups = useMemo(() => {
+    const start = modalPage * modalItemsPerPage;
+    return modalFilteredStartups.slice(start, start + modalItemsPerPage);
+  }, [modalFilteredStartups, modalPage]);
+
   return (
     <div className="min-h-screen bg-slate-50/60 pb-20">
       {/* Top Header */}
@@ -221,12 +263,12 @@ export default function VentureLeaderboardRanking() {
 
               <button
                 type="button"
-                onClick={() => navigate("/all-startup-dashboard")}
+                onClick={() => setShowLeaderboardModal(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg shadow-2xs hover:shadow transition-all cursor-pointer"
-                title="Explore Complete Ecosystem Leaderboard"
+                title="View Overall Leaderboard Pop Board"
               >
                 <Award className="w-4 h-4 text-indigo-600" />
-                <span className="hidden sm:inline">Ecosystem Leaderboard</span>
+                <span className="hidden sm:inline">Overall Leaderboard</span>
                 <span className="sm:hidden">Leaderboard</span>
               </button>
             </div>
@@ -599,6 +641,253 @@ export default function VentureLeaderboardRanking() {
           </div>
         )}
       </div>
+
+      {/* Overall Leaderboard Popup Board Modal */}
+      {showLeaderboardModal && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setShowLeaderboardModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh] my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
+                  <Award className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 truncate flex items-center gap-2">
+                    <span>Overall Startup Leaderboard</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                      {topStartups.length} Startups Ranked
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    Official rankings and verified performance standings across the Philippine innovation ecosystem
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowLeaderboardModal(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0 ml-2"
+                title="Close Board"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 border-b border-gray-100 bg-slate-50/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={modalSearch}
+                  onChange={(e) => {
+                    setModalSearch(e.target.value);
+                    setModalPage(0);
+                  }}
+                  placeholder="Search startup by name or industry..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-500 shrink-0">Industry:</span>
+                <select
+                  value={modalIndustry}
+                  onChange={(e) => {
+                    setModalIndustry(e.target.value);
+                    setModalPage(0);
+                  }}
+                  className="bg-white border border-gray-200 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
+                >
+                  {modalIndustries.map((ind) => (
+                    <option key={ind} value={ind}>
+                      {ind}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Leaderboard Table / Cards */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2.5">
+              {modalFilteredStartups.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 text-sm">
+                  No startups match your search filter.
+                </div>
+              ) : (
+                modalPageStartups.map((st, idx) => {
+                  const globalRank = st.rank || (modalPage * modalItemsPerPage + idx + 1);
+                  const isUserOwned = myStartups.some((m) => String(m.id) === String(st.id));
+                  const score = st.overallScore ?? st.score ?? 0;
+                  const growth = st.growthScore ?? st.growthRate ?? 0;
+                  const investment = st.investmentScore ?? 0;
+                  const ecosystem = st.ecosystemScore ?? 0;
+                  const engagement = st.engagementScore ?? 0;
+                  const rawTrl = String(st.trlLevel || "");
+                  const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
+
+                  return (
+                    <div
+                      key={st.id || idx}
+                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+                        isUserOwned
+                          ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-200/60 shadow-xs"
+                          : "bg-white border-gray-200/90 hover:border-indigo-200 hover:shadow-2xs"
+                      }`}
+                    >
+                      {/* Left: Rank & Info */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Rank Badge */}
+                        <div
+                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border shadow-2xs relative ${
+                            globalRank === 1
+                              ? "bg-amber-100 text-amber-900 border-amber-300 ring-2 ring-amber-200"
+                              : globalRank <= 3
+                              ? "bg-amber-50 text-amber-900 border-amber-200"
+                              : isUserOwned
+                              ? "bg-indigo-100 text-indigo-800 border-indigo-300 font-black"
+                              : "bg-slate-50 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          <span className="text-[10px] font-semibold">#</span>
+                          <span>{globalRank}</span>
+                          {globalRank === 1 && (
+                            <Crown className="w-3.5 h-3.5 text-amber-500 absolute -top-1.5 -right-1 drop-shadow" />
+                          )}
+                        </div>
+
+                        {/* Name & Tags */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              onClick={() => {
+                                setShowLeaderboardModal(false);
+                                navigate(`/startup/${st.id}`);
+                              }}
+                              className="font-bold text-sm text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer truncate"
+                              title={st.companyName}
+                            >
+                              {st.companyName}
+                            </span>
+                            {isUserOwned && (
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-2xs">
+                                Your Venture
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              {st.industry || "Tech"}
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                              TRL {trlNum}
+                            </span>
+                            {(st.registrationAgency === "BIR" || st.isGovernmentRegistered) && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                {st.registrationAgency || "Govt Reg"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Scores */}
+                      <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-5 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
+                        {/* 4 Pillars */}
+                        <div className="grid grid-cols-4 gap-1.5 text-center shrink-0">
+                          <div className="bg-blue-50/80 rounded-md px-1.5 py-1 border border-blue-100 min-w-[50px]">
+                            <span className="block text-[8px] text-blue-600 font-semibold uppercase">Growth</span>
+                            <span className="text-[10px] font-bold text-gray-800">{growth}%</span>
+                          </div>
+                          <div className="bg-purple-50/80 rounded-md px-1.5 py-1 border border-purple-100 min-w-[50px]">
+                            <span className="block text-[8px] text-purple-600 font-semibold uppercase">Invest</span>
+                            <span className="text-[10px] font-bold text-gray-800">{investment}%</span>
+                          </div>
+                          <div className="bg-pink-50/80 rounded-md px-1.5 py-1 border border-pink-100 min-w-[50px]">
+                            <span className="block text-[8px] text-pink-600 font-semibold uppercase">Eco</span>
+                            <span className="text-[10px] font-bold text-gray-800">{ecosystem}%</span>
+                          </div>
+                          <div className="bg-amber-50/80 rounded-md px-1.5 py-1 border border-amber-100 min-w-[50px]">
+                            <span className="block text-[8px] text-amber-700 font-semibold uppercase">Engage</span>
+                            <span className="text-[10px] font-bold text-gray-800">{engagement}%</span>
+                          </div>
+                        </div>
+
+                        {/* Composite Score */}
+                        <div className="text-right shrink-0 min-w-[65px]">
+                          <div className="text-[9px] uppercase font-bold text-gray-400">Score</div>
+                          <div className="text-lg font-black text-gray-900 leading-tight">
+                            <span>{score}</span>
+                            <span className="text-[10px] text-gray-400 font-normal">/100</span>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowLeaderboardModal(false);
+                            navigate(`/startup/${st.id}`);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="View Profile"
+                        >
+                          <ArrowUpRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Pagination Footer */}
+            <div className="px-5 py-3 border-t border-gray-200 bg-slate-50 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500 font-medium">
+                Page {modalPage + 1} of {modalTotalPages} ({modalFilteredStartups.length} startups)
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setModalPage((p) => Math.max(0, p - 1))}
+                  disabled={modalPage === 0}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1 shadow-2xs"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Prev</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalPage((p) => Math.min(modalTotalPages - 1, p + 1))}
+                  disabled={modalPage >= modalTotalPages - 1}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1 shadow-2xs"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLeaderboardModal(false)}
+                  className="ml-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
