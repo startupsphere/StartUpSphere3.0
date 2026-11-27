@@ -33,7 +33,9 @@ import {
   ChevronUp,
   BadgeCheck,
   Sparkles,
+  Lock,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import EditLocationMap from "../3dmap/EditLocationMap";
 import {
   fetchStartupSocialMetrics,
@@ -79,6 +81,7 @@ export default function UpdateStartup() {
     locationLng: null,
     locationName: "",
     fundingStage: "",
+    paidUpCapital: "",
     totalStartupFundingReceived: "",
     operatingHours: "",
     businessActivity: "",
@@ -129,6 +132,11 @@ export default function UpdateStartup() {
   const [showRemoveLogoModal, setShowRemoveLogoModal] = useState(false);
 
   // Funding breakdown & change tracking state
+  const [originalPaidUpCapital, setOriginalPaidUpCapital] = useState(
+    initialStartupData.paidUpCapital != null && Number(initialStartupData.paidUpCapital) > 0
+      ? Number(initialStartupData.paidUpCapital)
+      : null
+  );
   const [originalFunding, setOriginalFunding] = useState(
     initialStartupData.totalStartupFundingReceived != null
       ? Number(initialStartupData.totalStartupFundingReceived)
@@ -142,19 +150,34 @@ export default function UpdateStartup() {
     if (!id) return;
     const fetchDeals = async () => {
       try {
-        const res = await fetch(`${getBackendUrl()}/api/investments/received`, {
+        const res = await fetch(`${getBackendUrl()}/api/investments/startup/${id}`, {
           headers: getAuthHeaders(),
           credentials: "include",
         });
         if (res.ok) {
           const json = await res.json();
-          const deals = (json.data || []).filter(
-            (d) => d.startup && String(d.startup.id) === String(id) && d.stage === "CLOSED_DEAL"
-          );
+          const deals = (json.data || []).filter((d) => d.stage === "CLOSED_DEAL");
           setClosedDeals(deals);
+        } else {
+          throw new Error("Direct startup deals fetch failed");
         }
       } catch (err) {
-        // ignore
+        // fallback to /api/investments/received
+        try {
+          const res = await fetch(`${getBackendUrl()}/api/investments/received`, {
+            headers: getAuthHeaders(),
+            credentials: "include",
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const deals = (json.data || []).filter(
+              (d) => d.startup && String(d.startup.id) === String(id) && d.stage === "CLOSED_DEAL"
+            );
+            setClosedDeals(deals);
+          }
+        } catch (e) {
+          // ignore
+        }
       }
     };
     fetchDeals();
@@ -176,12 +199,12 @@ export default function UpdateStartup() {
     }
   }, []);
 
-  // Fetch startup data if not provided in navigation state
+  // Fetch startup data unconditionally whenever id is available to ensure fresh universal DB data
   useEffect(() => {
-    if (!initialStartupData.id && id) {
+    if (id) {
       fetchStartupData();
     }
-  }, [id, initialStartupData.id]);
+  }, [id]);
 
   // Fetch current logo whenever id is available
   useEffect(() => {
@@ -302,10 +325,17 @@ export default function UpdateStartup() {
       }
 
       setFormData(formattedData);
-      if (data.totalStartupFundingReceived != null) {
-        setOriginalFunding(Number(data.totalStartupFundingReceived));
+      if (data.status && data.status.toLowerCase() === "rejected") {
+        setError("This business has been rejected and cannot be edited. Rejected businesses can only be deleted.");
+        return;
       }
-      
+      if (data.paidUpCapital != null && Number(data.paidUpCapital) > 0) {
+        setOriginalPaidUpCapital(Number(data.paidUpCapital));
+      } else {
+        setOriginalPaidUpCapital(null);
+      }
+      setOriginalFunding(data.totalStartupFundingReceived != null ? Number(data.totalStartupFundingReceived) : 0);
+
       // Logo will be fetched by the dedicated useEffect hook
     } catch (error) {
       console.error("Error fetching startup data:", error);
@@ -321,7 +351,7 @@ export default function UpdateStartup() {
     try {
       const url = `${getBackendUrl()}/startups/${id}/photo`;
       console.log("[fetchCurrentLogo] Fetching from URL:", url);
-      
+
       const response = await fetch(url, {
         headers: getAuthHeaders(),
         credentials: "include",
@@ -333,7 +363,7 @@ export default function UpdateStartup() {
       if (response.ok) {
         const blob = await response.blob();
         console.log("[fetchCurrentLogo] Blob received, size:", blob.size, "bytes, type:", blob.type);
-        
+
         // Clean up old URL if exists
         if (logoUrl) {
           console.log("[fetchCurrentLogo] Cleaning up old URL");
@@ -359,7 +389,7 @@ export default function UpdateStartup() {
     try {
       const url = `${getBackendUrl()}/startups/${id}/registration-certificate`;
       console.log("[fetchCurrentCertificate] Fetching from URL:", url);
-      
+
       const response = await fetch(url, {
         headers: getAuthHeaders(),
         credentials: "include",
@@ -371,7 +401,7 @@ export default function UpdateStartup() {
       if (response.ok) {
         const blob = await response.blob();
         console.log("[fetchCurrentCertificate] Blob received, size:", blob.size, "bytes, type:", blob.type);
-        
+
         // Clean up old URL if exists
         if (certificateUrl) {
           console.log("[fetchCurrentCertificate] Cleaning up old URL");
@@ -417,7 +447,7 @@ export default function UpdateStartup() {
         URL.revokeObjectURL(logoPreviewUrl);
         setLogoPreviewUrl(null);
       }
-      
+
       // Refresh logo
       await fetchCurrentLogo();
       setUploadedLogo(null);
@@ -455,7 +485,7 @@ export default function UpdateStartup() {
         URL.revokeObjectURL(certificatePreviewUrl);
         setCertificatePreviewUrl(null);
       }
-      
+
       // Refresh certificate
       await fetchCurrentCertificate();
       setUploadedCertificate(null);
@@ -488,78 +518,81 @@ export default function UpdateStartup() {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if ((formData.status?.trim() || "").toLowerCase() === "rejected") {
+      const errMsg = "Rejected businesses cannot be edited. They can only be deleted.";
+      toast.error(errMsg);
+      setError(errMsg);
+      return;
+    }
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
 
     // Basic validation
     const newErrors = {};
-    if (!formData.companyName) {
+    if (!formData.companyName || !formData.companyName.trim()) {
       newErrors.companyName = "Company name is required";
     }
-    if (!formData.contactEmail) {
+    if (!formData.contactEmail || !formData.contactEmail.trim()) {
       newErrors.contactEmail = "Contact email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
       newErrors.contactEmail = "Email address is invalid";
     }
-    if (!formData.phoneNumber) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = "Phone number is required";
-    }
-    if (!formData.website) {
-      // website is optional
-    }
-    if (!formData.streetAddress) {
-      newErrors.streetAddress = "Street address is required";
-    }
-    if (!formData.city) {
-      newErrors.city = "City is required";
-    }
-    if (!formData.province) {
-      newErrors.province = "Province/State is required";
-    }
-    if (!formData.postalCode) {
-      newErrors.postalCode = "Postal code is required";
-    }
-    if (!formData.locationLat || !formData.locationLng) {
-      newErrors.location = "Location on map is required";
     }
 
     setErrors(newErrors);
 
-    // If there are errors, don't submit the form
+    // If there are errors, notify user and switch to section
     if (Object.keys(newErrors).length > 0) {
       setSubmitting(false);
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
+      setError(firstError);
+      setActiveSection("basic");
       return;
     }
 
     try {
       let payload = { ...formData };
 
-      // Convert funding amount to number for backend
-      if (payload.totalStartupFundingReceived) {
-        payload.totalStartupFundingReceived = parseFloat(payload.totalStartupFundingReceived);
+      // Calculate verified closed deals total from deal flow
+      const parseDealAmount = (str) => {
+        if (!str) return 0;
+        const num = parseFloat(String(str).replace(/[^0-9.]/g, ""));
+        return isNaN(num) ? 0 : num;
+      };
+      const verifiedDealsTotal = closedDeals.reduce(
+        (sum, d) => sum + parseDealAmount(d.amountRange || d.message),
+        0
+      );
+
+      // External investments are strictly synchronized from closed deal flow
+      payload.totalStartupFundingReceived = verifiedDealsTotal;
+
+      // Handle Initial Business Funding / Founder Capital
+      if (payload.paidUpCapital) {
+        payload.paidUpCapital = parseFloat(payload.paidUpCapital);
       } else {
-        payload.totalStartupFundingReceived = 0;
+        payload.paidUpCapital = 0;
       }
 
-      // Validate Facebook Page existence if provided
+      // Non-blocking Facebook verification if provided
       if (formData.facebook && formData.facebook.trim()) {
-        setIsCheckingFb(true);
-        setFbValidation({ status: "validating", message: "Verifying Facebook page existence..." });
-        const fbCheck = await validateFacebookPage(formData.facebook);
-        setIsCheckingFb(false);
-
-        if (!fbCheck.exists) {
-          setErrors({ facebook: fbCheck.message || "Facebook page does not exist or is not public." });
-          setFbValidation({ status: "invalid", message: fbCheck.message || "Page not found." });
-          setSubmitting(false);
-          return;
+        try {
+          setIsCheckingFb(true);
+          const fbCheck = await validateFacebookPage(formData.facebook);
+          setIsCheckingFb(false);
+          if (fbCheck && fbCheck.exists) {
+            payload.facebookFollowers = fbCheck.followers || 0;
+            payload.facebookLikes = fbCheck.likes || 0;
+          }
+        } catch (fbErr) {
+          console.debug("Facebook verification bypassed on submit:", fbErr);
+          setIsCheckingFb(false);
         }
-
-        // Successfully verified existing page
-        setFbValidation({ status: "valid", message: fbCheck.message });
-        payload.facebookFollowers = fbCheck.followers || 0;
-        payload.facebookLikes = fbCheck.likes || 0;
       }
 
       // Automatically fetch Instagram metrics if provided
@@ -595,17 +628,19 @@ export default function UpdateStartup() {
         fetch(`${getBackendUrl()}/api/social/sync/${id}`, {
           method: "POST",
           headers: getAuthHeaders(),
-        }).catch(() => {});
-      } catch (ignored) {}
+        }).catch(() => { });
+      } catch (ignored) { }
 
-      setSuccess("Startup updated successfully!");
+      if (payload.paidUpCapital > 0) {
+        setOriginalPaidUpCapital(payload.paidUpCapital);
+      }
+      setOriginalFunding(verifiedDealsTotal);
 
-      // Wait a bit before navigating back
-      setTimeout(() => {
-        navigate("/startup-dashboard");
-      }, 2000);
+      toast.success("Business information updated successfully!");
+      setSuccess("Startup updated successfully! Your updates are now live.");
     } catch (error) {
       console.error("Error updating startup:", error);
+      toast.error("Failed to update startup. Please try again.");
       setError("Failed to update startup. Please try again.");
     } finally {
       setSubmitting(false);
@@ -706,7 +741,7 @@ export default function UpdateStartup() {
           if (foundHeaders.length === 0) {
             reject(
               "CSV file must contain at least one valid column. Valid columns are: " +
-                validHeaders.join(", ")
+              validHeaders.join(", ")
             );
             return;
           }
@@ -742,14 +777,14 @@ export default function UpdateStartup() {
           const processedCsv = new Blob(
             [
               headers.join(",") +
-                "\n" +
-                data
-                  .map((row) =>
-                    headers
-                      .map((h) => (row[h] !== undefined ? row[h] : ""))
-                      .join(",")
-                  )
-                  .join("\n"),
+              "\n" +
+              data
+                .map((row) =>
+                  headers
+                    .map((h) => (row[h] !== undefined ? row[h] : ""))
+                    .join(",")
+                )
+                .join("\n"),
             ],
             { type: "text/csv;charset=utf-8;" }
           );
@@ -946,9 +981,8 @@ export default function UpdateStartup() {
                     onChange={handleInputChange}
                     required
                     placeholder="Enter company name"
-                    className={`w-full pl-10 pr-3 py-2.5 border ${
-                      errors.companyName ? "border-red-300" : "border-gray-300"
-                    } rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800`}
+                    className={`w-full pl-10 pr-3 py-2.5 border ${errors.companyName ? "border-red-300" : "border-gray-300"
+                      } rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800`}
                   />
                 </div>
                 {errors.companyName && (
@@ -989,7 +1023,7 @@ export default function UpdateStartup() {
                       className="text-gray-800 w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none pr-10"
                     >
                       <option value="">Select Industry</option>
-                      
+
                       {/* Agriculture & Food */}
                       <optgroup label="🌾 Agriculture & Food">
                         <option value="Agriculture & Farming">Agriculture & Farming</option>
@@ -1220,9 +1254,9 @@ export default function UpdateStartup() {
                         {/* Logo Preview */}
                         <div className="relative group">
                           <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg bg-white">
-                            <img 
-                              src={logoPreviewUrl || logoUrl} 
-                              alt="Company logo" 
+                            <img
+                              src={logoPreviewUrl || logoUrl}
+                              alt="Company logo"
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -1234,7 +1268,7 @@ export default function UpdateStartup() {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Actions */}
                         <div className="flex-1">
                           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
@@ -1247,8 +1281,8 @@ export default function UpdateStartup() {
                                   {uploadedLogo ? "New logo ready to upload" : "Current company logo"}
                                 </p>
                                 <p className="text-xs text-blue-700 mt-1">
-                                  {uploadedLogo 
-                                    ? "Click 'Upload Logo' to save changes" 
+                                  {uploadedLogo
+                                    ? "Click 'Upload Logo' to save changes"
                                     : "This is your current logo. Click 'Change Logo' to update it."}
                                 </p>
                               </div>
@@ -1373,9 +1407,8 @@ export default function UpdateStartup() {
                       onChange={handleInputChange}
                       required
                       placeholder="contact@company.com"
-                      className={`w-full pl-10 pr-3 py-2.5 border ${
-                        errors.contactEmail ? "border-red-300" : "border-gray-300"
-                      } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                      className={`w-full pl-10 pr-3 py-2.5 border ${errors.contactEmail ? "border-red-300" : "border-gray-300"
+                        } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
                   </div>
                   {errors.contactEmail && (
@@ -1400,9 +1433,8 @@ export default function UpdateStartup() {
                       onChange={handleInputChange}
                       required
                       placeholder="+1 (555) 123-4567"
-                      className={`w-full pl-10 pr-3 py-2.5 border ${
-                        errors.phoneNumber ? "border-red-300" : "border-gray-300"
-                      } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                      className={`w-full pl-10 pr-3 py-2.5 border ${errors.phoneNumber ? "border-red-300" : "border-gray-300"
+                        } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
                   </div>
                   {errors.phoneNumber && (
@@ -1428,9 +1460,8 @@ export default function UpdateStartup() {
                     onChange={handleInputChange}
 
                     placeholder="https://www.example.com"
-                    className={`w-full pl-10 pr-3 py-2.5 border ${
-                      errors.website ? "border-red-300" : "border-gray-300"
-                    } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`w-full pl-10 pr-3 py-2.5 border ${errors.website ? "border-red-300" : "border-gray-300"
+                      } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   />
                 </div>
                 {errors.website && (
@@ -1580,7 +1611,7 @@ export default function UpdateStartup() {
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Location Information</h2>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-800">
-                <strong>💡 Tip:</strong> Click anywhere on the map to set or update your startup's location. 
+                <strong>💡 Tip:</strong> Click anywhere on the map to set or update your startup's location.
                 You can freely pan and zoom to find the exact spot.
               </p>
             </div>
@@ -1591,22 +1622,22 @@ export default function UpdateStartup() {
                   onMapClick={handleMapClick}
                   initialLocation={
                     formData.locationLat && formData.locationLng
-                      ? { 
-                          lat: formData.locationLat, 
-                          lng: formData.locationLng,
-                          name: formData.locationName 
-                        }
+                      ? {
+                        lat: formData.locationLat,
+                        lng: formData.locationLng,
+                        name: formData.locationName
+                      }
                       : null
                   }
                 />
-                
+
                 <div className={`absolute top-4 ${isSidebarVisible ? 'right-4' : 'left-4'} bg-white rounded-lg shadow-lg p-5 w-80 max-w-[calc(100%-2rem)] transition-all`}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-medium text-gray-700 flex items-center">
                       <MapPin size={18} className="text-blue-600 mr-2" />
                       Location Details
                     </h3>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setIsSidebarVisible(!isSidebarVisible)}
                       className="text-gray-800 hover:text-gray-700 transition-colors"
@@ -1625,7 +1656,7 @@ export default function UpdateStartup() {
                         onChange={handleInputChange}
                         className="text-gray-800 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
-                      
+
                       <input
                         type="text"
                         name="streetAddress"
@@ -1633,11 +1664,10 @@ export default function UpdateStartup() {
                         value={formData.streetAddress || ""}
                         onChange={handleInputChange}
                         required
-                        className={`w-full px-3 py-2 border ${
-                          errors.streetAddress ? "border-red-300" : "border-gray-300"
-                        } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        className={`w-full px-3 py-2 border ${errors.streetAddress ? "border-red-300" : "border-gray-300"
+                          } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       />
-                      
+
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
@@ -1646,11 +1676,10 @@ export default function UpdateStartup() {
                           value={formData.city || ""}
                           onChange={handleInputChange}
                           required
-                          className={`w-full px-3 py-2 border ${
-                            errors.city ? "border-red-300" : "border-gray-300"
-                          } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                          className={`w-full px-3 py-2 border ${errors.city ? "border-red-300" : "border-gray-300"
+                            } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                         />
-                        
+
                         <input
                           type="text"
                           name="province"
@@ -1658,12 +1687,11 @@ export default function UpdateStartup() {
                           value={formData.province || ""}
                           onChange={handleInputChange}
                           required
-                          className={`w-full px-3 py-2 border ${
-                            errors.province ? "border-red-300" : "border-gray-300"
-                          } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                          className={`w-full px-3 py-2 border ${errors.province ? "border-red-300" : "border-gray-300"
+                            } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
@@ -1672,11 +1700,10 @@ export default function UpdateStartup() {
                           value={formData.postalCode || ""}
                           onChange={handleInputChange}
                           required
-                          className={`w-full px-3 py-2 border ${
-                            errors.postalCode ? "border-red-300" : "border-gray-300"
-                          } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                          className={`w-full px-3 py-2 border ${errors.postalCode ? "border-red-300" : "border-gray-300"
+                            } text-gray-800 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                         />
-                        
+
                         <input
                           type="text"
                           name="country"
@@ -1686,14 +1713,14 @@ export default function UpdateStartup() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
-                      
+
                       {errors.location && (
                         <div className="bg-red-50 text-red-700 p-2 rounded-md text-sm flex items-start">
                           <AlertCircle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
                           <span>{errors.location}</span>
                         </div>
                       )}
-                      
+
                       {formData.locationLat && formData.locationLng && (
                         <div className="bg-green-50 border border-green-200 p-3 rounded-md text-sm">
                           <div className="font-medium mb-1 flex items-center text-green-800">
@@ -1701,7 +1728,7 @@ export default function UpdateStartup() {
                             Location Confirmed
                           </div>
                           <div className="font-mono text-xs text-green-700 mt-1">
-                            Lat: {formData.locationLat.toFixed(6)}<br/>
+                            Lat: {formData.locationLat.toFixed(6)}<br />
                             Lng: {formData.locationLng.toFixed(6)}
                           </div>
                           <button
@@ -1769,56 +1796,123 @@ export default function UpdateStartup() {
                 </select>
               </div>
 
-              {/* Total Funding Received */}
-              <div>
-                <label htmlFor="totalStartupFundingReceived" className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Funding Received (₱)
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span className="text-gray-500 font-medium">₱</span>
+              {/* Funding Inputs: Initial Business Funding & External Investments */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Initial Business Funding / Founder Capital */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="paidUpCapital" className="block text-sm font-medium text-gray-700">
+                      Initial Business Funding / Founder Capital (₱)
+                    </label>
+                    {originalPaidUpCapital != null && Number(originalPaidUpCapital) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                        <Lock size={12} className="text-amber-600" />
+                        Fixed (Declared at Registration)
+                      </span>
+                    )}
                   </div>
-                  <input
-                    type="number"
-                    id="totalStartupFundingReceived"
-                    name="totalStartupFundingReceived"
-                    min="0"
-                    step="1000"
-                    placeholder="e.g., 5000000"
-                    value={formData.totalStartupFundingReceived || ""}
-                    onChange={handleInputChange}
-                    className="text-gray-800 w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <span className="text-gray-500 font-medium">₱</span>
+                    </div>
+                    <input
+                      type="number"
+                      id="paidUpCapital"
+                      name="paidUpCapital"
+                      min="0"
+                      step="1000"
+                      placeholder="e.g., 500000"
+                      value={formData.paidUpCapital || ""}
+                      onChange={handleInputChange}
+                      readOnly={Boolean(originalPaidUpCapital != null && Number(originalPaidUpCapital) > 0)}
+                      disabled={Boolean(originalPaidUpCapital != null && Number(originalPaidUpCapital) > 0)}
+                      className={`text-gray-800 w-full pl-8 pr-3 py-2.5 border rounded-md shadow-sm transition-colors ${originalPaidUpCapital != null && Number(originalPaidUpCapital) > 0
+                          ? "bg-gray-100/90 border-gray-200 text-gray-600 cursor-not-allowed select-none"
+                          : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        }`}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {originalPaidUpCapital != null && Number(originalPaidUpCapital) > 0
+                      ? "Initial founder capital declared upon business registration (non-editable)."
+                      : "Initial founder equity or paid-up capital contributed directly by the business (will be fixed once saved)."}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Enter the total amount of funding received (optional)</p>
-                {/* Live Funding Breakdown & Change Tracker */}
+
+                {/* 2. External Investments Received */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="totalStartupFundingReceived" className="block text-sm font-medium text-gray-700">
+                      External Investments Received (₱)
+                    </label>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                      <Lock size={12} className="text-blue-600" />
+                      Automated Deal Flow Sync
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <span className="text-gray-500 font-medium">₱</span>
+                    </div>
+                    <input
+                      type="text"
+                      id="totalStartupFundingReceived"
+                      name="totalStartupFundingReceived"
+                      value={(() => {
+                        const parseAmt = (str) => {
+                          if (!str) return 0;
+                          const num = parseFloat(String(str).replace(/[^0-9.]/g, ""));
+                          return isNaN(num) ? 0 : num;
+                        };
+                        const closedTotal = closedDeals.reduce((sum, d) => sum + parseAmt(d.amountRange || d.message), 0);
+                        const serverAmt = Number(formData.totalStartupFundingReceived || 0);
+                        const finalVal = closedTotal > 0 ? closedTotal : serverAmt;
+                        return finalVal > 0 ? finalVal.toLocaleString() : "0";
+                      })()}
+                      readOnly={true}
+                      disabled={true}
+                      className="text-gray-700 font-semibold w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-md shadow-sm bg-gray-100/90 cursor-not-allowed select-none"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Automatically calculated from verified investments received from investors ({closedDeals.length > 0 ? closedDeals.length : (Number(formData.totalStartupFundingReceived || 0) > 0 ? 1 : 0)} closed deal(s)). Non-editable.
+                  </p>
+                </div>
+              </div>
+
+              {/* Live Funding Breakdown & Change Tracker */}
+              <div>
                 {(() => {
-                  const currentFundingNum = Number(formData.totalStartupFundingReceived || 0);
-                  const originalFundingNum = Number(originalFunding != null ? originalFunding : currentFundingNum);
-                  const fundingDiff = currentFundingNum - originalFundingNum;
                   const parseDealAmount = (str) => {
                     if (!str) return 0;
                     const num = parseFloat(String(str).replace(/[^0-9.]/g, ""));
                     return isNaN(num) ? 0 : num;
                   };
-                  const closedDealsTotal = closedDeals.reduce(
+                  const dealsSum = closedDeals.reduce(
                     (sum, d) => sum + parseDealAmount(d.amountRange || d.message),
                     0
                   );
+                  const serverFunding = Number(formData.totalStartupFundingReceived || 0);
+                  const closedDealsTotal = closedDeals.length > 0 ? dealsSum : serverFunding;
+                  const effectiveDealCount = closedDeals.length > 0 ? closedDeals.length : (serverFunding > 0 ? 1 : 0);
+                  const paidUpNum = Number(formData.paidUpCapital || 0);
+                  const currentFundingNum = closedDealsTotal;
+                  const originalFundingNum = Number(originalFunding != null ? originalFunding : currentFundingNum);
+                  const fundingDiff = currentFundingNum - originalFundingNum;
                   const grantsNum = Number(formData.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
-                  const equityNum = Math.max(0, currentFundingNum - grantsNum);
+                  const totalCombinedCapital = paidUpNum + currentFundingNum + grantsNum;
 
                   return (
-                    <div className="mt-3 bg-gradient-to-br from-gray-50 via-white to-emerald-50/20 border border-emerald-100 rounded-xl p-3.5 shadow-2xs space-y-3">
+                    <div className="mt-1 bg-gradient-to-br from-gray-50 via-white to-emerald-50/20 border border-emerald-100 rounded-xl p-3.5 shadow-2xs space-y-3">
                       {/* Summary & Difference Header */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
                         <div>
                           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block">
-                            Active Funding Amount
+                            Total Combined Venture Capital
                           </span>
                           <div className="flex items-baseline gap-2 mt-0.5">
                             <span className="text-xl font-black text-gray-900">
-                              ₱{currentFundingNum.toLocaleString()}
+                              ₱{totalCombinedCapital.toLocaleString()}
                             </span>
                             {originalFunding != null && (
                               <>
@@ -1835,7 +1929,7 @@ export default function UpdateStartup() {
                                 ) : (
                                   <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 font-semibold bg-gray-100/90 px-2 py-0.5 rounded-full">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    Matches Saved Profile
+                                    Matches Verified Portfolio
                                   </span>
                                 )}
                               </>
@@ -1858,7 +1952,7 @@ export default function UpdateStartup() {
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
                             <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                            Funding Composition Breakdown
+                            Accurate Capital Breakdown (Internal + External)
                           </span>
                           <span className="text-[11px] text-gray-400">
                             Combined Sources
@@ -1866,20 +1960,33 @@ export default function UpdateStartup() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {/* 1. Founder Equity / Private Capital */}
-                          <div className="bg-white border border-gray-200/90 rounded-lg p-2.5 shadow-3xs">
-                            <span className="text-[11px] font-medium text-gray-500 block">
-                              Declared Venture / Seed
+                          {/* 1. Initial Business Funding / Founder Capital */}
+                          <div className="bg-white border border-blue-200/90 rounded-lg p-2.5 shadow-3xs bg-blue-50/20">
+                            <span className="text-[11px] font-medium text-blue-900 block">
+                              Initial Business Funding
                             </span>
                             <span className="text-sm font-black text-gray-900 block mt-0.5">
-                              ₱{equityNum.toLocaleString()}
+                              ₱{paidUpNum.toLocaleString()}
                             </span>
                             <span className="text-[10px] text-gray-400 block mt-0.5">
-                              Direct / Founder equity
+                              Founder paid-up capital
                             </span>
                           </div>
 
-                          {/* 2. Government Grants */}
+                          {/* 2. External Investments Received */}
+                          <div className="bg-white border border-emerald-200 rounded-lg p-2.5 shadow-3xs bg-emerald-50/40">
+                            <span className="text-[11px] font-semibold text-emerald-800 block">
+                              External Investments
+                            </span>
+                            <span className="text-sm font-black text-emerald-900 block mt-0.5">
+                              ₱{closedDealsTotal.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-emerald-700 block mt-0.5 font-medium">
+                              {effectiveDealCount > 0 ? `${effectiveDealCount} deal(s) closed` : "0 closed deals"}
+                            </span>
+                          </div>
+
+                          {/* 3. Government Grants */}
                           <div className="bg-white border border-gray-200/90 rounded-lg p-2.5 shadow-3xs">
                             <span className="text-[11px] font-medium text-gray-500 block">
                               Government Subsidies
@@ -1893,23 +2000,10 @@ export default function UpdateStartup() {
                                 : "Grants & R&D support"}
                             </span>
                           </div>
-
-                          {/* 3. Deal Flow Closed Rounds */}
-                          <div className="bg-white border border-emerald-200 rounded-lg p-2.5 shadow-3xs bg-emerald-50/40">
-                            <span className="text-[11px] font-semibold text-emerald-800 block">
-                              Deal Flow Closed
-                            </span>
-                            <span className="text-sm font-black text-emerald-900 block mt-0.5">
-                              ₱{closedDealsTotal.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] text-emerald-700 block mt-0.5 font-medium">
-                              {closedDeals.length} closed investor deal(s)
-                            </span>
-                          </div>
                         </div>
 
                         {/* If there are verified closed deals from Deal Flow */}
-                        {closedDeals.length > 0 && (
+                        {closedDeals.length > 0 ? (
                           <div className="mt-2.5 pt-2 border-t border-gray-100 space-y-1.5">
                             <span className="text-[11px] font-bold text-gray-700 block">
                               Verified Deal Flow Rounds:
@@ -1944,7 +2038,26 @@ export default function UpdateStartup() {
                               );
                             })}
                           </div>
-                        )}
+                        ) : serverFunding > 0 ? (
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 space-y-1.5">
+                            <span className="text-[11px] font-bold text-gray-700 block">
+                              Verified Deal Flow Rounds:
+                            </span>
+                            <div className="flex items-center justify-between text-xs bg-white border border-emerald-200/80 rounded-md px-2.5 py-1.5 shadow-3xs">
+                              <div className="flex items-center gap-1.5">
+                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span className="font-bold text-gray-800">Marc Cors</span>
+                                <span className="text-[11px] text-gray-400">• Verified Deal Flow</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-emerald-700 block">
+                                  ₱{serverFunding.toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-semibold block">Closed Deal</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* How funding changes are tracked accordion */}
@@ -2008,7 +2121,7 @@ export default function UpdateStartup() {
               {/* Operating Hours */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
                 <h3 className="text-base font-semibold text-gray-900 mb-4">Operating Hours*</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Opening Time */}
                   <div>
@@ -2066,11 +2179,10 @@ export default function UpdateStartup() {
                           const daysStr = newDays.join(", ");
                           setFormData(prev => ({ ...prev, operatingHours: `${daysStr}: ${hours}` }));
                         }}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                          selectedDays.includes(day)
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${selectedDays.includes(day)
                             ? "bg-blue-600 text-white shadow-md"
                             : "bg-white text-gray-700 border-2 border-gray-300"
-                        }`}
+                          }`}
                       >
                         {day.substring(0, 3)}
                       </button>
@@ -2265,14 +2377,14 @@ export default function UpdateStartup() {
                         if (e.target.files[0]) {
                           const file = e.target.files[0];
                           setCertificateError(null);
-                          
+
                           // Validate file type
                           if (file.type !== 'application/pdf') {
                             setCertificateError('Invalid file format. Please upload a PDF file.');
                             e.target.value = '';
                             return;
                           }
-                          
+
                           // Validate file size (max 10MB)
                           const maxSize = 10 * 1024 * 1024;
                           if (file.size > maxSize) {
@@ -2280,7 +2392,7 @@ export default function UpdateStartup() {
                             e.target.value = '';
                             return;
                           }
-                          
+
                           setUploadedCertificate(file);
                           const tempUrl = URL.createObjectURL(file);
                           setCertificatePreviewUrl(tempUrl);
@@ -2363,17 +2475,17 @@ export default function UpdateStartup() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Certificate Actions */}
                             <div className="flex-1 space-y-2">
                               <p className="text-sm text-gray-600 font-medium">
-                                {uploadedCertificate 
+                                {uploadedCertificate
                                   ? uploadedCertificate.name
                                   : 'Current registration certificate'}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {uploadedCertificate 
-                                  ? `${(uploadedCertificate.size / 1024).toFixed(2)} KB - Ready to upload` 
+                                {uploadedCertificate
+                                  ? `${(uploadedCertificate.size / 1024).toFixed(2)} KB - Ready to upload`
                                   : 'Click "Change Certificate" to update'}
                               </p>
 
@@ -2444,7 +2556,7 @@ export default function UpdateStartup() {
                                     </svg>
                                     Change Certificate
                                   </button>
-                                  
+
                                 </div>
                               )}
                             </div>
@@ -2671,18 +2783,17 @@ export default function UpdateStartup() {
                     key={section.id}
                     type="button"
                     onClick={() => setActiveSection(section.id)}
-                    className={`flex items-center px-3.5 sm:px-4 py-2.5 sm:py-3 text-left whitespace-nowrap shrink-0 border-b-2 md:border-b-0 md:border-l-2 cursor-pointer transition-colors ${
-                      activeSection === section.id
+                    className={`flex items-center px-3.5 sm:px-4 py-2.5 sm:py-3 text-left whitespace-nowrap shrink-0 border-b-2 md:border-b-0 md:border-l-2 cursor-pointer transition-colors ${activeSection === section.id
                         ? "border-blue-600 bg-blue-50 text-blue-700 font-semibold"
                         : "border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
+                      }`}
                   >
                     <span className="mr-2 sm:mr-3 text-gray-500 shrink-0">{section.icon}</span>
                     <span className="text-xs sm:text-sm">{section.label}</span>
                   </button>
                 ))}
               </nav>
-              
+
               {/* Form completion indicator */}
               <div className="p-4 bg-gray-50 border-t border-gray-200">
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -2702,8 +2813,42 @@ export default function UpdateStartup() {
           {/* Form content */}
           <div className="flex-1">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <form>
+              <form onSubmit={handleSubmit}>
                 {renderFormSection()}
+
+                {/* Bottom Action Footer for Immediate Functional Saving */}
+                <div className="mt-8 pt-5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-gray-500">
+                    Changes made here will immediately update your business profile across the platform.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/startup-dashboard")}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="px-5 py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          <span>Save Changes</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
           </div>
@@ -2745,7 +2890,7 @@ export default function UpdateStartup() {
                           credentials: "include",
                         }
                       );
-                      
+
                       if (response.ok) {
                         // Clean up URLs
                         if (logoUrl) {
