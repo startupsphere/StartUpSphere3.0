@@ -18,6 +18,7 @@ import SplashScreen from "./components/SplashScreen";
 import InvestmentInquiriesPage from "./investments/InvestmentInquiriesPage";
 import InvestorPortfolioPage from "./investments/InvestorPortfolioPage";
 import ProfilePage from "./profile/ProfilePage";
+import VentureLeaderboardRanking from "./startup/VentureLeaderboardRanking";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -86,6 +87,7 @@ function App() {
             />
             <Route path="/startup/:id" element={<StartupDetail />} />
             <Route path="/notifications" element={<Notification />} />
+            <Route path="/venture-rankings" element={<VentureLeaderboardRanking />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/investments" element={<InvestmentInquiriesPage />} />
             <Route path="/investor-portfolio" element={<InvestorPortfolioPage />} />

@@ -2407,21 +2407,12 @@ export default function StartupDashboard({ openAddMethodModal }) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  window.dispatchEvent(
-                    new CustomEvent("switch-startup-dashboard-tab", {
-                      detail: { tab: "rankings" },
-                    })
-                  );
-                  navigate("/all-startup-dashboard", {
-                    state: { activeTab: "rankings" },
-                  });
-                }}
+                onClick={() => navigate("/venture-rankings")}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs sm:text-sm font-semibold rounded-lg shadow-2xs hover:shadow transition-all duration-200 shrink-0 cursor-pointer"
-                title="View Startup Leaderboard & Rankings"
+                title="View Your Venture Leaderboard Ranking"
               >
                 <Award className="w-4 h-4 text-indigo-600" />
-                <span className="hidden sm:inline">Rankings Leaderboard</span>
+                <span className="hidden sm:inline">Venture Rankings</span>
                 <span className="sm:hidden">Rankings</span>
               </button>
               <button
