@@ -49,6 +49,14 @@ import {
   DollarSign,
   PieChart as PieIcon,
   Check,
+  Globe,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Clock,
+  FileText,
+  Briefcase,
 } from "lucide-react";
 
 export default function VentureLeaderboardRanking() {
@@ -1147,11 +1155,11 @@ export default function VentureLeaderboardRanking() {
               </div>
 
               {/* Modal Navigation Tabs */}
-              <div className="px-5 sm:px-6 border-b border-gray-200 bg-white flex items-center gap-2 shrink-0">
+              <div className="px-5 sm:px-6 border-b border-gray-200 bg-white flex items-center gap-1.5 sm:gap-2 overflow-x-auto shrink-0">
                 <button
                   type="button"
                   onClick={() => setDetailsTab("charts")}
-                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
                     detailsTab === "charts"
                       ? "border-indigo-600 text-indigo-700"
                       : "border-transparent text-gray-500 hover:text-gray-900"
@@ -1163,7 +1171,7 @@ export default function VentureLeaderboardRanking() {
                 <button
                   type="button"
                   onClick={() => setDetailsTab("breakdown")}
-                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
                     detailsTab === "breakdown"
                       ? "border-indigo-600 text-indigo-700"
                       : "border-transparent text-gray-500 hover:text-gray-900"
@@ -1172,11 +1180,38 @@ export default function VentureLeaderboardRanking() {
                   <Activity className="w-4 h-4" />
                   <span>Weight Formula & Operational Drivers</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab("profile")}
+                  className={`flex items-center gap-2 py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
+                    detailsTab === "profile"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Open Full Profile</span>
+                </button>
+
+                <div className="ml-auto hidden md:flex items-center shrink-0 pl-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedVentureForDetails(null);
+                      navigate(`/startup/${v.id}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer border border-indigo-200"
+                    title="Open standalone startup page"
+                  >
+                    <span>Full Page View</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Modal Body Content */}
               <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
-                {detailsTab === "charts" ? (
+                {detailsTab === "charts" && (
                   <>
                     {/* Top Statistical Summary Row */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1330,7 +1365,9 @@ export default function VentureLeaderboardRanking() {
                       </div>
                     </div>
                   </>
-                ) : (
+                )}
+
+                {detailsTab === "breakdown" && (
                   <>
                     {/* Mathematical Formula Explanation Table */}
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs">
@@ -1451,6 +1488,161 @@ export default function VentureLeaderboardRanking() {
                     </div>
                   </>
                 )}
+
+                {detailsTab === "profile" && (
+                  <div className="space-y-6">
+                    {/* Hero Profile Banner inside the pop board */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white relative overflow-hidden shadow-sm">
+                      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-black text-2xl text-white shadow-inner shrink-0">
+                            {v.companyName ? v.companyName.charAt(0).toUpperCase() : "V"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-xl font-black text-white">{v.companyName}</h3>
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md">
+                                {v.status || "Active Venture"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-200 mt-1 flex items-center gap-2 flex-wrap">
+                              <span>{v.industry || "Technology"}</span>
+                              <span>•</span>
+                              <span>Founded: {v.foundedDate || "N/A"}</span>
+                              <span>•</span>
+                              <span>{v.typeOfCompany || "Private Venture"}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedVentureForDetails(null);
+                            navigate(`/startup/${v.id}`);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-bold text-xs shadow-md transition-all cursor-pointer shrink-0"
+                        >
+                          <span>Open Standalone Page</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Executive Summary / Description */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs space-y-4">
+                      <div>
+                        <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Executive Summary & Venture Overview</span>
+                        </h4>
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                          {v.companyDescription || "No detailed company description provided."}
+                        </p>
+                      </div>
+
+                      {v.businessActivity && (
+                        <div className="pt-3 border-t border-gray-100">
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                            Core Business Activity
+                          </h4>
+                          <p className="text-xs text-gray-800">{v.businessActivity}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Operational Location & Contact Directory */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Location & Address */}
+                      <div className="p-4 rounded-xl border border-gray-200 bg-slate-50/60 space-y-2">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Headquarters & Location</span>
+                        </span>
+                        <div className="text-xs text-gray-800 space-y-1">
+                          <div className="font-semibold text-sm text-gray-900">
+                            {[v.streetAddress, v.barangay, v.city].filter(Boolean).join(", ") || "City not specified"}
+                          </div>
+                          <div className="text-gray-600">
+                            {[v.province, v.region, v.postalCode].filter(Boolean).join(" • ") || "Philippines"}
+                          </div>
+                          {v.operatingHours && (
+                            <div className="flex items-center gap-1 text-[11px] text-gray-500 mt-2">
+                              <Clock className="w-3 h-3" />
+                              <span>Operating Hours: {v.operatingHours}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Official Contact & Digital Presence */}
+                      <div className="p-4 rounded-xl border border-gray-200 bg-slate-50/60 space-y-2">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>Official Channels & Contact</span>
+                        </span>
+                        <div className="text-xs text-gray-800 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400 w-16">Email:</span>
+                            <span className="font-semibold text-gray-900">{v.contactEmail || "Not specified"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400 w-16">Phone:</span>
+                            <span className="font-semibold text-gray-900">{v.phoneNumber || "Not specified"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400 w-16">Website:</span>
+                            {v.website ? (
+                              <a href={v.website.startsWith("http") ? v.website : `https://${v.website}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                <span>{v.website.replace(/^https?:\/\//, "")}</span>
+                              </a>
+                            ) : (
+                              <span className="text-gray-500">None provided</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Regulatory & Financial Highlights Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block">Registration Agency</span>
+                        <span className="text-sm font-bold text-gray-900 mt-1 block">
+                          {v.registrationAgency || (v.isGovernmentRegistered ? "Govt Registered" : "Pending")}
+                        </span>
+                        <span className="text-[10px] text-gray-500 mt-0.5 block truncate">
+                          {v.registrationNumber || "Reg ID on file"}
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block">TIN / License</span>
+                        <span className="text-sm font-bold text-gray-900 mt-1 block font-mono">
+                          {v.tin || v.businessLicenseNumber || "Verified"}
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 block">Official Tax Record</span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block">Paid-Up Capital</span>
+                        <span className="text-sm font-bold text-gray-900 mt-1 block">
+                          ₱{Number(v.paidUpCapital || 0).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-gray-500 mt-0.5 block">Equity base</span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-gray-200 bg-white">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block">Funding Stage</span>
+                        <span className="text-sm font-bold text-indigo-700 mt-1 block">
+                          {v.fundingStage || "Seed Stage"}
+                        </span>
+                        <span className="text-[10px] text-gray-500 mt-0.5 block">{v.numberOfFundingRounds || 0} Closed Deals</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}
@@ -1462,20 +1654,8 @@ export default function VentureLeaderboardRanking() {
                 <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedVentureForDetails(null);
-                      navigate(`/startup/${v.id}`);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition-colors cursor-pointer"
-                  >
-                    <span>Open Full Profile</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setSelectedVentureForDetails(null)}
-                    className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    className="px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
                   >
                     Close
                   </button>
