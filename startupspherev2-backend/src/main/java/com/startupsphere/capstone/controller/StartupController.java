@@ -166,10 +166,18 @@ public class StartupController {
     }
 
     @PutMapping("/{id:[0-9]+}")
-    public ResponseEntity<Startup> updateStartup(@PathVariable Long id, @RequestBody Startup updatedStartup) {
+    public ResponseEntity<?> updateStartup(@PathVariable Long id, @RequestBody Startup updatedStartup) {
         try {
+            Optional<Startup> existing = startupRepository.findById(id);
+            if (existing.isPresent() && "Rejected".equalsIgnoreCase(existing.get().getStatus())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse(false, "Rejected businesses cannot be edited. They can only be deleted.", null));
+            }
             Startup updated = startupService.updateStartup(id, updatedStartup);
             return ResponseEntity.ok(updated);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse(false, e.getMessage(), null));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
@@ -561,15 +569,44 @@ public class StartupController {
             }
 
             // Check if current user is the owner of the business
-            if (currentUser != null && startup.getUser() != null) {
-                if (currentUser.getId() != null && currentUser.getId().equals(startup.getUser().getId())) {
+            if (currentUser != null) {
+                if (startup.getUser() != null) {
+                    if (currentUser.getId() != null && currentUser.getId().equals(startup.getUser().getId())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
+                    }
+                    if (currentUser.getEmail() != null && startup.getUser().getEmail() != null && currentUser.getEmail().equalsIgnoreCase(startup.getUser().getEmail())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
+                    }
+                }
+                if (currentUser.getEmail() != null && startup.getContactEmail() != null && currentUser.getEmail().equalsIgnoreCase(startup.getContactEmail())) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
                 }
-                if (currentUser.getEmail() != null && currentUser.getEmail().equalsIgnoreCase(startup.getUser().getEmail())) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                            .body(new ApiResponse(false, "You cannot express investment interest in your own business.", null));
-                }
+            }
+
+            // Check business verification and approval status:
+            // Investors cannot invest in rejected businesses or businesses that are not verified.
+            // Investors can only invest in verified and accepted businesses in the system.
+            String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
+            boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
+            boolean isRejected = "Rejected".equalsIgnoreCase(status);
+            boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
+
+            if (isRejected) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse(false, "Investors cannot invest in rejected businesses.", null));
+            }
+
+            if (!isVerified) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse(false, "Investors cannot invest in unverified businesses. The business must be verified first.", null));
+            }
+
+            if (!isApproved) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse(false, "Investors can only invest in verified and accepted businesses in the system.", null));
             }
 
             // Create notification for the startup owner
