@@ -97,6 +97,18 @@ export default function StartupDashboard({ openAddMethodModal }) {
     return Array.from(map.values());
   }, [startups]);
 
+  // Only verified and approved/accepted startups are counted in funding calculations (unverified, in review and rejected businesses are excluded)
+  const approvedStartups = useMemo(() => {
+    return (startups || []).filter((s) => {
+      if (!s || s.isDraft) return false;
+      const st = s.status?.trim() || "";
+      const isApproved = st.toLowerCase() === "approved" || st.toLowerCase() === "accepted";
+      const isRejected = st.toLowerCase() === "rejected";
+      const isVerified = Boolean(s.emailVerified);
+      return isApproved && isVerified && !isRejected;
+    });
+  }, [startups]);
+
   const hasMultipleStartups = uniqueOwnedStartups.length > 1;
 
   const toggleCompareStartup = useCallback((id) => {
@@ -141,37 +153,43 @@ export default function StartupDashboard({ openAddMethodModal }) {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [generatedUserReports, setGeneratedUserReports] = useState([]);
 
-  // Scoped strictly to the user / business found only on the user dashboard
+  // Scoped strictly to the user / business found only on the user dashboard (approved businesses only)
   const userTotalFunding = useMemo(() => {
     if (!startups || startups.length === 0) return 0;
     if (selectedStartup !== "all") {
       const target = startups.find((s) => String(s.id) === String(selectedStartup));
       if (!target) return 0;
+      const st = target.status?.trim() || "";
+      const isApp = st.toLowerCase() === "approved" || st.toLowerCase() === "accepted";
+      if (!isApp) return 0; // Exclude in review and rejected
       return (
-        Number(target.totalStartupFundingReceived || target.paidUpCapital || 0) +
+        Number(target.paidUpCapital || 0) +
+        Number(target.totalStartupFundingReceived || 0) +
         Number(target.amountOfGovernmentGrantsOrSubsidiesReceived || 0)
       );
     }
-    return startups.reduce(
+    return (approvedStartups || []).reduce(
       (acc, s) =>
         acc +
-        Number(s.totalStartupFundingReceived || s.paidUpCapital || 0) +
+        Number(s.paidUpCapital || 0) +
+        Number(s.totalStartupFundingReceived || 0) +
         Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0),
       0
     );
-  }, [startups, selectedStartup]);
+  }, [startups, selectedStartup, approvedStartups]);
 
-  // Grand total funding of all startups owned by this user
+  // Grand total funding of all approved startups owned by this user
   const allStartupsTotalFunding = useMemo(() => {
-    if (!startups || startups.length === 0) return 0;
-    return startups.reduce(
+    if (!approvedStartups || approvedStartups.length === 0) return 0;
+    return approvedStartups.reduce(
       (acc, s) =>
         acc +
-        Number(s.totalStartupFundingReceived || s.paidUpCapital || 0) +
+        Number(s.paidUpCapital || 0) +
+        Number(s.totalStartupFundingReceived || 0) +
         Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0),
       0
     );
-  }, [startups]);
+  }, [approvedStartups]);
 
   const formatUserFunding = (val) => {
     const num = Number(val) || 0;
@@ -405,9 +423,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
   };
 
   const displayList = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    if (!q) {
+      return [...startups, ...drafts];
+    }
     const filteredStartups = startups.filter((s) =>
       [s.companyName, s.industry, s.locationName].some((field) =>
-        field?.toLowerCase().includes(searchQuery.toLowerCase())
+        field && String(field).toLowerCase().includes(q)
       )
     );
     return [...filteredStartups, ...drafts];
@@ -954,6 +976,10 @@ export default function StartupDashboard({ openAddMethodModal }) {
   };
 
   const handleNavigateToUpdate = (startup) => {
+    if ((startup?.status?.trim() || "").toLowerCase() === "rejected") {
+      toast.error("Rejected businesses cannot be edited. They can only be deleted.");
+      return;
+    }
     navigate(`/update-startup/${startup.id}`, { state: { startup } });
   };
 
@@ -1992,20 +2018,23 @@ export default function StartupDashboard({ openAddMethodModal }) {
         doc.text("Funding & Capital Breakdown", 14, currentY);
 
         const fundingRows = scopedStartups.map((s) => {
-          const base = Number(s.totalStartupFundingReceived || s.paidUpCapital || 0);
+          const founderCap = Number(s.paidUpCapital || 0);
+          const extFunding = Number(s.totalStartupFundingReceived || 0);
           const grants = Number(s.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
+          const total = founderCap + extFunding + grants;
           return [
             s.companyName || "Unnamed Venture",
             s.fundingStage || "N/A",
-            `PHP ${base.toLocaleString()}`,
+            `PHP ${founderCap.toLocaleString()}`,
+            `PHP ${extFunding.toLocaleString()}`,
             `PHP ${grants.toLocaleString()}`,
-            `PHP ${(base + grants).toLocaleString()}`,
+            `PHP ${total.toLocaleString()}`,
           ];
         });
 
         autoTable(doc, {
           startY: currentY + 3,
-          head: [["Venture", "Stage", "Capital / Funding", "Gov. Grants", "Total Funding"]],
+          head: [["Venture", "Stage", "Founder Capital", "Ext. Investments", "Gov. Grants", "Total Capital"]],
           body: fundingRows,
           theme: "grid",
           headStyles: { fillColor: [29, 53, 87], textColor: [255, 255, 255], fontSize: 8.5 },
@@ -2897,13 +2926,13 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           </div>
                           <div>
                             <span className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider block">
-                              {startups.length > 1
-                                ? `Total Funding of All Startups (${startups.length})`
+                              {approvedStartups.length > 1
+                                ? `Total Funding of Approved Startups (${approvedStartups.length})`
                                 : "Total Venture Funding"}
                             </span>
                             <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
                               {selectedStartup === "all"
-                                ? `Portfolio Total (${startups.length} ${startups.length === 1 ? "Startup" : "Startups"})`
+                                ? `Portfolio Total (${approvedStartups.length} ${approvedStartups.length === 1 ? "Startup" : "Startups"})`
                                 : (activeStartup?.companyName || "Selected Venture")}
                             </span>
                           </div>
@@ -2928,7 +2957,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                               <span className="inline-block w-24 h-8 bg-gray-200 rounded animate-pulse"></span>
                             ) : (
                               formatUserFunding(
-                                startups.length > 1 && selectedStartup === "all"
+                                approvedStartups.length > 1 && selectedStartup === "all"
                                   ? allStartupsTotalFunding
                                   : userTotalFunding
                               )
@@ -2939,26 +2968,27 @@ export default function StartupDashboard({ openAddMethodModal }) {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                          {startups.length > 1 && selectedStartup !== "all" ? (
+                          {approvedStartups.length > 1 && selectedStartup !== "all" ? (
                             <>
                               Selected: ₱{userTotalFunding.toLocaleString()} •{" "}
                               <span className="font-bold text-emerald-800">
-                                All Startups: ₱{allStartupsTotalFunding.toLocaleString()}
+                                Approved Total: ₱{allStartupsTotalFunding.toLocaleString()}
                               </span>
                             </>
                           ) : (
                             <>
-                              Exact Amount: ₱{allStartupsTotalFunding.toLocaleString()} • Combined across all your {startups.length} startups
+                              Exact Amount: ₱{allStartupsTotalFunding.toLocaleString()} • Combined across your {approvedStartups.length} approved {approvedStartups.length === 1 ? "startup" : "startups"}
                             </>
                           )}
                         </p>
 
-                        {/* If user has multiple startups, show a mini per-startup funding list */}
-                        {startups.length > 1 && (
+                        {/* If user has multiple approved startups, show a mini per-startup funding list */}
+                        {approvedStartups.length > 1 && (
                           <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-emerald-100/80">
-                            {startups.map((st) => {
+                            {approvedStartups.map((st) => {
                               const stFund =
-                                Number(st.totalStartupFundingReceived || st.paidUpCapital || 0) +
+                                Number(st.paidUpCapital || 0) +
+                                Number(st.totalStartupFundingReceived || 0) +
                                 Number(st.amountOfGovernmentGrantsOrSubsidiesReceived || 0);
                               return (
                                 <button
@@ -3901,6 +3931,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                   ) : (
                     displayList.map((item) => {
                       const isDraft = !!item.isDraft;
+                      const isRejected = (item.status?.trim() || "").toLowerCase() === "rejected";
                       const isSelectedForCompare =
                         !isDraft &&
                         compareStartupIds.some((id) => String(id) === String(item.id));
@@ -3984,9 +4015,21 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                   <p className="font-bold text-gray-900 truncate text-xs sm:text-sm" title={item.companyName}>
                                     {item.companyName || "Untitled Draft"}
                                   </p>
-                                  {isDraft && (
+                                  {isDraft ? (
                                     <span className="px-1.5 py-0.2 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">
                                       Draft
+                                    </span>
+                                  ) : item.status === "Approved" ? (
+                                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                                      Approved
+                                    </span>
+                                  ) : item.status === "Rejected" ? (
+                                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded">
+                                      Rejected
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">
+                                      {item.status || "In Review"}
                                     </span>
                                   )}
                                 </div>
@@ -4090,17 +4133,19 @@ export default function StartupDashboard({ openAddMethodModal }) {
                                 </>
                               ) : (
                                 <>
-                                  <button
-                                    onClick={() => handleNavigateToUpdate(item)}
-                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                                    title="Edit"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
+                                  {!isRejected && (
+                                    <button
+                                      onClick={() => handleNavigateToUpdate(item)}
+                                      className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Edit"
+                                    >
+                                      <Edit size={14} />
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleDeleteClick(item)}
                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                    title="Delete"
+                                    title={isRejected ? "Delete rejected startup" : "Delete"}
                                   >
                                     <Trash2 size={14} />
                                   </button>
@@ -4432,7 +4477,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
         <FundingBreakdownModal
           isOpen={isFundingModalOpen}
           onClose={() => setIsFundingModalOpen(false)}
-          startups={startups}
+          startups={approvedStartups}
           selectedStartupId={selectedStartup}
         />
 
