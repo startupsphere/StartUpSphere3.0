@@ -1417,8 +1417,12 @@ export default function StartupDetail() {
   };
 
   // Add a helper to check if startup is verified/approved
-  const isStartupVerified =
-    startup?.emailVerified === true && startup?.status === "Approved";
+  const statusStr = startup?.status?.trim() || "";
+  const isApproved = statusStr.toLowerCase() === "approved" || statusStr.toLowerCase() === "accepted";
+  const isRejected = statusStr.toLowerCase() === "rejected";
+  const isVerified = Boolean(startup?.emailVerified);
+  const isStartupVerified = isApproved && isVerified && !isRejected;
+  const isEligibleForInvestment = isStartupVerified;
 
   if (loading) {
     return (
@@ -1491,28 +1495,47 @@ export default function StartupDetail() {
           </div>
           <div className="flex flex-wrap items-center space-x-2 sm:space-x-3 shrink-0">
             {!isOwner && (
+              isEligibleForInvestment ? (
+                <button
+                  onClick={() => setIsInvestmentModalOpen(true)}
+                  className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border-0 rounded-lg text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all shrink-0 cursor-pointer shadow-md shadow-blue-500/25 active:scale-[0.99]"
+                  style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                >
+                  <DollarSign size={16} className="mr-1 sm:mr-1.5 text-blue-100" />
+                  <span className="text-white font-semibold">Express Investment Interest</span>
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-semibold text-gray-500 bg-gray-100 cursor-not-allowed shrink-0"
+                  title={
+                    isRejected
+                      ? "Investors cannot invest in rejected businesses."
+                      : !isVerified
+                      ? "Investors cannot invest in unverified businesses."
+                      : "Investors can only invest in verified and accepted businesses."
+                  }
+                >
+                  <DollarSign size={16} className="mr-1 sm:mr-1.5 text-gray-400" />
+                  <span>Investment Unavailable ({isRejected ? "Rejected" : !isVerified ? "Unverified" : "Pending Approval"})</span>
+                </button>
+              )
+            )}
+
+            {!isRejected && (
               <button
-                onClick={() => setIsInvestmentModalOpen(true)}
-                className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border-0 rounded-lg text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all shrink-0 cursor-pointer shadow-md shadow-blue-500/25 active:scale-[0.99]"
-                style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                onClick={() =>
+                  navigate(`/update-startup/${id}`, { state: { startup } })
+                }
+                className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
               >
-                <DollarSign size={16} className="mr-1 sm:mr-1.5 text-blue-100" />
-                <span className="text-white font-semibold">Express Investment Interest</span>
+                <Edit size={16} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Edit Startup</span>
+                <span className="sm:hidden">Edit</span>
               </button>
             )}
 
-            <button
-              onClick={() =>
-                navigate(`/update-startup/${id}`, { state: { startup } })
-              }
-              className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
-            >
-              <Edit size={16} className="mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Edit Startup</span>
-              <span className="sm:hidden">Edit</span>
-            </button>
-
-            {isAdmin && (
+            {(isAdmin || (isOwner && isRejected)) && (
               <button
                 onClick={() =>
                   setDeleteStartupModal({
@@ -1522,7 +1545,7 @@ export default function StartupDetail() {
                   })
                 }
                 className="flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-red-200 rounded-lg text-xs sm:text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-colors shrink-0 cursor-pointer shadow-2xs"
-                title="Delete this startup permanently (Admin only)"
+                title={isRejected ? "Delete this rejected startup" : "Delete this startup permanently (Admin only)"}
               >
                 <Trash2 size={16} className="mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Delete Startup</span>
@@ -1973,25 +1996,46 @@ export default function StartupDetail() {
 
                     {/* Investment Interest CTA Banner (Visible if user does not own this business) */}
                     {!isOwner ? (
-                      <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100/60 p-4 rounded-xl border border-blue-200">
-                        <div>
-                          <h4 className="text-sm font-bold text-blue-950 flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4 text-blue-600" />
-                            Interested in funding or partnering with {startup.companyName}?
-                          </h4>
-                          <p className="text-xs text-blue-800 mt-0.5">
-                            Both individual investors and business owners are welcome to discuss equity, convertible notes, or capital support.
-                          </p>
+                      isEligibleForInvestment ? (
+                        <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100/60 p-4 rounded-xl border border-blue-200">
+                          <div>
+                            <h4 className="text-sm font-bold text-blue-950 flex items-center gap-1.5">
+                              <DollarSign className="w-4 h-4 text-blue-600" />
+                              Interested in funding or partnering with {startup.companyName}?
+                            </h4>
+                            <p className="text-xs text-blue-800 mt-0.5">
+                              Both individual investors and business owners are welcome to discuss equity, convertible notes, or capital support.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setIsInvestmentModalOpen(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-500/25 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 active:scale-[0.99] border-0"
+                            style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                          >
+                            <DollarSign size={14} className="text-blue-100" />
+                            <span className="text-white font-semibold">Express Investment Interest</span>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setIsInvestmentModalOpen(true)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-500/25 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 active:scale-[0.99] border-0"
-                          style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
-                        >
-                          <DollarSign size={14} className="text-blue-100" />
-                          <span className="text-white font-semibold">Express Investment Interest</span>
-                        </button>
-                      </div>
+                      ) : (
+                        <div className="mt-5 pt-4 border-t border-gray-100 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-gray-600">
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-semibold text-gray-800">Investment Currently Unavailable</p>
+                              <p className="text-gray-500 mt-0.5">
+                                {isRejected
+                                  ? "This business is marked as Rejected. Investors cannot invest in rejected businesses."
+                                  : !isVerified
+                                  ? "This business is not verified. Investors can only invest in verified and accepted businesses."
+                                  : `This business is currently ${statusStr || "under review"}. Investors can only invest in verified and accepted businesses.`}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-1 bg-gray-200 text-gray-700 font-semibold rounded-md text-[11px] shrink-0">
+                            {isRejected ? "Rejected" : !isVerified ? "Unverified" : "Pending Approval"}
+                          </span>
+                        </div>
+                      )
                     ) : (
                       <div className="mt-5 pt-4 border-t border-gray-100 p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/70 flex items-center gap-2.5 text-xs text-blue-900 font-medium">
                         <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
