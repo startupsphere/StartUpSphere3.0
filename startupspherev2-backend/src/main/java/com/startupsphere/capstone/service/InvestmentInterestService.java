@@ -37,6 +37,7 @@ public class InvestmentInterestService {
 
     @Transactional
     public InvestmentInterest createInterest(Startup startup, InvestmentInterestRequest request, User senderUser) {
+        validateStartupInvestmentEligibility(startup);
         InvestmentInterest interest = new InvestmentInterest();
         interest.setStartup(startup);
         interest.setInvestorUser(senderUser);
@@ -51,6 +52,15 @@ public class InvestmentInterestService {
         return repository.save(interest);
     }
 
+    public List<InvestmentInterest> getDealsForStartup(Long startupId) {
+        if (startupId == null) return List.of();
+        Optional<Startup> opt = startupRepository.findById(startupId);
+        if (opt.isEmpty() || !isStartupEligibleForInvestments(opt.get())) {
+            return List.of();
+        }
+        return repository.findByStartup_IdOrderByCreatedAtDesc(startupId);
+    }
+
     @Transactional
     public List<InvestmentInterest> getInquiriesReceivedForUser(User user) {
         if (user == null || user.getId() == null) return List.of();
@@ -61,6 +71,9 @@ public class InvestmentInterestService {
         java.util.Map<String, InvestmentInterest> uniqueDeals = new java.util.LinkedHashMap<>();
         for (InvestmentInterest item : list) {
             if (item.getStartup() != null && item.getStartup().getId() != null) {
+                if (!isStartupEligibleForInvestments(item.getStartup())) {
+                    continue; // Skip unverified, rejected, or unapproved startups
+                }
                 String key = item.getStartup().getId() + "-" + (item.getInvestorEmail() != null ? item.getInvestorEmail().toLowerCase() : item.getInvestorName());
                 if (!uniqueDeals.containsKey(key)) {
                     uniqueDeals.put(key, item);
@@ -96,6 +109,9 @@ public class InvestmentInterestService {
         java.util.Map<Long, InvestmentInterest> uniqueByStartup = new java.util.LinkedHashMap<>();
         for (InvestmentInterest item : list) {
             if (item.getStartup() != null && item.getStartup().getId() != null) {
+                if (!isStartupEligibleForInvestments(item.getStartup())) {
+                    continue; // Skip unverified, rejected, or unapproved startups
+                }
                 Long stId = item.getStartup().getId();
                 if (!uniqueByStartup.containsKey(stId)) {
                     uniqueByStartup.put(stId, item);
@@ -132,6 +148,8 @@ public class InvestmentInterestService {
             throw new IllegalArgumentException("No startup found to associate with this investment inquiry. Please register a startup first.");
         }
 
+        validateStartupInvestmentEligibility(startup);
+
         InvestmentInterest interest = new InvestmentInterest();
         interest.setStartup(startup);
         interest.setInvestorUser(null);
@@ -154,6 +172,7 @@ public class InvestmentInterestService {
             throw new IllegalArgumentException("Investment interest not found with ID: " + id);
         }
         InvestmentInterest interest = opt.get();
+        validateStartupInvestmentEligibility(interest.getStartup());
         String oldStage = interest.getStage();
         String newStage = stage != null && !stage.isBlank() ? stage.trim().toUpperCase() : oldStage;
 
@@ -185,53 +204,47 @@ public class InvestmentInterestService {
                 .append(" moved stage from ").append(oldStage).append(" ➔ ").append(newStage);
 
         if (notes != null && !notes.isBlank()) {
-            auditLog.append("\nNote: ").append(notes.trim());
+            String trimmed = notes.trim();
+            // Guard against duplicate appending of previous audit history
+            if (interest.getNotes() == null || !interest.getNotes().contains(trimmed)) {
+                auditLog.append("\nNote: ").append(trimmed);
+            }
         }
 
         interest.setNotes(auditLog.toString());
 
-        // Accurate fund disbursement logic: prevents double counting or cumulative drift
+        // Accurate fund disbursement logic: always syncs strictly to actual sum of closed deals
         boolean wasClosed = "CLOSED_DEAL".equalsIgnoreCase(oldStage);
         boolean isNowClosed = "CLOSED_DEAL".equalsIgnoreCase(newStage);
 
-        // 1. Moving INTO CLOSED_DEAL: Disburse funds only if not already disbursed
-        if (isNowClosed && !Boolean.TRUE.equals(interest.getFundDisbursed())) {
-            Startup startup = interest.getStartup();
-            if (startup != null) {
-                Double parsedFund = parseFundingAmount(interest.getAmountRange());
-                if (parsedFund == null || parsedFund <= 0) {
-                    parsedFund = parseFundingAmount(interest.getMessage());
-                }
-                if (parsedFund != null && parsedFund > 0) {
-                    double currentFund = startup.getTotalStartupFundingReceived();
-                    startup.setTotalStartupFundingReceived(currentFund + parsedFund);
-                    int rounds = startup.getNumberOfFundingRounds();
-                    startup.setNumberOfFundingRounds(rounds + 1);
-                    startupRepository.save(startup);
-                    interest.setFundDisbursed(true);
-                }
-            }
-        }
-        // 2. Moving OUT of CLOSED_DEAL (e.g. back to negotiation or passed): Rollback funds
-        else if (!isNowClosed && Boolean.TRUE.equals(interest.getFundDisbursed())) {
-            Startup startup = interest.getStartup();
-            if (startup != null) {
-                Double parsedFund = parseFundingAmount(interest.getAmountRange());
-                if (parsedFund == null || parsedFund <= 0) {
-                    parsedFund = parseFundingAmount(interest.getMessage());
-                }
-                if (parsedFund != null && parsedFund > 0) {
-                    double currentFund = startup.getTotalStartupFundingReceived();
-                    startup.setTotalStartupFundingReceived(Math.max(0.0, currentFund - parsedFund));
-                    int rounds = startup.getNumberOfFundingRounds();
-                    startup.setNumberOfFundingRounds(Math.max(0, rounds - 1));
-                    startupRepository.save(startup);
-                    interest.setFundDisbursed(false);
-                }
-            }
-        }
-
+        interest.setStage(newStage);
+        interest.setFundDisbursed(isNowClosed);
         InvestmentInterest saved = repository.save(interest);
+
+        if (isNowClosed != wasClosed) {
+            Startup startup = saved.getStartup();
+            if (startup != null) {
+                // Recalculate exact total external funding from all verified closed deals
+                List<InvestmentInterest> allDeals = repository.findByStartup_IdOrderByCreatedAtDesc(startup.getId());
+                double totalClosedAmount = 0.0;
+                int closedRounds = 0;
+                for (InvestmentInterest d : allDeals) {
+                    if ("CLOSED_DEAL".equalsIgnoreCase(d.getStage())) {
+                        Double amt = parseFundingAmount(d.getAmountRange());
+                        if (amt == null || amt <= 0) {
+                            amt = parseFundingAmount(d.getMessage());
+                        }
+                        if (amt != null && amt > 0) {
+                            totalClosedAmount += amt;
+                            closedRounds++;
+                        }
+                    }
+                }
+                startup.setTotalStartupFundingReceived(totalClosedAmount);
+                startup.setNumberOfFundingRounds(closedRounds);
+                startupRepository.save(startup);
+            }
+        }
 
         // Notify the partner party about the stage change
         try {
@@ -265,6 +278,35 @@ public class InvestmentInterestService {
         } catch (Exception ignored) {}
 
         return saved;
+    }
+
+    public boolean isStartupEligibleForInvestments(Startup startup) {
+        if (startup == null) return false;
+        String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
+        boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
+        boolean isRejected = "Rejected".equalsIgnoreCase(status);
+        boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
+        return isApproved && isVerified && !isRejected;
+    }
+
+    public void validateStartupInvestmentEligibility(Startup startup) {
+        if (startup == null) {
+            throw new IllegalArgumentException("Target business not found.");
+        }
+        String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
+        boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
+        boolean isRejected = "Rejected".equalsIgnoreCase(status);
+        boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
+
+        if (isRejected) {
+            throw new IllegalArgumentException("Investors cannot invest in rejected businesses.");
+        }
+        if (!isVerified) {
+            throw new IllegalArgumentException("Investors cannot invest in unverified businesses. The business must be verified first.");
+        }
+        if (!isApproved) {
+            throw new IllegalArgumentException("Investors can only invest in verified and accepted businesses in the system.");
+        }
     }
 
     private Double parseFundingAmount(String str) {
