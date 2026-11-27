@@ -354,6 +354,16 @@ export default function Sidebar({
     return false;
   };
 
+  // Helper to check if a startup is eligible for investment (must be verified and accepted, not rejected)
+  const isStartupEligibleForInvestment = (targetStartup) => {
+    if (!targetStartup) return false;
+    const status = targetStartup.status?.trim() || "";
+    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
+    const isRejected = status.toLowerCase() === "rejected";
+    const isVerified = Boolean(targetStartup.emailVerified);
+    return isApproved && isVerified && !isRejected;
+  };
+
   // Certificate Modal State
   const [certModalOpen, setCertModalOpen] = useState(false);
   const [selectedCertStartup, setSelectedCertStartup] = useState(null);
@@ -4767,18 +4777,36 @@ export default function Sidebar({
             {/* Express Investment Interest CTA Button - Hidden or disabled if user owns the business */}
             {!isBusinessOwnerOfStartup(startup) ? (
               <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInvestmentTargetStartup(startup);
-                    setIsInvestmentModalOpen(true);
-                  }}
-                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group active:scale-[0.99] border-0"
-                  style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
-                >
-                  <DollarSign className="w-4 h-4 text-blue-100 group-hover:scale-110 transition-transform" />
-                  <span className="text-white font-semibold">Express Investment Interest</span>
-                </button>
+                {isStartupEligibleForInvestment(startup) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInvestmentTargetStartup(startup);
+                      setIsInvestmentModalOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group active:scale-[0.99] border-0"
+                    style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                  >
+                    <DollarSign className="w-4 h-4 text-blue-100 group-hover:scale-110 transition-transform" />
+                    <span className="text-white font-semibold">Express Investment Interest</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-2.5 px-4 bg-gray-100 text-gray-400 font-semibold text-xs sm:text-sm rounded-xl border border-gray-200 flex items-center justify-center gap-2 cursor-not-allowed"
+                    title={
+                      startup.status?.toLowerCase() === "rejected"
+                        ? "Investors cannot invest in rejected businesses."
+                        : !startup.emailVerified
+                        ? "Investors cannot invest in unverified businesses."
+                        : "Investors can only invest in verified and accepted businesses."
+                    }
+                  >
+                    <DollarSign className="w-4 h-4 text-gray-400" />
+                    <span>Investment Unavailable ({startup.status?.toLowerCase() === "rejected" ? "Rejected" : !startup.emailVerified ? "Unverified" : "Pending Approval"})</span>
+                  </button>
+                )}
               </div>
             ) : (
               <div className="mb-4 p-2.5 bg-blue-50/60 rounded-xl border border-blue-200/60 flex items-center gap-2 text-xs text-blue-800">
@@ -5176,17 +5204,29 @@ export default function Sidebar({
                   {/* Express Interest Button inside Funding section (only if not owner) */}
                   {!isBusinessOwnerOfStartup(startup) && (
                     <div className="border-t border-amber-200/70 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInvestmentTargetStartup(startup);
-                          setIsInvestmentModalOpen(true);
-                        }}
-                        className="w-full py-2 px-3 bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 border border-blue-300 hover:border-blue-400 font-semibold text-xs rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <DollarSign className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Invest / Discuss Capital</span>
-                      </button>
+                      {isStartupEligibleForInvestment(startup) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInvestmentTargetStartup(startup);
+                            setIsInvestmentModalOpen(true);
+                          }}
+                          className="w-full py-2 px-3 bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 border border-blue-300 hover:border-blue-400 font-semibold text-xs rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <DollarSign className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Invest / Discuss Capital</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2 px-3 bg-gray-100 text-gray-400 border border-gray-200 font-semibold text-xs rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5"
+                          title="Investors can only invest in verified and accepted businesses."
+                        >
+                          <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Invest Unavailable ({startup.status?.toLowerCase() === "rejected" ? "Rejected" : !startup.emailVerified ? "Unverified" : "Pending Approval"})</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
