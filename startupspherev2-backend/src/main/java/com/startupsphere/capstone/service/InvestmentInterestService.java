@@ -282,30 +282,26 @@ public class InvestmentInterestService {
 
     public boolean isStartupEligibleForInvestments(Startup startup) {
         if (startup == null) return false;
-        String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
-        boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
-        boolean isRejected = "Rejected".equalsIgnoreCase(status);
-        boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
-        return isApproved && isVerified && !isRejected;
+        String status = startup.getStatus() != null ? startup.getStatus().trim().toLowerCase() : "";
+        if (status.contains("review") || status.contains("pending") || status.equals("rejected") || status.equals("draft")) {
+            return false;
+        }
+        return true;
     }
 
     public void validateStartupInvestmentEligibility(Startup startup) {
         if (startup == null) {
             throw new IllegalArgumentException("Target business not found.");
         }
-        String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
-        boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
-        boolean isRejected = "Rejected".equalsIgnoreCase(status);
-        boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
-
-        if (isRejected) {
+        String status = startup.getStatus() != null ? startup.getStatus().trim().toLowerCase() : "";
+        if (status.equals("rejected")) {
             throw new IllegalArgumentException("Investors cannot invest in rejected businesses.");
         }
-        if (!isVerified) {
-            throw new IllegalArgumentException("Investors cannot invest in unverified businesses. The business must be verified first.");
+        if (status.contains("review") || status.contains("pending")) {
+            throw new IllegalArgumentException("Investors cannot invest in businesses that are currently in review.");
         }
-        if (!isApproved) {
-            throw new IllegalArgumentException("Investors can only invest in verified and accepted businesses in the system.");
+        if (status.equals("draft")) {
+            throw new IllegalArgumentException("Investors cannot invest in draft businesses.");
         }
     }
 

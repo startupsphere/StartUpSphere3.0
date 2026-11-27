@@ -587,26 +587,19 @@ public class StartupController {
             }
 
             // Check business verification and approval status:
-            // Investors cannot invest in rejected businesses or businesses that are not verified.
-            // Investors can only invest in verified and accepted businesses in the system.
-            String status = startup.getStatus() != null ? startup.getStatus().trim() : "";
-            boolean isApproved = "Approved".equalsIgnoreCase(status) || "Accepted".equalsIgnoreCase(status);
-            boolean isRejected = "Rejected".equalsIgnoreCase(status);
-            boolean isVerified = Boolean.TRUE.equals(startup.getEmailVerified());
-
-            if (isRejected) {
+            // Investors cannot invest in rejected businesses or businesses that are currently in review.
+            String status = startup.getStatus() != null ? startup.getStatus().trim().toLowerCase() : "";
+            if (status.equals("rejected")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ApiResponse(false, "Investors cannot invest in rejected businesses.", null));
             }
-
-            if (!isVerified) {
+            if (status.contains("review") || status.contains("pending")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ApiResponse(false, "Investors cannot invest in unverified businesses. The business must be verified first.", null));
+                        .body(new ApiResponse(false, "Investors cannot invest in businesses that are currently in review.", null));
             }
-
-            if (!isApproved) {
+            if (status.equals("draft")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ApiResponse(false, "Investors can only invest in verified and accepted businesses in the system.", null));
+                        .body(new ApiResponse(false, "Investors cannot invest in draft businesses.", null));
             }
 
             // Create notification for the startup owner
