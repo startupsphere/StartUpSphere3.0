@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import { toast } from "react-toastify";
@@ -26,6 +26,10 @@ import {
   XCircle,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
 } from "lucide-react";
 import { PIPELINE_STAGES } from "./InvestmentInquiriesPage";
 import StageHistoryBullets from "./StageHistoryBullets";
@@ -39,6 +43,17 @@ export const INVESTMENT_FOCUS_OPTIONS = [
   "Revenue-Share / Debt Financing",
   "General Investment Discussion & Inquiry",
 ];
+
+export const isExcludedFromInvestments = (statusStr) => {
+  if (!statusStr) return false;
+  const s = String(statusStr).trim().toLowerCase();
+  return s.includes("review") || s.includes("pending") || s.includes("reject") || s.includes("draft");
+};
+
+export const isEligibleStartup = (s) => {
+  if (!s) return false;
+  return !isExcludedFromInvestments(s.status);
+};
 
 export default function InvestorPortfolioPage() {
   const navigate = useNavigate();
@@ -59,6 +74,10 @@ export default function InvestorPortfolioPage() {
   // Express Interest modal
   const [isExpressModalOpen, setIsExpressModalOpen] = useState(false);
   const [submittingInterest, setSubmittingInterest] = useState(false);
+  const [startupSearchTerm, setStartupSearchTerm] = useState("");
+  const [isStartupDropdownOpen, setIsStartupDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   const [expressForm, setExpressForm] = useState({
     startupId: "",
     investorName: "",
@@ -69,6 +88,44 @@ export default function InvestorPortfolioPage() {
     processType: "Direct Equity / Seed Round",
     message: "",
   });
+
+  // Startups eligible to receive investment (excludes in review and rejected)
+  const eligibleStartups = useMemo(() => {
+    return allStartups.filter(isEligibleStartup);
+  }, [allStartups]);
+
+  // Filtered startups inside the searchable dropdown
+  const filteredSelectableStartups = useMemo(() => {
+    const q = startupSearchTerm.trim().toLowerCase();
+    if (!q) return eligibleStartups;
+    return eligibleStartups.filter((s) => {
+      const name = (s.companyName || "").toLowerCase();
+      const ind = (s.industry || "").toLowerCase();
+      const city = (s.city || "").toLowerCase();
+      const prov = (s.province || "").toLowerCase();
+      return name.includes(q) || ind.includes(q) || city.includes(q) || prov.includes(q);
+    });
+  }, [eligibleStartups, startupSearchTerm]);
+
+  // Selected startup object for UI display
+  const selectedStartupObj = useMemo(() => {
+    return eligibleStartups.find((s) => String(s.id) === String(expressForm.startupId)) || null;
+  }, [eligibleStartups, expressForm.startupId]);
+
+  // Close custom dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsStartupDropdownOpen(false);
+      }
+    }
+    if (isStartupDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isStartupDropdownOpen]);
 
   // Fetch investor's expressed deals and registered startups in system
   const fetchMyInvestments = async () => {
@@ -94,13 +151,7 @@ export default function InvestorPortfolioPage() {
         const startupsData = await stRes.json();
         const list = Array.isArray(startupsData) ? startupsData : startupsData.content || [];
         setAllStartups(list);
-        const eligible = list.filter((s) => {
-          const status = s.status?.trim() || "";
-          const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-          const isRejected = status.toLowerCase() === "rejected";
-          const isVerified = Boolean(s.emailVerified);
-          return isApproved && isVerified && !isRejected;
-        });
+        const eligible = list.filter(isEligibleStartup);
         if (eligible.length > 0 && !expressForm.startupId) {
           setExpressForm((prev) => ({ ...prev, startupId: eligible[0].id }));
         }
@@ -198,20 +249,17 @@ export default function InvestorPortfolioPage() {
 
     const targetSt = allStartups.find((s) => String(s.id) === String(expressForm.startupId));
     if (targetSt) {
-      const status = targetSt.status?.trim() || "";
-      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-      const isRejected = status.toLowerCase() === "rejected";
-      const isVerified = Boolean(targetSt.emailVerified);
-      if (isRejected) {
+      const status = (targetSt.status || "").trim().toLowerCase();
+      if (status.includes("reject")) {
         toast.error("Investors cannot invest in rejected businesses.");
         return;
       }
-      if (!isVerified) {
-        toast.error("Investors cannot invest in unverified businesses.");
+      if (status.includes("review") || status.includes("pending")) {
+        toast.error("Investors cannot invest in businesses that are currently in review.");
         return;
       }
-      if (!isApproved) {
-        toast.error("Investors can only invest in verified and accepted businesses.");
+      if (status === "draft") {
+        toast.error("Investors cannot invest in draft businesses.");
         return;
       }
     }
@@ -244,7 +292,6 @@ export default function InvestorPortfolioPage() {
         throw new Error(errJson.message || "Failed to submit investment interest");
       }
 
-      const targetSt = allStartups.find((s) => String(s.id) === String(expressForm.startupId));
       toast.success(
         `Investment interest successfully submitted to ${targetSt?.companyName || "the startup"}! It is now active in your Deal Flow.`
       );
@@ -259,20 +306,6 @@ export default function InvestorPortfolioPage() {
       setSubmittingInterest(false);
     }
   };
-
-  // Only verified, accepted and non-rejected startups are eligible to receive investments
-  const isEligibleStartup = (s) => {
-    if (!s) return false;
-    const status = s.status?.trim() || "";
-    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-    const isRejected = status.toLowerCase() === "rejected";
-    const isVerified = Boolean(s.emailVerified);
-    return isApproved && isVerified && !isRejected;
-  };
-
-  const eligibleStartups = useMemo(() => {
-    return allStartups.filter(isEligibleStartup);
-  }, [allStartups]);
 
   // Filtered & de-duplicated investments (1 authentic card per startup based on chosen investment focus)
   const filteredInvestments = useMemo(() => {
@@ -371,7 +404,7 @@ export default function InvestorPortfolioPage() {
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800">
+                  <span className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
                     <Briefcase className="w-4 h-4" />
                   </span>
                   <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight truncate">
@@ -390,7 +423,7 @@ export default function InvestorPortfolioPage() {
                   onClick={() => setViewMode("grid")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     viewMode === "grid"
-                      ? "bg-white text-amber-800 shadow-2xs"
+                      ? "bg-white text-blue-700 shadow-2xs"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
@@ -401,7 +434,7 @@ export default function InvestorPortfolioPage() {
                   onClick={() => setViewMode("kanban")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     viewMode === "kanban"
-                      ? "bg-white text-amber-800 shadow-2xs"
+                      ? "bg-white text-blue-700 shadow-2xs"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
@@ -419,8 +452,12 @@ export default function InvestorPortfolioPage() {
               </button>
 
               <button
-                onClick={() => setIsExpressModalOpen(true)}
-                className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5 active:scale-95"
+                onClick={() => {
+                  setStartupSearchTerm("");
+                  setIsStartupDropdownOpen(false);
+                  setIsExpressModalOpen(true);
+                }}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 flex items-center gap-1.5 active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Express Interest in a Startup</span>
@@ -442,26 +479,26 @@ export default function InvestorPortfolioPage() {
             <span className="text-[11px] text-gray-400 mt-1">Startups in your deal flow</span>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-amber-200/90 shadow-2xs flex flex-col justify-between bg-amber-50/20">
-            <div className="flex items-center justify-between text-amber-800">
+          <div className="bg-white p-4 rounded-2xl border border-blue-200/90 shadow-2xs flex flex-col justify-between bg-blue-50/20">
+            <div className="flex items-center justify-between text-blue-800">
               <span className="text-xs font-bold uppercase tracking-wider">Active Deals</span>
-              <Clock className="w-4 h-4 text-amber-600" />
+              <Clock className="w-4 h-4 text-blue-600" />
             </div>
-            <p className="text-2xl font-black text-amber-700 mt-2">{activeCount}</p>
-            <span className="text-[11px] text-amber-600 font-medium mt-1">
+            <p className="text-2xl font-black text-blue-700 mt-2">{activeCount}</p>
+            <span className="text-[11px] text-blue-600 font-medium mt-1">
               Currently in evaluation or negotiation
             </span>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-emerald-200/90 shadow-2xs flex flex-col justify-between bg-emerald-50/20">
-            <div className="flex items-center justify-between text-emerald-800">
+          <div className="bg-white p-4 rounded-2xl border border-blue-200/90 shadow-2xs flex flex-col justify-between bg-blue-50/10">
+            <div className="flex items-center justify-between text-blue-900">
               <span className="text-xs font-bold uppercase tracking-wider">Total Capital Invested</span>
-              <DollarSign className="w-4 h-4 text-emerald-600" />
+              <DollarSign className="w-4 h-4 text-blue-600" />
             </div>
-            <p className="text-2xl font-black text-emerald-700 mt-2">
+            <p className="text-2xl font-black text-blue-700 mt-2">
               ₱{totalCapitalInvested.toLocaleString()}
             </p>
-            <span className="text-[11px] text-emerald-600 font-medium mt-1">
+            <span className="text-[11px] text-blue-600 font-medium mt-1">
               Across {closedCount} funded {closedCount === 1 ? "venture" : "ventures"}
             </span>
           </div>
@@ -469,7 +506,7 @@ export default function InvestorPortfolioPage() {
           <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-gray-500">
               <span className="text-xs font-bold uppercase tracking-wider">Closed / Funded Deals</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-blue-600" />
             </div>
             <p className="text-2xl font-black text-gray-900 mt-2">{closedCount}</p>
             <span className="text-[11px] text-gray-400 mt-1">Completed investments</span>
@@ -478,18 +515,18 @@ export default function InvestorPortfolioPage() {
 
         {/* Business-Specific Invested Funds Showcase (When closed investments exist) */}
         {closedInvestments.length > 0 && (
-          <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-5 text-white shadow-md">
+          <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-2xl p-5 text-white shadow-md border border-blue-800/40">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3 mb-4">
               <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-blue-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-blue-400" />
                   Your Funded Businesses Portfolio
                 </h3>
-                <p className="text-xs text-emerald-100/80 mt-0.5">
+                <p className="text-xs text-blue-100/80 mt-0.5">
                   Breakdown of capital funded into specific businesses reached through Closed/Funded stage
                 </p>
               </div>
-              <div className="text-xs font-semibold px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-200 self-start sm:self-auto">
+              <div className="text-xs font-semibold px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-blue-200 self-start sm:self-auto">
                 Cumulative: ₱{totalCapitalInvested.toLocaleString()}
               </div>
             </div>
@@ -507,18 +544,18 @@ export default function InvestorPortfolioPage() {
                         <h4 className="text-sm font-bold text-white truncate">
                           {deal.startup?.companyName || "Portfolio Business"}
                         </h4>
-                        <p className="text-[11px] text-emerald-200 truncate mt-0.5">
+                        <p className="text-[11px] text-blue-200 truncate mt-0.5">
                           {deal.startup?.industry || "Startup"}
                         </p>
                       </div>
-                      <span className="px-2 py-0.5 bg-emerald-400/20 text-emerald-300 text-[10px] font-bold rounded-full uppercase border border-emerald-400/30">
+                      <span className="px-2 py-0.5 bg-blue-400/20 text-blue-300 text-[10px] font-bold rounded-full uppercase border border-blue-400/30">
                         Funded
                       </span>
                     </div>
 
                     <div className="mt-3 pt-2.5 border-t border-white/10 flex items-baseline justify-between">
                       <span className="text-[11px] text-slate-300">Invested Capital:</span>
-                      <span className="text-base font-extrabold text-emerald-300">
+                      <span className="text-base font-extrabold text-blue-300">
                         {amountVal > 0 ? `₱${amountVal.toLocaleString()}` : (deal.amountRange || "Committed")}
                       </span>
                     </div>
@@ -538,14 +575,14 @@ export default function InvestorPortfolioPage() {
               placeholder="Search interested businesses by company name, industry, or notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+              className="w-full pl-9 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             />
           </div>
 
           <select
             value={stageFilter}
             onChange={(e) => setStageFilter(e.target.value)}
-            className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           >
             <option value="all">All Pipeline Stages</option>
             {PIPELINE_STAGES.map((s) => (
@@ -568,8 +605,12 @@ export default function InvestorPortfolioPage() {
               <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsExpressModalOpen(true)}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                  onClick={() => {
+                    setStartupSearchTerm("");
+                    setIsStartupDropdownOpen(false);
+                    setIsExpressModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Express Interest in a Startup</span>
@@ -593,7 +634,7 @@ export default function InvestorPortfolioPage() {
                 return (
                   <div
                     key={deal.id}
-                    className="bg-white rounded-2xl border border-gray-200 hover:border-amber-400 hover:shadow-sm transition-all p-5 flex flex-col justify-between space-y-4"
+                    className="bg-white rounded-2xl border border-gray-200 hover:border-blue-400 hover:shadow-sm transition-all p-5 flex flex-col justify-between space-y-4"
                   >
                     <div>
                       {/* Top Bar: Industry & Stage Badge */}
@@ -626,12 +667,12 @@ export default function InvestorPortfolioPage() {
                       )}
 
                       {/* Proposal Details Box */}
-                      <div className="mt-3 p-3 rounded-xl bg-amber-50/40 border border-amber-100/80 space-y-1.5 text-xs">
+                      <div className="mt-3 p-3 rounded-xl bg-blue-50/40 border border-blue-100/80 space-y-1.5 text-xs">
                         <div className="flex items-center justify-between">
                           <span className="text-[10.5px] font-semibold text-gray-500">
                             Proposed Ticket Size:
                           </span>
-                          <span className="font-bold text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-200 shadow-2xs">
+                          <span className="font-bold text-blue-900 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
                             {deal.amountRange || "Flexible / Discussion"}
                           </span>
                         </div>
@@ -644,7 +685,7 @@ export default function InvestorPortfolioPage() {
                       </div>
 
                       {/* Stage Updates & History in Bullet Form with Expand Icon */}
-                      <StageHistoryBullets rawNotes={deal.notes} theme="amber" />
+                      <StageHistoryBullets rawNotes={deal.notes} theme="blue" />
                     </div>
 
                     {/* Footer Actions */}
@@ -669,7 +710,7 @@ export default function InvestorPortfolioPage() {
                           setNewStageInput(deal.stage || "NEW_INQUIRY");
                           setNotesInput("");
                         }}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
                       >
                         Update Stage
                       </button>
@@ -714,7 +755,7 @@ export default function InvestorPortfolioPage() {
                         stageDeals.map((deal) => (
                           <div
                             key={deal.id}
-                            className="bg-white p-3.5 rounded-xl border border-gray-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                            className="bg-white p-3.5 rounded-xl border border-gray-200/90 hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer group"
                           >
                             <div
                               onClick={() => {
@@ -723,7 +764,7 @@ export default function InvestorPortfolioPage() {
                                 setNotesInput("");
                               }}
                             >
-                              <p className="text-xs font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
+                              <p className="text-xs font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
                                 {deal.startup?.companyName || "Target Venture"}
                               </p>
                               <span className="text-[10.5px] text-gray-500 block">
@@ -731,7 +772,7 @@ export default function InvestorPortfolioPage() {
                               </span>
 
                               <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                                <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                                   {deal.amountRange || "Discussion"}
                                 </span>
                                 <span className="text-[10px] text-gray-400">
@@ -769,7 +810,7 @@ export default function InvestorPortfolioPage() {
                                     e.stopPropagation();
                                     handleQuickAdvanceStage(deal, 1);
                                   }}
-                                  className="px-2 py-1 text-amber-800 hover:bg-amber-50 rounded text-[10.5px] font-bold flex items-center gap-0.5 cursor-pointer border border-amber-200/70"
+                                  className="px-2 py-1 text-blue-800 hover:bg-blue-50 rounded text-[10.5px] font-bold flex items-center gap-0.5 cursor-pointer border border-blue-200/70"
                                   title="Advance to next stage"
                                 >
                                   <span>Advance</span>
@@ -797,7 +838,7 @@ export default function InvestorPortfolioPage() {
           aria-modal="true"
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-150">
-            <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-indigo-950 text-white p-5 sm:p-6 relative">
+            <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 text-white p-5 sm:p-6 relative">
               <button
                 type="button"
                 onClick={() => setIsExpressModalOpen(false)}
@@ -806,38 +847,154 @@ export default function InvestorPortfolioPage() {
                 <XCircle className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   <Briefcase className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-bold text-amber-200">
+                <span className="text-xs font-bold text-blue-200">
                   Investor Deal Initiation
                 </span>
               </div>
               <h3 className="text-xl font-bold">Express Investment Interest</h3>
-              <p className="text-xs text-amber-100/90 mt-0.5">
+              <p className="text-xs text-blue-100/90 mt-0.5">
                 Submit an investment proposal to any registered startup on StartUpSphere
               </p>
             </div>
 
             <form onSubmit={handleExpressInterestSubmit} className="p-5 sm:p-6 space-y-3.5 text-xs">
-              <div>
-                <label className="font-bold text-gray-700 block mb-1">Select Target Startup * (Verified & Accepted Only)</label>
-                <select
-                  value={expressForm.startupId}
-                  onChange={(e) => setExpressForm({ ...expressForm, startupId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-semibold text-gray-900 focus:ring-2 focus:ring-amber-500/30"
-                  required
+              {/* Searchable Target Startup Selector */}
+              <div ref={dropdownRef} className="relative">
+                <label className="font-bold text-gray-700 block mb-1">
+                  Select Target Startup *
+                </label>
+
+                {/* Selected Display / Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsStartupDropdownOpen(!isStartupDropdownOpen)}
+                  className={`w-full px-3 py-2.5 bg-white border rounded-xl text-left flex items-center justify-between transition-all cursor-pointer ${
+                    isStartupDropdownOpen
+                      ? "border-blue-500 ring-2 ring-blue-500/30"
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
                 >
-                  <option value="">-- Choose a Verified & Accepted Startup to Invest In --</option>
-                  {eligibleStartups.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.companyName} {s.industry ? `(${s.industry})` : ""} - Verified & Approved
-                    </option>
-                  ))}
-                </select>
+                  {selectedStartupObj ? (
+                    <div className="flex items-center gap-2 truncate">
+                      <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                      <div className="truncate">
+                        <span className="font-bold text-gray-900 text-xs sm:text-sm mr-2">
+                          {selectedStartupObj.companyName}
+                        </span>
+                        {selectedStartupObj.industry && (
+                          <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-full border border-blue-200">
+                            {selectedStartupObj.industry}
+                          </span>
+                        )}
+                        {selectedStartupObj.city && (
+                          <span className="text-[11px] text-gray-500 ml-2">
+                            • {selectedStartupObj.city}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 font-medium">
+                      -- Choose or Search a Business to Invest In --
+                    </span>
+                  )}
+                  {isStartupDropdownOpen ? (
+                    <ChevronUp className="w-4 h-4 text-gray-500 shrink-0 ml-2" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-500 shrink-0 ml-2" />
+                  )}
+                </button>
+
+                {/* Dropdown Menu with Live Search Filter */}
+                {isStartupDropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                    <div className="p-2 border-b border-gray-100 bg-gray-50/70">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Search businesses by name, industry, or city..."
+                          value={startupSearchTerm}
+                          onChange={(e) => setStartupSearchTerm(e.target.value)}
+                          className="w-full pl-8 pr-7 py-1.5 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        />
+                        {startupSearchTerm && (
+                          <button
+                            type="button"
+                            onClick={() => setStartupSearchTerm("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto divide-y divide-gray-50">
+                      {filteredSelectableStartups.length === 0 ? (
+                        <div className="p-4 text-center text-gray-400">
+                          <p className="text-xs font-semibold">No businesses found</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {startupSearchTerm
+                              ? `No eligible startup matching "${startupSearchTerm}"`
+                              : "No eligible startups available to invest in"}
+                          </p>
+                        </div>
+                      ) : (
+                        filteredSelectableStartups.map((s) => {
+                          const isSelected = String(s.id) === String(expressForm.startupId);
+                          return (
+                            <div
+                              key={s.id}
+                              onClick={() => {
+                                setExpressForm({ ...expressForm, startupId: s.id });
+                                setIsStartupDropdownOpen(false);
+                                setStartupSearchTerm("");
+                              }}
+                              className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
+                                isSelected
+                                  ? "bg-blue-50/80 text-blue-900"
+                                  : "hover:bg-gray-50 text-gray-800"
+                              }`}
+                            >
+                              <div className="min-w-0 pr-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-xs text-gray-900">
+                                    {s.companyName}
+                                  </span>
+                                  {s.industry && (
+                                    <span className="px-1.5 py-0.5 bg-slate-100 text-gray-600 text-[9.5px] font-semibold rounded border border-gray-200">
+                                      {s.industry}
+                                    </span>
+                                  )}
+                                </div>
+                                {(s.city || s.province) && (
+                                  <p className="text-[10.5px] text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                    <span>
+                                      {[s.city, s.province].filter(Boolean).join(", ")}
+                                    </span>
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {eligibleStartups.length === 0 && (
                   <p className="text-[11px] text-red-600 mt-1">
-                    No verified and accepted businesses available for investment. Investors cannot invest in rejected or unverified businesses.
+                    No approved businesses available for investment. Startups in review and rejected cannot receive investments.
                   </p>
                 )}
               </div>
@@ -850,7 +1007,7 @@ export default function InvestorPortfolioPage() {
                     required
                     value={expressForm.investorName}
                     onChange={(e) => setExpressForm({ ...expressForm, investorName: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-amber-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
                 <div>
@@ -858,7 +1015,7 @@ export default function InvestorPortfolioPage() {
                   <select
                     value={expressForm.investorType}
                     onChange={(e) => setExpressForm({ ...expressForm, investorType: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-amber-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="Angel Investor / Private Equity">Angel Investor / Private Equity</option>
                     <option value="Venture Capital (VC)">Venture Capital (VC)</option>
@@ -877,7 +1034,7 @@ export default function InvestorPortfolioPage() {
                     placeholder="e.g. ₱500,000, ₱1,000,000"
                     value={expressForm.amountRange}
                     onChange={(e) => setExpressForm({ ...expressForm, amountRange: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-amber-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
                 <div>
@@ -885,7 +1042,7 @@ export default function InvestorPortfolioPage() {
                   <select
                     value={expressForm.processType}
                     onChange={(e) => setExpressForm({ ...expressForm, processType: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-amber-500/30 text-xs sm:text-sm font-semibold"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30 text-xs sm:text-sm font-semibold"
                   >
                     {INVESTMENT_FOCUS_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
@@ -904,7 +1061,7 @@ export default function InvestorPortfolioPage() {
                   placeholder="Explain why you are interested in this venture, strategic synergies, or meeting proposal..."
                   value={expressForm.message}
                   onChange={(e) => setExpressForm({ ...expressForm, message: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-amber-500/30"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
@@ -919,7 +1076,7 @@ export default function InvestorPortfolioPage() {
                 <button
                   type="submit"
                   disabled={submittingInterest}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submittingInterest ? "Submitting..." : "Send Proposal & Enter Pipeline"}
                 </button>
@@ -937,7 +1094,7 @@ export default function InvestorPortfolioPage() {
           aria-modal="true"
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-150">
-            <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-indigo-950 text-white p-5 sm:p-6 relative">
+            <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 text-white p-5 sm:p-6 relative">
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
@@ -946,17 +1103,17 @@ export default function InvestorPortfolioPage() {
                 <XCircle className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   <Briefcase className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-bold text-amber-200">
+                <span className="text-xs font-bold text-blue-200">
                   Investor Deal Flow Management
                 </span>
               </div>
               <h3 className="text-xl font-bold">
                 {activeModal.startup?.companyName || "Target Venture"}
               </h3>
-              <p className="text-xs text-amber-100/90 mt-0.5">
+              <p className="text-xs text-blue-100/90 mt-0.5">
                 {activeModal.startup?.industry} • {activeModal.startup?.city || "Philippines"}
               </p>
             </div>
@@ -969,7 +1126,7 @@ export default function InvestorPortfolioPage() {
                 <select
                   value={newStageInput}
                   onChange={(e) => setNewStageInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-bold text-xs sm:text-sm text-gray-900 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-bold text-xs sm:text-sm text-gray-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 >
                   {PIPELINE_STAGES.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -985,7 +1142,7 @@ export default function InvestorPortfolioPage() {
                   <label className="font-bold text-gray-700 block text-xs">
                     Stage Progress & Activity History:
                   </label>
-                  <StageHistoryBullets rawNotes={activeModal.notes} defaultExpanded={true} theme="amber" />
+                  <StageHistoryBullets rawNotes={activeModal.notes} defaultExpanded={true} theme="blue" />
                 </div>
               )}
 
@@ -998,7 +1155,7 @@ export default function InvestorPortfolioPage() {
                   placeholder="Record your findings, term requirements, meeting highlights, and diligence status..."
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
 
@@ -1029,7 +1186,7 @@ export default function InvestorPortfolioPage() {
                 onClick={() =>
                   handleUpdateStage(activeModal.id, newStageInput, notesInput)
                 }
-                className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 disabled:opacity-50"
               >
                 {saving ? "Updating..." : "Save Pipeline Status"}
               </button>

@@ -105,7 +105,7 @@ export function parseStageHistory(rawText) {
 /**
  * Clean stage badge helper
  */
-function formatActionText(title) {
+function formatActionText(title, theme = "blue") {
   if (!title) return null;
   // If text contains "moved stage from X ➔ Y"
   if (title.includes("moved stage from")) {
@@ -115,12 +115,21 @@ function formatActionText(title) {
     const fromStage = stages[0] ? stages[0].trim().replace(/_/g, " ") : "";
     const toStage = stages[1] ? stages[1].trim().replace(/_/g, " ") : "";
 
+    const arrowColor =
+      theme === "blue" ? "text-blue-600" : theme === "emerald" ? "text-emerald-600" : "text-amber-600";
+    const badgeColor =
+      theme === "blue"
+        ? "text-blue-900 bg-blue-100/80"
+        : theme === "emerald"
+        ? "text-emerald-900 bg-emerald-100/80"
+        : "text-amber-900 bg-amber-100/80";
+
     return (
       <span>
         <strong className="text-gray-900 font-semibold">{actor}</strong> moved stage:{" "}
         <span className="font-semibold text-gray-600 line-through text-[10px]">{fromStage}</span>{" "}
-        <ArrowRight className="inline w-3 h-3 text-amber-600 mx-0.5" />{" "}
-        <span className="font-bold text-amber-900 bg-amber-100/80 px-1.5 py-0.2 rounded text-[10px]">
+        <ArrowRight className={`inline w-3 h-3 mx-0.5 ${arrowColor}`} />{" "}
+        <span className={`font-bold px-1.5 py-0.2 rounded text-[10px] ${badgeColor}`}>
           {toStage}
         </span>
       </span>
@@ -132,7 +141,7 @@ function formatActionText(title) {
 export default function StageHistoryBullets({
   rawNotes,
   defaultExpanded = false,
-  theme = "amber", // 'amber' for investor portfolio, 'emerald' for founder inquiries
+  theme = "blue",
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -152,7 +161,17 @@ export default function StageHistoryBullets({
   const displayedBullets = isExpanded ? bullets : hasMultiple ? [bullets[bullets.length - 1]] : bullets;
 
   const themeClasses =
-    theme === "emerald"
+    theme === "blue" || (!theme && true)
+      ? {
+          boxBg: "bg-blue-50/50 border-blue-100/90",
+          headerText: "text-blue-950",
+          iconColor: "text-blue-600",
+          buttonBg: "bg-blue-100/80 hover:bg-blue-200 text-blue-900",
+          bulletDot: "bg-blue-600",
+          dateTag: "bg-blue-100/70 text-blue-800 border-blue-200/60",
+          noteBorder: "border-blue-300 text-blue-900",
+        }
+      : theme === "emerald"
       ? {
           boxBg: "bg-emerald-50/50 border-emerald-100/90",
           headerText: "text-emerald-950",
@@ -222,7 +241,7 @@ export default function StageHistoryBullets({
                   </span>
                 )}
                 <div className="text-[11px] text-gray-800 leading-snug">
-                  {formatActionText(item.title)}
+                  {formatActionText(item.title, theme)}
                 </div>
               </div>
 
@@ -249,7 +268,7 @@ export default function StageHistoryBullets({
             e.stopPropagation();
             setIsExpanded(true);
           }}
-          className="mt-2 pt-1 border-t border-gray-200/50 flex items-center justify-between text-[10px] text-gray-500 hover:text-amber-800 cursor-pointer font-medium"
+          className={`mt-2 pt-1 border-t border-gray-200/50 flex items-center justify-between text-[10px] text-gray-500 hover:${themeClasses.headerText} cursor-pointer font-medium`}
         >
           <span>
             + {bullets.length - 1} earlier stage update{bullets.length - 1 > 1 ? "s" : ""}

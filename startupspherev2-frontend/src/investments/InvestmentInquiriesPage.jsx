@@ -86,6 +86,17 @@ export const PIPELINE_STAGES = [
   },
 ];
 
+export const isExcludedFromInvestments = (statusStr) => {
+  if (!statusStr) return false;
+  const s = String(statusStr).trim().toLowerCase();
+  return s.includes("review") || s.includes("pending") || s.includes("reject") || s.includes("draft");
+};
+
+export const isEligibleStartup = (s) => {
+  if (!s) return false;
+  return !isExcludedFromInvestments(s.status);
+};
+
 export default function InvestmentInquiriesPage() {
   const navigate = useNavigate();
 
@@ -144,13 +155,7 @@ export default function InvestmentInquiriesPage() {
         const startupsData = await stRes.json();
         const list = Array.isArray(startupsData) ? startupsData : startupsData.content || [];
         setUserStartups(list);
-        const eligible = list.filter((s) => {
-          const status = s.status?.trim() || "";
-          const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-          const isRejected = status.toLowerCase() === "rejected";
-          const isVerified = Boolean(s.emailVerified);
-          return isApproved && isVerified && !isRejected;
-        });
+        const eligible = list.filter(isEligibleStartup);
         if (eligible.length > 0 && !logForm.startupId) {
           setLogForm((prev) => ({ ...prev, startupId: eligible[0].id }));
         }
@@ -239,20 +244,17 @@ export default function InvestmentInquiriesPage() {
 
     const targetSt = userStartups.find((s) => String(s.id) === String(logForm.startupId));
     if (targetSt) {
-      const status = targetSt.status?.trim() || "";
-      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-      const isRejected = status.toLowerCase() === "rejected";
-      const isVerified = Boolean(targetSt.emailVerified);
-      if (isRejected) {
+      const status = (targetSt.status || "").trim().toLowerCase();
+      if (status.includes("reject")) {
         toast.error("Investors cannot invest in rejected businesses.");
         return;
       }
-      if (!isVerified) {
-        toast.error("Investors cannot invest in unverified businesses.");
+      if (status.includes("review") || status.includes("pending")) {
+        toast.error("Investors cannot invest in businesses that are currently in review.");
         return;
       }
-      if (!isApproved) {
-        toast.error("Investors can only invest in verified and accepted businesses.");
+      if (status === "draft") {
+        toast.error("Investors cannot invest in draft businesses.");
         return;
       }
     }
@@ -300,13 +302,7 @@ export default function InvestmentInquiriesPage() {
 
   // Only verified, accepted and non-rejected startups can receive investments
   const eligibleUserStartups = useMemo(() => {
-    return userStartups.filter((s) => {
-      const status = s.status?.trim() || "";
-      const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-      const isRejected = status.toLowerCase() === "rejected";
-      const isVerified = Boolean(s.emailVerified);
-      return isApproved && isVerified && !isRejected;
-    });
+    return userStartups.filter(isEligibleStartup);
   }, [userStartups]);
 
   // Extract unique startups for filter
@@ -324,16 +320,6 @@ export default function InvestmentInquiriesPage() {
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [inquiries, userStartups]);
-
-  // Only verified, accepted and non-rejected startups are eligible to receive investments
-  const isEligibleStartup = (s) => {
-    if (!s) return false;
-    const status = s.status?.trim() || "";
-    const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "accepted";
-    const isRejected = status.toLowerCase() === "rejected";
-    const isVerified = Boolean(s.emailVerified);
-    return isApproved && isVerified && !isRejected;
-  };
 
   // Filter & de-duplicate inquiries (1 authentic card per startup based on chosen investment focus)
   const filteredInquiries = useMemo(() => {
@@ -419,7 +405,7 @@ export default function InvestmentInquiriesPage() {
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+                  <span className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
                     <TrendingUp className="w-4 h-4" />
                   </span>
                   <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight truncate">
@@ -437,20 +423,22 @@ export default function InvestmentInquiriesPage() {
               <div className="hidden sm:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
                 <button
                   onClick={() => setViewMode("kanban")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "kanban"
-                    ? "bg-white text-emerald-800 shadow-2xs"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === "kanban"
+                      ? "bg-white text-blue-700 shadow-2xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   <Kanban className="w-3.5 h-3.5" />
                   Pipeline View
                 </button>
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "table"
-                    ? "bg-white text-emerald-800 shadow-2xs"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-white text-blue-700 shadow-2xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   <List className="w-3.5 h-3.5" />
                   List View
@@ -468,7 +456,7 @@ export default function InvestmentInquiriesPage() {
               {/* Functional Add Inbound Inquiry Button */}
               <button
                 onClick={() => setIsLogModalOpen(true)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5 active:scale-95"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 flex items-center gap-1.5 active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Log Inbound Inquiry</span>
@@ -490,13 +478,13 @@ export default function InvestmentInquiriesPage() {
             <span className="text-[11px] text-gray-400 mt-1">All incoming investor inquiries</span>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-emerald-200/90 shadow-2xs flex flex-col justify-between bg-emerald-50/20">
-            <div className="flex items-center justify-between text-emerald-800">
+          <div className="bg-white p-4 rounded-2xl border border-blue-200/90 shadow-2xs flex flex-col justify-between bg-blue-50/20">
+            <div className="flex items-center justify-between text-blue-800">
               <span className="text-xs font-bold uppercase tracking-wider">Active Deal Flow</span>
-              <Clock className="w-4 h-4 text-emerald-600" />
+              <Clock className="w-4 h-4 text-blue-600" />
             </div>
-            <p className="text-2xl font-black text-emerald-700 mt-2">{activeDealsCount}</p>
-            <span className="text-[11px] text-emerald-600 font-medium mt-1">
+            <p className="text-2xl font-black text-blue-700 mt-2">{activeDealsCount}</p>
+            <span className="text-[11px] text-blue-600 font-medium mt-1">
               Screening, meetings & due diligence
             </span>
           </div>
@@ -504,16 +492,16 @@ export default function InvestmentInquiriesPage() {
           <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-gray-500">
               <span className="text-xs font-bold uppercase tracking-wider">Closed / Funded</span>
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
-            <p className="text-2xl font-black text-teal-700 mt-2">{closedDealsCount}</p>
+            <p className="text-2xl font-black text-emerald-700 mt-2">{closedDealsCount}</p>
             <span className="text-[11px] text-gray-400 mt-1">Successful deal completions</span>
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-gray-500">
               <span className="text-xs font-bold uppercase tracking-wider">Ventures In Pipeline</span>
-              <Building2 className="w-4 h-4 text-indigo-600" />
+              <Building2 className="w-4 h-4 text-blue-600" />
             </div>
             <p className="text-2xl font-black text-gray-900 mt-2">{uniqueStartups.length}</p>
             <span className="text-[11px] text-gray-400 mt-1">Your startups with interest</span>
@@ -529,7 +517,7 @@ export default function InvestmentInquiriesPage() {
               placeholder="Search by investor name, type, startup, or message..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+              className="w-full pl-9 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             />
           </div>
 
@@ -539,7 +527,7 @@ export default function InvestmentInquiriesPage() {
               <select
                 value={selectedStartupFilter}
                 onChange={(e) => setSelectedStartupFilter(e.target.value)}
-                className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               >
                 <option value="all">All Startups ({uniqueStartups.length})</option>
                 {uniqueStartups.map((s) => (
@@ -554,7 +542,7 @@ export default function InvestmentInquiriesPage() {
             <select
               value={selectedStageFilter}
               onChange={(e) => setSelectedStageFilter(e.target.value)}
-              className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               <option value="all">All Pipeline Stages</option>
               {PIPELINE_STAGES.map((s) => (
@@ -603,7 +591,7 @@ export default function InvestmentInquiriesPage() {
                         stageDeals.map((deal) => (
                           <div
                             key={deal.id}
-                            className="bg-white p-3.5 rounded-xl border border-gray-200/90 hover:border-emerald-400 hover:shadow-xs transition-all cursor-pointer group"
+                            className="bg-white p-3.5 rounded-xl border border-gray-200/90 hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer group"
                           >
                             <div
                               onClick={() => {
@@ -613,8 +601,8 @@ export default function InvestmentInquiriesPage() {
                               }}
                             >
                               <div className="flex items-start justify-between gap-1 mb-1.5">
-                                <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100 flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
+                                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100 flex items-center gap-1">
+                                  <Building2 className="w-3 h-3 text-blue-600" />
                                   <span className="truncate max-w-[120px]">
                                     {deal.startup?.companyName || "Your Startup"}
                                   </span>
@@ -622,14 +610,14 @@ export default function InvestmentInquiriesPage() {
                                 <span className="text-[10px] text-gray-400 whitespace-nowrap">
                                   {deal.createdAt
                                     ? new Date(deal.createdAt).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })
+                                        month: "short",
+                                        day: "numeric",
+                                      })
                                     : "Recent"}
                                 </span>
                               </div>
 
-                              <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+                              <p className="text-xs font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
                                 {deal.investorName}
                               </p>
                               <span className="text-[10.5px] text-gray-500 block truncate">
@@ -638,7 +626,7 @@ export default function InvestmentInquiriesPage() {
 
                               {deal.amountRange && (
                                 <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                  <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                  <span className="text-[10.5px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                                     {deal.amountRange}
                                   </span>
                                   <span className="text-[10px] text-gray-400 truncate max-w-[90px]">
@@ -647,7 +635,7 @@ export default function InvestmentInquiriesPage() {
                                 </div>
                               )}
 
-                              <StageHistoryBullets rawNotes={deal.notes} theme="emerald" />
+                              <StageHistoryBullets rawNotes={deal.notes} theme="blue" />
                             </div>
 
                             {/* Quick Pipeline Stage Action Controls */}
@@ -674,7 +662,7 @@ export default function InvestmentInquiriesPage() {
                                     e.stopPropagation();
                                     handleQuickAdvanceStage(deal, 1);
                                   }}
-                                  className="px-2 py-1 text-emerald-700 hover:bg-emerald-50 rounded text-[10.5px] font-bold flex items-center gap-0.5 cursor-pointer border border-emerald-200/70"
+                                  className="px-2 py-1 text-blue-700 hover:bg-blue-50 rounded text-[10.5px] font-bold flex items-center gap-0.5 cursor-pointer border border-blue-200/70"
                                   title="Advance to next pipeline stage"
                                 >
                                   <span>Advance</span>
@@ -741,8 +729,8 @@ export default function InvestmentInquiriesPage() {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1.5 w-fit">
-                              <Building2 className="w-3 h-3 text-emerald-600" />
+                            <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200 flex items-center gap-1.5 w-fit">
+                              <Building2 className="w-3 h-3 text-blue-600" />
                               {deal.startup?.companyName || "Your Startup"}
                             </span>
                           </td>
@@ -753,7 +741,7 @@ export default function InvestmentInquiriesPage() {
 
                           <td className="py-3.5 px-3">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold border inline-flex items-center gap-1 ${stageMeta.badgeBg}`}
+                              className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold border inline-flex items-center gap-1.5 ${stageMeta.badgeBg}`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${stageMeta.headerBg}`}
@@ -762,24 +750,25 @@ export default function InvestmentInquiriesPage() {
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3 text-gray-500 whitespace-nowrap">
+                          <td className="py-3.5 px-3 text-gray-500 text-[11px]">
                             {deal.createdAt
                               ? new Date(deal.createdAt).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })
-                              : "Recent"}
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "N/A"}
                           </td>
 
                           <td className="py-3.5 px-4 text-right">
                             <button
+                              type="button"
                               onClick={() => {
                                 setActiveDealModal(deal);
                                 setNewStageInput(deal.stage || "NEW_INQUIRY");
                                 setNotesInput("");
                               }}
-                              className="px-3 py-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 font-bold rounded-lg border border-gray-200 text-xs transition-colors cursor-pointer"
+                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg transition-colors cursor-pointer border border-blue-200 text-xs"
                             >
                               View / Update Deal
                             </button>
@@ -803,7 +792,8 @@ export default function InvestmentInquiriesPage() {
           aria-modal="true"
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-150">
-            <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-indigo-950 text-white p-5 sm:p-6 relative">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 text-white p-5 sm:p-6 relative">
               <button
                 type="button"
                 onClick={() => setIsLogModalOpen(false)}
@@ -812,33 +802,33 @@ export default function InvestmentInquiriesPage() {
                 <XCircle className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   <Plus className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-bold text-emerald-200">
+                <span className="text-xs font-bold text-blue-200">
                   Log Real Inbound Investor Inquiry
                 </span>
               </div>
               <h3 className="text-xl font-bold">Record Investment Deal</h3>
-              <p className="text-xs text-emerald-100/90 mt-0.5">
+              <p className="text-xs text-blue-100/90 mt-0.5">
                 Record investor discussions from email, events, or pitches directly into your Deal Flow
               </p>
             </div>
 
+            {/* Form */}
             <form onSubmit={handleCreateInquirySubmit} className="p-5 sm:p-6 space-y-3.5 text-xs">
-              {/* Target Startup */}
               {eligibleUserStartups.length > 0 ? (
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Target Startup * (Verified & Accepted Only)</label>
+                  <label className="font-bold text-gray-700 block mb-1">Target Startup *</label>
                   <select
                     value={logForm.startupId}
                     onChange={(e) => setLogForm({ ...logForm, startupId: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                     required
                   >
                     {eligibleUserStartups.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.companyName} - Verified & Approved
+                        {s.companyName}
                       </option>
                     ))}
                   </select>
@@ -846,7 +836,7 @@ export default function InvestmentInquiriesPage() {
               ) : (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800">
                   <p className="font-semibold text-red-900">Ineligible to Receive Investments</p>
-                  <p className="mt-0.5">Your startup must be verified and approved by the administrator before inquiries and investments can be logged.</p>
+                  <p className="mt-0.5">Your startup must be approved and not rejected or under review before inquiries and investments can be logged.</p>
                 </div>
               )}
 
@@ -859,7 +849,7 @@ export default function InvestmentInquiriesPage() {
                     placeholder="e.g. Kickstart Ventures, Angel Investor"
                     value={logForm.investorName}
                     onChange={(e) => setLogForm({ ...logForm, investorName: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
                 <div>
@@ -867,13 +857,14 @@ export default function InvestmentInquiriesPage() {
                   <select
                     value={logForm.investorType}
                     onChange={(e) => setLogForm({ ...logForm, investorType: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="Angel Investor / Private Equity">Angel Investor / Private Equity</option>
                     <option value="Venture Capital (VC)">Venture Capital (VC)</option>
                     <option value="Corporate Venture Capital">Corporate Venture Capital</option>
-                    <option value="Investment Syndicate">Investment Syndicate</option>
-                    <option value="Accelerator / Incubator Fund">Accelerator / Incubator Fund</option>
+                    <option value="Government Grant Program">Government Grant Program</option>
+                    <option value="Accelerators & Incubators">Accelerators & Incubators</option>
+                    <option value="Individual Angel Backer">Individual Angel Backer</option>
                   </select>
                 </div>
               </div>
@@ -886,17 +877,17 @@ export default function InvestmentInquiriesPage() {
                     placeholder="investor@firm.ph"
                     value={logForm.investorEmail}
                     onChange={(e) => setLogForm({ ...logForm, investorEmail: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
                 <div>
                   <label className="font-bold text-gray-700 block mb-1">Contact Phone</label>
                   <input
-                    type="text"
+                    type="tel"
                     placeholder="+63 9..."
                     value={logForm.investorPhone}
                     onChange={(e) => setLogForm({ ...logForm, investorPhone: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
               </div>
@@ -909,7 +900,7 @@ export default function InvestmentInquiriesPage() {
                     placeholder="e.g. ₱500,000, ₱1,000,000+"
                     value={logForm.amountRange}
                     onChange={(e) => setLogForm({ ...logForm, amountRange: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
                 <div>
@@ -917,7 +908,7 @@ export default function InvestmentInquiriesPage() {
                   <select
                     value={logForm.processType}
                     onChange={(e) => setLogForm({ ...logForm, processType: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 font-semibold focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="Direct Equity / Seed Round">Direct Equity / Seed Round</option>
                     <option value="Pre-Seed Angel Capital">Pre-Seed Angel Capital</option>
@@ -935,7 +926,7 @@ export default function InvestmentInquiriesPage() {
                 <select
                   value={logForm.stage}
                   onChange={(e) => setLogForm({ ...logForm, stage: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 font-semibold focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500/30"
                 >
                   {PIPELINE_STAGES.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -952,7 +943,7 @@ export default function InvestmentInquiriesPage() {
                   placeholder="Details of the investor's interest, market thesis, or pitch feedback..."
                   value={logForm.message}
                   onChange={(e) => setLogForm({ ...logForm, message: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
@@ -963,7 +954,7 @@ export default function InvestmentInquiriesPage() {
                   placeholder="e.g. Need to email updated financial model and cap table by Friday..."
                   value={logForm.notes}
                   onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
@@ -978,7 +969,7 @@ export default function InvestmentInquiriesPage() {
                 <button
                   type="submit"
                   disabled={submittingInquiry}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submittingInquiry ? "Saving Deal..." : "Log Deal into Pipeline"}
                 </button>
@@ -997,7 +988,7 @@ export default function InvestmentInquiriesPage() {
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-indigo-950 text-white p-5 sm:p-6 relative">
+            <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 text-white p-5 sm:p-6 relative">
               <button
                 type="button"
                 onClick={() => setActiveDealModal(null)}
@@ -1006,15 +997,15 @@ export default function InvestmentInquiriesPage() {
                 <XCircle className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   <TrendingUp className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-bold text-emerald-200">
+                <span className="text-xs font-bold text-blue-200">
                   Deal Flow & Pipeline Management
                 </span>
               </div>
               <h3 className="text-xl font-bold">{activeDealModal.investorName}</h3>
-              <p className="text-xs text-emerald-100/90 mt-0.5">
+              <p className="text-xs text-blue-100/90 mt-0.5">
                 Target Startup: {activeDealModal.startup?.companyName || "Your Startup"}
               </p>
             </div>
@@ -1033,7 +1024,7 @@ export default function InvestmentInquiriesPage() {
                     <span className="text-[11px] font-bold text-gray-500 uppercase block">
                       Proposed Amount
                     </span>
-                    <p className="font-bold text-emerald-700">
+                    <p className="font-bold text-blue-700">
                       {activeDealModal.amountRange || "Undisclosed"}
                     </p>
                   </div>
@@ -1081,7 +1072,7 @@ export default function InvestmentInquiriesPage() {
                 <select
                   value={newStageInput}
                   onChange={(e) => setNewStageInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-bold text-xs sm:text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-bold text-xs sm:text-sm text-gray-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 >
                   {PIPELINE_STAGES.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -1097,7 +1088,7 @@ export default function InvestmentInquiriesPage() {
                   <label className="font-bold text-gray-700 block text-xs">
                     Stage Progress & Activity History:
                   </label>
-                  <StageHistoryBullets rawNotes={activeDealModal.notes} defaultExpanded={true} theme="emerald" />
+                  <StageHistoryBullets rawNotes={activeDealModal.notes} defaultExpanded={true} theme="blue" />
                 </div>
               )}
 
@@ -1111,7 +1102,7 @@ export default function InvestmentInquiriesPage() {
                   placeholder="e.g., Scheduled introductory pitch meeting for Thursday 2 PM. Shared data room."
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -1131,7 +1122,7 @@ export default function InvestmentInquiriesPage() {
                 onClick={() =>
                   handleUpdateStage(activeDealModal.id, newStageInput, notesInput)
                 }
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer shadow-md shadow-blue-500/20 flex items-center gap-1.5 disabled:opacity-50"
               >
                 {updatingStage ? "Saving..." : "Save Pipeline Stage"}
               </button>
