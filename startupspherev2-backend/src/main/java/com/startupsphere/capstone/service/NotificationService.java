@@ -1,5 +1,6 @@
 package com.startupsphere.capstone.service;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -138,7 +139,11 @@ public class NotificationService {
 
     public List<Notifications> getUserNotifications(Integer userId){
         try {
-            return nrepo.findByUserIdOrderByIdDesc(userId);
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+            String userEmail = urepo.findById(userId).map(User::getEmail).orElse(null);
+            return nrepo.findUserNotificationsComprehensive(userId, userEmail);
         } catch (Exception e) {
             logger.error("Error retrieving notifications: {}", e.getMessage());
             throw new RuntimeException("Error fetching notifications",e);
@@ -148,7 +153,11 @@ public class NotificationService {
     @CacheEvict(value = "notifications", allEntries = true)
     public List<Notifications> markAllAsViewed(Integer userId) {
         try {
-            List<Notifications> unviewedNotifications = nrepo.findByUserIdAndIsViewedFalseOrderByIdDesc(userId);
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+            String userEmail = urepo.findById(userId).map(User::getEmail).orElse(null);
+            List<Notifications> unviewedNotifications = nrepo.findUserUnviewedNotificationsComprehensive(userId, userEmail);
             for (Notifications notification : unviewedNotifications) {
                 notification.setViewed(true);
             }
@@ -166,7 +175,11 @@ public class NotificationService {
 
     public List<Notifications> getUserUnviewedNotifications(Integer userId){
         try {
-            return nrepo.findByUserIdAndIsViewedFalseOrderByIdDesc(userId);
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+            String userEmail = urepo.findById(userId).map(User::getEmail).orElse(null);
+            return nrepo.findUserUnviewedNotificationsComprehensive(userId, userEmail);
         } catch (Exception e) {
             logger.error("Error fetching user notifications: {}", e.getMessage());
             throw new RuntimeException("Error retrieving user notifications",e);
@@ -175,7 +188,11 @@ public class NotificationService {
 
     public long getUserUnviewedCount(Integer userId){
         try {
-            return nrepo.countByUserIdAndIsViewedFalse(userId);
+            if (userId == null) {
+                return 0L;
+            }
+            String userEmail = urepo.findById(userId).map(User::getEmail).orElse(null);
+            return nrepo.countUserUnviewedNotificationsComprehensive(userId, userEmail);
         } catch (Exception e) {
             logger.error("Error counting user unviewed notifications: {}", e.getMessage());
             throw new RuntimeException("Error counting unviewed notifications",e);
@@ -289,8 +306,22 @@ public class NotificationService {
     }
 
     public Notifications createInvestmentInterestNotification(Startup startup, InvestmentInterestRequest request, User senderUser) {
-        if (startup == null || startup.getUser() == null) {
+        if (startup == null) {
             return null;
+        }
+
+        // Determine target startup owner user
+        User ownerUser = startup.getUser();
+        if (ownerUser == null && startup.getContactEmail() != null && !startup.getContactEmail().isBlank()) {
+            ownerUser = urepo.findFirstByEmailIgnoreCase(startup.getContactEmail().trim()).orElse(null);
+            if (ownerUser != null && startup.getUser() == null) {
+                try {
+                    startup.setUser(ownerUser);
+                    srepo.save(startup);
+                } catch (Exception ex) {
+                    logger.warn("Could not link discovered owner to startup: {}", ex.getMessage());
+                }
+            }
         }
 
         NotificationRequest notifReq = new NotificationRequest();
@@ -331,7 +362,9 @@ public class NotificationService {
 
         notifReq.setComments(comments.toString());
         notifReq.setStartupId(startup.getId());
-        notifReq.setUserId(startup.getUser().getId());
+        if (ownerUser != null) {
+            notifReq.setUserId(ownerUser.getId());
+        }
 
         return createNotifications(notifReq);
     }
