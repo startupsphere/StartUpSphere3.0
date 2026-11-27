@@ -2404,27 +2404,48 @@ export default function StartupDashboard({ openAddMethodModal }) {
                 </p>
               </div>
             </div>
-            <button
-              onClick={openAddMethodModal}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50 shrink-0 cursor-pointer"
-              disabled={loading}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("switch-startup-dashboard-tab", {
+                      detail: { tab: "rankings" },
+                    })
+                  );
+                  navigate("/all-startup-dashboard", {
+                    state: { activeTab: "rankings" },
+                  });
+                }}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs sm:text-sm font-semibold rounded-lg shadow-2xs hover:shadow transition-all duration-200 shrink-0 cursor-pointer"
+                title="View Startup Leaderboard & Rankings"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span className="hidden sm:inline">Add Startup</span>
-              <span className="sm:hidden">Add</span>
-            </button>
+                <Award className="w-4 h-4 text-indigo-600" />
+                <span className="hidden sm:inline">Rankings Leaderboard</span>
+                <span className="sm:hidden">Rankings</span>
+              </button>
+              <button
+                onClick={openAddMethodModal}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50 shrink-0 cursor-pointer"
+                disabled={loading}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Add Startup</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3108,8 +3129,39 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </button>
                   </div>
 
-                  {/* Metric Cards - 5 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+                  {/* Metric Cards - 6 columns on desktop, 3 on tablet, 2 on mobile to minimize vertical scrolling */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+                    {/* Total Startups Card */}
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 hover:border-indigo-300 p-3 hover:shadow-sm transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center border border-indigo-100/80">
+                          <Building className="h-3.5 w-3.5 text-indigo-600" />
+                        </div>
+                        <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded border border-indigo-200/80 uppercase">
+                          Portfolio
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
+                          Total Startups
+                        </h3>
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
+                          {loading ? (
+                            <span className="inline-block w-12 h-6 bg-gray-200 rounded animate-pulse"></span>
+                          ) : selectedStartup === "all" ? (
+                            startups.length.toLocaleString()
+                          ) : (
+                            `1 of ${startups.length}`
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 pt-1.5 border-t border-gray-100 truncate">
+                        {drafts.length > 0
+                          ? `${startups.length} published • ${drafts.length} draft`
+                          : `${startups.length} registered ${startups.length === 1 ? "venture" : "ventures"}`}
+                      </p>
+                    </div>
+
                     {/* Views Card */}
                     <div className={`group bg-white rounded-xl shadow-xs border p-3 hover:shadow-sm transition-all flex flex-col justify-between ${
                       activeFilter === "Views"
@@ -3268,7 +3320,7 @@ export default function StartupDashboard({ openAddMethodModal }) {
                     </div>
 
                     {/* Instagram Audience Card */}
-                    <div className="col-span-2 sm:col-span-1 group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-pink-300 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div className="group bg-white rounded-xl shadow-xs border border-gray-200/90 p-3 hover:border-pink-300 hover:shadow-sm transition-all flex flex-col justify-between">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="w-7 h-7 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
                           <FaInstagram className="h-3.5 w-3.5" />

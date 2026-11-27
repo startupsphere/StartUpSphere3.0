@@ -40,6 +40,8 @@ import {
   Trash2,
   Eye,
   X,
+  Trophy,
+  Crown,
 } from "lucide-react";
 import TooltipInfo from "../components/TooltipInfo";
 import ChartExportButton from "../components/ChartExportButton";
@@ -59,12 +61,16 @@ export default function AllStartupDashboard() {
   const location = useLocation();
   const { closeSidebar } = useSidebar();
   const [activeTab, setActiveTab] = useState(
-    location.state?.activeTab || "overview"
+    location.state?.activeTab || "rankings"
   );
   const [selectedIndustry, setSelectedIndustry] = useState("All");
   const [rankingMetric, setRankingMetric] = useState("overall");
   const [selectedGovReg, setSelectedGovReg] = useState("All");
   const [selectedTrlStage, setSelectedTrlStage] = useState("All");
+  const isFiltered =
+    selectedIndustry !== "All" ||
+    selectedGovReg !== "All" ||
+    selectedTrlStage !== "All";
   const [currentPage, setCurrentPage] = useState(0); // Changed to 0-based for API
   const itemsPerPage = 10;
   const [totalPagesState, setTotalPagesState] = useState(0);
@@ -101,6 +107,31 @@ export default function AllStartupDashboard() {
   const [selectedTrlModal, setSelectedTrlModal] = useState(null);
   const [activeSearch, setActiveSearch] = useState("");
   const [archiveSearch, setArchiveSearch] = useState("");
+
+  // Logged-in user's own startups for prominent leaderboard ranking
+  const [myStartups, setMyStartups] = useState([]);
+  const [myStartupsLoading, setMyStartupsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMyStartups = async () => {
+      try {
+        setMyStartupsLoading(true);
+        const res = await fetch(`${getBackendUrl()}/startups/my-startups/details`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMyStartups(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to load user startups for ranking:", err);
+      } finally {
+        setMyStartupsLoading(false);
+      }
+    };
+    fetchMyStartups();
+  }, [refreshTrigger]);
 
   useEffect(() => {
     setOverviewPage(0);
@@ -391,6 +422,9 @@ export default function AllStartupDashboard() {
         const data = await response.text();
         console.log("Role:", data);
         setRole(data);
+        if (data !== "ROLE_ADMIN") {
+          setActiveTab("rankings");
+        }
       } else {
         console.log("Error fetching role:", response.statusText);
       }
@@ -1764,63 +1798,64 @@ export default function AllStartupDashboard() {
           </div>
         </div>
 
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto no-scrollbar">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "overview"
-                ? "border-indigo-500 text-indigo-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("active")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${activeTab === "active"
-                ? "border-indigo-500 text-indigo-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              <span>Active</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
-                {activeBusinesses.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("rankings")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "rankings"
-                ? "border-indigo-500 text-indigo-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              Rankings
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "analytics"
-                ? "border-indigo-500 text-indigo-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab("archive")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${activeTab === "archive"
-                ? "border-indigo-500 text-indigo-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-            >
-              <span>Archive</span>
-              {archivedBusinesses.length > 0 && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                  {archivedBusinesses.length}
+        {/* Navigation Tabs - Only for Admin */}
+        {role === "ROLE_ADMIN" && (
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "overview"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab("active")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${activeTab === "active"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                <span>Active</span>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                  {activeBusinesses.length}
                 </span>
-              )}
-            </button>
+              </button>
+              <button
+                onClick={() => setActiveTab("rankings")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "rankings"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Rankings
+              </button>
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "analytics"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab("archive")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${activeTab === "archive"
+                  ? "border-indigo-500 text-indigo-600 font-semibold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                <span>Archive</span>
+                {archivedBusinesses.length > 0 && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                    {archivedBusinesses.length}
+                  </span>
+                )}
+              </button>
 
-            {role === "ROLE_ADMIN" && (
               <button
                 onClick={() => setActiveTab("reports")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "reports"
@@ -1830,9 +1865,7 @@ export default function AllStartupDashboard() {
               >
                 Reports
               </button>
-            )}
 
-            {role === "ROLE_ADMIN" && (
               <button
                 onClick={() => setActiveTab("review")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap cursor-pointer ${activeTab === "review"
@@ -1842,11 +1875,11 @@ export default function AllStartupDashboard() {
               >
                 Startup Review
               </button>
-            )}
-          </nav>
-        </div>
+            </nav>
+          </div>
+        )}
 
-        {activeTab === "overview" && (
+        {activeTab === "overview" && role === "ROLE_ADMIN" && (
           <div className="space-y-6">
             {/* Top Performing Startups Section */}
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
@@ -2373,7 +2406,7 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
-        {activeTab === "active" && (
+        {activeTab === "active" && role === "ROLE_ADMIN" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               <div className="border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-5">
@@ -2522,8 +2555,182 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
-        {activeTab === "rankings" && (
+        {(activeTab === "rankings" || role !== "ROLE_ADMIN") && (
           <div className="space-y-6">
+            {/* Prominently Display Logged-In User's Own Startup Ranking */}
+            {myStartups && myStartups.length > 0 ? (
+              <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-900 rounded-2xl shadow-xl p-5 sm:p-6 text-white border border-indigo-700/60 relative overflow-hidden">
+                <div className="absolute -right-10 -bottom-10 w-56 h-56 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute right-10 top-0 w-32 h-32 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-indigo-800/60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 border border-amber-300 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+                      <Trophy className="w-5 h-5 text-slate-950" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
+                        <span>Your Venture Leaderboard Ranking</span>
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-600/80 text-indigo-100 font-semibold border border-indigo-400/30">
+                          {myStartups.length} {myStartups.length === 1 ? "Venture" : "Ventures"} Owned
+                        </span>
+                      </h3>
+                      <p className="text-xs text-indigo-200 mt-0.5">
+                        {isFiltered
+                          ? `Filtered standing in ${[selectedIndustry !== 'All' ? selectedIndustry : null, selectedGovReg !== 'All' ? selectedGovReg : null, selectedTrlStage !== 'All' ? selectedTrlStage : null].filter(Boolean).join(' • ')} based on verified scoring metrics`
+                          : "Official standing in the Philippine innovation ecosystem based on verified scoring metrics"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-[11px] font-medium px-3 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700 text-indigo-200">
+                    Leaderboard Metric: <strong className="text-white capitalize">{rankingMetric} Score</strong>
+                  </span>
+                </div>
+
+                {/* Grid of User-Owned Startups Rankings */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {myStartups.map((mySt) => {
+                    const matchIndex = topStartups.findIndex(
+                      (ts) => String(ts.id) === String(mySt.id)
+                    );
+                    const isRanked = matchIndex !== -1;
+                    const rankedItem = isRanked ? topStartups[matchIndex] : null;
+                    const rankNum = isRanked ? (rankedItem.rank || matchIndex + 1) : null;
+                    const overallScore = rankedItem ? (rankedItem.overallScore ?? rankedItem.score ?? 0) : null;
+                    const growthScore = rankedItem ? (rankedItem.growthScore ?? 0) : null;
+                    const investmentScore = rankedItem ? (rankedItem.investmentScore ?? 0) : null;
+                    const ecosystemScore = rankedItem ? (rankedItem.ecosystemScore ?? 0) : null;
+                    const engagementScore = rankedItem ? (rankedItem.engagementScore ?? 0) : null;
+
+                    const rawTrl = String(mySt.trlLevel || "");
+                    const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
+
+                    return (
+                      <div
+                        key={mySt.id}
+                        className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 hover:border-white/30 transition-all flex flex-col justify-between"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative shrink-0 flex flex-col items-center">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-500 to-yellow-400 text-slate-950 font-black text-lg flex items-center justify-center shadow-lg shadow-amber-500/20 border-2 border-amber-300">
+                                {isRanked ? (
+                                  <>
+                                    <span className="text-xs font-semibold">#</span>
+                                    <span>{rankNum}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-medium">N/A</span>
+                                )}
+                              </div>
+                              {rankNum === 1 && (
+                                <Crown className="w-4 h-4 text-amber-300 absolute -top-2 -right-1 drop-shadow" />
+                              )}
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-300/90 mt-1">
+                                {isFiltered ? "Category Rank" : "Global Rank"}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <h4
+                                className="font-bold text-base text-white hover:text-amber-300 transition-colors cursor-pointer truncate"
+                                onClick={() => navigate(`/startup/${mySt.id}`)}
+                                title={mySt.companyName}
+                              >
+                                {mySt.companyName}
+                              </h4>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                                  {mySt.industry || "General Tech"}
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                  TRL {trlNum}
+                                </span>
+                                {mySt.registrationAgency === "BIR" || mySt.isGovernmentRegistered ? (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    {mySt.registrationAgency || "Govt Reg"}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <div className="text-[10px] uppercase font-bold text-indigo-200 tracking-wider">
+                              Overall Score
+                            </div>
+                            <div className="text-2xl font-black text-amber-300">
+                              {overallScore !== null ? overallScore : "—"}
+                              <span className="text-xs font-normal text-indigo-200">/100</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Metric Scores Breakdown */}
+                        {isRanked ? (
+                          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10 text-center">
+                            <div className="bg-black/20 rounded-lg p-1.5">
+                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Growth</span>
+                              <span className="text-xs font-bold text-white">{growthScore}%</span>
+                            </div>
+                            <div className="bg-black/20 rounded-lg p-1.5">
+                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Investment</span>
+                              <span className="text-xs font-bold text-white">{investmentScore}%</span>
+                            </div>
+                            <div className="bg-black/20 rounded-lg p-1.5">
+                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Ecosystem</span>
+                              <span className="text-xs font-bold text-white">{ecosystemScore}%</span>
+                            </div>
+                            <div className="bg-black/20 rounded-lg p-1.5">
+                              <span className="block text-[9px] text-indigo-200 font-semibold uppercase">Engagement</span>
+                              <span className="text-xs font-bold text-white">{engagementScore}%</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-lg bg-black/30 border border-amber-400/20 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-2">
+                            <span>Startup outside current filter category ({[selectedIndustry !== "All" && selectedIndustry, selectedGovReg !== "All" && selectedGovReg, selectedTrlStage !== "All" && selectedTrlStage].filter(Boolean).join(", ") || "Filtered"})</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedIndustry("All");
+                                setSelectedGovReg("All");
+                                setSelectedTrlStage("All");
+                              }}
+                              className="text-[10px] font-bold underline hover:text-white cursor-pointer shrink-0"
+                            >
+                              Reset Filters
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : !loading && myStartups && myStartups.length === 0 && role !== "ROLE_ADMIN" ? (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-sm sm:text-base">Track Your Startup on the Leaderboard</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      Register your venture to benchmark its performance, TRL maturity, and ecosystem ranking.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/add-startup")}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors shrink-0 cursor-pointer"
+                >
+                  Register Startup
+                </button>
+              </div>
+            ) : null}
+
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               {/* Minimal Uniform Header Section */}
               <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-5">
@@ -2700,7 +2907,7 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
-        {activeTab === "analytics" && (
+        {activeTab === "analytics" && role === "ROLE_ADMIN" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Monthly Startup Growth & Averaging Chart */}
             <div id="chart-monthly-growth" className="bg-white p-6 rounded-lg shadow lg:col-span-2">
@@ -3236,7 +3443,7 @@ export default function AllStartupDashboard() {
           </div>
         )}
 
-        {activeTab === "archive" && (
+        {activeTab === "archive" && role === "ROLE_ADMIN" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               <div className="border-b border-gray-200 bg-gradient-to-r from-amber-50 to-rose-50 px-6 py-5">
