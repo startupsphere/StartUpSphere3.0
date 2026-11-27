@@ -229,15 +229,6 @@ export default function VentureLeaderboardRanking() {
                 <span className="hidden sm:inline">Ecosystem Leaderboard</span>
                 <span className="sm:hidden">Leaderboard</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/add-startup")}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Venture</span>
-              </button>
             </div>
           </div>
         </div>
