@@ -49,7 +49,7 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return username.equals(userDetails.getUsername());
+        return username != null && userDetails != null && username.trim().equalsIgnoreCase(userDetails.getUsername().trim());
     }
 
     private Claims extractAllClaims(String token) {

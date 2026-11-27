@@ -3,6 +3,7 @@ package com.startupsphere.capstone.entity;
 import java.time.LocalDateTime;
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -20,10 +21,12 @@ public class Notifications {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "startup_id", nullable = false)
+    @JsonIgnoreProperties({"user", "likes", "bookmarks", "views"})
     private Startup startup;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = true)
+    @JsonIgnoreProperties({"startups", "likes", "bookmarks", "views", "notifications", "recents", "password", "authorities"})
     private User user;
 
     @Column(name = "remarks", columnDefinition = "TEXT")

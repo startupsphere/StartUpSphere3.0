@@ -70,7 +70,7 @@ export default function ProfilePage() {
     reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
-        const MAX_SIZE = 320;
+        const MAX_SIZE = 256;
         let { width, height } = img;
         if (width > height && width > MAX_SIZE) {
           height = Math.round((height * MAX_SIZE) / width);
@@ -84,7 +84,7 @@ export default function ProfilePage() {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
         setEditProfilePicture(compressedDataUrl);
         setRemoveProfilePicture(false);
       };
@@ -98,8 +98,8 @@ export default function ProfilePage() {
     setSavingProfile(true);
     try {
       const payload = {
-        displayUsername: editUsername.trim(),
-        contactNumber: editContactNumber.trim(),
+        displayUsername: (editUsername || "").trim(),
+        contactNumber: (editContactNumber || "").trim(),
         removeProfilePicture,
         ...(editProfilePicture && !removeProfilePicture
           ? { profilePicture: editProfilePicture }
@@ -124,6 +124,18 @@ export default function ProfilePage() {
       const updatedUser = await res.json();
       setUser(updatedUser);
       setAvatarError(false);
+
+      // Persist in localStorage safely without crashing on quota
+      try {
+        const safeUser = { ...updatedUser };
+        if (safeUser.profilePicture && safeUser.profilePicture.length > 50000) {
+          delete safeUser.profilePicture;
+        }
+        localStorage.setItem("user", JSON.stringify(safeUser));
+      } catch (storageErr) {
+        console.warn("Could not cache updated user in localStorage:", storageErr);
+      }
+
       window.dispatchEvent(new CustomEvent("user-profile-updated", { detail: updatedUser }));
       toast.success("Profile updated successfully!");
       setIsEditModalOpen(false);

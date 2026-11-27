@@ -283,6 +283,15 @@ export default function Sidebar({
     const handleProfileUpdated = (event) => {
       if (event?.detail) {
         setCurrentUser((prev) => ({ ...(prev || {}), ...event.detail }));
+        try {
+          const safeUser = { ...(event.detail || {}) };
+          if (safeUser.profilePicture && safeUser.profilePicture.length > 50000) {
+            delete safeUser.profilePicture;
+          }
+          localStorage.setItem("user", JSON.stringify(safeUser));
+        } catch (storageErr) {
+          console.warn("Could not cache updated profile in localStorage:", storageErr);
+        }
       }
     };
     window.addEventListener("user-profile-updated", handleProfileUpdated);
@@ -882,21 +891,30 @@ export default function Sidebar({
           setCurrentUser(data);
           setUser(data);
           setUserDetails(data); // Update parent state
-          localStorage.setItem("user", JSON.stringify(data)); // Persist user details
+          try {
+            const safeUser = { ...data };
+            if (safeUser.profilePicture && safeUser.profilePicture.length > 50000) {
+              delete safeUser.profilePicture;
+            }
+            localStorage.setItem("user", JSON.stringify(safeUser)); // Persist user details safely
+          } catch (storageErr) {
+            console.warn("Could not cache user in localStorage:", storageErr);
+          }
           setIsAuthenticated(true);
-        } else {
-          console.error("Failed to fetch current user");
+        } else if (response.status === 401 || response.status === 403) {
+          console.error("Session expired or unauthorized");
           setCurrentUser(null);
           setUser(null);
           setIsAuthenticated(false);
           localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        } else {
+          console.warn("Non-fatal response while fetching current user:", response.status);
+          // Do not log user out on 500 or temporary server hiccups
         }
       } catch (error) {
         console.error("Error fetching current user:", error);
-        setCurrentUser(null);
-        setUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem("user");
+        // Do not force logout on network drop or transient errors
       }
     };
 
@@ -5578,7 +5596,15 @@ export default function Sidebar({
             setOpenLogin(false);
             setCurrentUser(userData);
             setUser(userData);
-            localStorage.setItem("user", JSON.stringify(userData));
+            try {
+              const safeUser = { ...(userData || {}) };
+              if (safeUser.profilePicture && safeUser.profilePicture.length > 50000) {
+                delete safeUser.profilePicture;
+              }
+              localStorage.setItem("user", JSON.stringify(safeUser));
+            } catch (e) {
+              console.warn("Could not cache user in localStorage upon login:", e);
+            }
             setUserDetails(userData);
             await fetchUserLikes();
             await fetchNotificationsCount();

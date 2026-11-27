@@ -1,5 +1,6 @@
 package com.startupsphere.capstone.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.Instant;
 
@@ -19,10 +20,12 @@ public class Bookmarks {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "users", nullable = true)
+    @JsonIgnoreProperties({"startups", "likes", "bookmarks", "views", "notifications", "recents", "password", "authorities"})
     private User user;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "startupId", nullable = true)
+    @JsonIgnoreProperties({"user", "likes", "bookmarks", "views"})
     private Startup startup;
 
     @ManyToOne(fetch = FetchType.EAGER)

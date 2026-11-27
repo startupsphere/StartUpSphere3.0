@@ -30,6 +30,7 @@ public class Startup {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"startups", "likes", "bookmarks", "views", "notifications", "recents", "password", "authorities"})
     private User user;
 
     @JsonIgnore

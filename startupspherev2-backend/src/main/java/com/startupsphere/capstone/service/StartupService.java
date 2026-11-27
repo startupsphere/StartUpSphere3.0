@@ -412,7 +412,8 @@ public class StartupService {
         }
         User loggedInUser = (User) authentication.getPrincipal();
         logger.info("Fetching drafts for user ID: {}", loggedInUser.getId());
-        return startupRepository.findByUser_IdAndIsDraftTrue(loggedInUser.getId());
+        String email = loggedInUser.getEmail();
+        return startupRepository.findDraftsByUserIdOrEmail(loggedInUser.getId(), email != null ? email.trim() : "");
     }
 
     public Startup getDraftById(Long id, Authentication authentication) {
