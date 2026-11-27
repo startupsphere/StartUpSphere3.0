@@ -55,6 +55,12 @@ public class InvestmentInterestController {
         return ResponseEntity.ok(new ApiResponse(true, "Investor portfolio deals retrieved successfully", list));
     }
 
+    @GetMapping("/startup/{startupId}")
+    public ResponseEntity<ApiResponse> getDealsForStartup(@PathVariable Long startupId) {
+        List<InvestmentInterest> list = service.getDealsForStartup(startupId);
+        return ResponseEntity.ok(new ApiResponse(true, "Deals for startup retrieved successfully", list));
+    }
+
     @PostMapping("/create")
     public ResponseEntity<ApiResponse> createInquiry(@RequestBody Map<String, Object> payload) {
         User user = getAuthenticatedUser();
