@@ -318,6 +318,7 @@ export default function Startupadd() {
     locationLng: null,
     locationName: "",
     fundingStage: "",
+    paidUpCapital: "",
     totalStartupFundingReceived: "",
     operatingHours: "Monday, Tuesday, Wednesday, Thursday, Friday: 09:00 - 17:00",
     businessActivity: "",
@@ -408,6 +409,7 @@ export default function Startupadd() {
     facebook: "",
     linkedIn: "",
     fundingStage: "",
+    paidUpCapital: "",
     totalStartupFundingReceived: "",
     operatingHours: "",
     businessActivity: "",
@@ -538,6 +540,7 @@ export default function Startupadd() {
       locationLng: null,
       locationName: "",
       fundingStage: "",
+      paidUpCapital: "",
       totalStartupFundingReceived: "",
       operatingHours: "Monday, Tuesday, Wednesday, Thursday, Friday: 09:00 - 17:00",
       businessActivity: "",
@@ -600,6 +603,7 @@ export default function Startupadd() {
       facebook: "",
       linkedIn: "",
       fundingStage: "",
+      paidUpCapital: "",
       totalStartupFundingReceived: "",
       operatingHours: "",
       businessActivity: "",
@@ -1002,6 +1006,7 @@ const fetchDraftData = async (id) => {
       locationLng: data.locationLng || null,
       locationName: data.locationName || "",
       fundingStage: data.fundingStage || "",
+      paidUpCapital: data.paidUpCapital || "",
       totalStartupFundingReceived: data.totalStartupFundingReceived || "",
       operatingHours: data.operatingHours || "",
       businessActivity: data.businessActivity || "",
@@ -1752,6 +1757,7 @@ const fetchDraftData = async (id) => {
         locationLng: formData.locationLng,
         locationName: formData.locationName,
         fundingStage: formData.fundingStage,
+        paidUpCapital: formData.paidUpCapital ? parseFloat(formData.paidUpCapital) : 0,
         totalStartupFundingReceived: formData.totalStartupFundingReceived ? parseFloat(formData.totalStartupFundingReceived) : 0,
         businessActivity: formData.businessActivity,
         operatingHours: formData.operatingHours,
@@ -1999,6 +2005,7 @@ const handleSubmit = async () => {
         locationLng: formData.locationLng,
         locationName: formData.locationName,
         fundingStage: formData.fundingStage,
+        paidUpCapital: formData.paidUpCapital ? parseFloat(formData.paidUpCapital) : 0,
         totalStartupFundingReceived: formData.totalStartupFundingReceived ? parseFloat(formData.totalStartupFundingReceived) : 0,
         businessActivity: formData.businessActivity,
         operatingHours: formData.operatingHours,
@@ -2103,6 +2110,9 @@ const handleSubmit = async () => {
 
       const submissionPayload = {
         ...startupData,
+        paidUpCapital: formData.paidUpCapital
+          ? parseFloat(formData.paidUpCapital)
+          : 0,
         totalStartupFundingReceived: formData.totalStartupFundingReceived
           ? parseFloat(formData.totalStartupFundingReceived)
           : 0,
@@ -6092,13 +6102,43 @@ const handleSubmit = async () => {
                 )}
               </div>
 
+              {/* Initial Business Funding / Founder Capital */}
+              {actor !== "ROLE_INVESTOR" && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Initial Business Funding / Founder Capital (₱)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                      <span className="text-gray-500 font-medium">₱</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="paidUpCapital"
+                      min="0"
+                      step="1000"
+                      placeholder="e.g., 500000"
+                      className="w-full border-2 rounded-lg pl-8 pr-4 py-3 focus:ring-2 outline-none transition-all duration-200 hover:border-gray-400 border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                      value={formData.paidUpCapital}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Initial founder equity, seed money, or paid-up capital contributed directly by the business (optional)
+                  </p>
+                </div>
+              )}
+
               {/* Total Funding Received */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  {actor === "ROLE_INVESTOR" ? "Total Fund Size / Investment Capital (₱)" : "Total Funding Received (₱)"}
+                  {actor === "ROLE_INVESTOR" ? "Total Fund Size / Investment Capital (₱)" : "External Investments Received (₱)"}
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -6109,13 +6149,15 @@ const handleSubmit = async () => {
                     name="totalStartupFundingReceived"
                     min="0"
                     step="1000"
-                    placeholder={actor === "ROLE_INVESTOR" ? "e.g., 50000000 (AUM or fund size)" : "e.g., 5000000"}
-                    className="w-full border-2 rounded-lg pl-8 pr-4 py-3 focus:ring-2 outline-none transition-all duration-200 hover:border-gray-400 border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                    value={formData.totalStartupFundingReceived}
+                    placeholder={actor === "ROLE_INVESTOR" ? "e.g., 50000000 (AUM or fund size)" : "0 (Synchronized via Deal Flow)"}
+                    readOnly={actor !== "ROLE_INVESTOR"}
+                    disabled={actor !== "ROLE_INVESTOR"}
+                    className={`w-full border-2 rounded-lg pl-8 pr-4 py-3 outline-none transition-all duration-200 ${actor === "ROLE_INVESTOR" ? "border-gray-300 hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" : "bg-gray-100/90 border-gray-200 text-gray-600 cursor-not-allowed select-none"}`}
+                    value={actor === "ROLE_INVESTOR" ? formData.totalStartupFundingReceived : "0"}
                     onChange={handleChange}
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    {formData.totalStartupFundingReceived && (
+                    {actor === "ROLE_INVESTOR" && formData.totalStartupFundingReceived && (
                       <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
@@ -6125,21 +6167,29 @@ const handleSubmit = async () => {
                 <p className="text-xs text-gray-500 mt-1">
                   {actor === "ROLE_INVESTOR" 
                     ? "Enter your fund size, assets under management, or typical check size (optional)" 
-                    : "Enter the total amount of funding your business has received (optional)"}
+                    : "Starts at ₱0 and automatically updates when verified investors invest through the platform."}
                 </p>
               </div>
             </div>
 
             {/* Total Funding Received - Full Width Display */}
-            {formData.totalStartupFundingReceived && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-sm text-green-800">
-                  {actor === "ROLE_INVESTOR" ? "Total Fund / Capital Size: " : "Total Funding: "}
-                  <strong>₱{Number(formData.totalStartupFundingReceived).toLocaleString()}</strong>
-                </span>
+            {(formData.paidUpCapital || formData.totalStartupFundingReceived) && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-green-800">
+                    {actor === "ROLE_INVESTOR" ? "Total Capital Size: " : "Total Combined Capital: "}
+                    <strong>₱{(Number(formData.paidUpCapital || 0) + Number(formData.totalStartupFundingReceived || 0)).toLocaleString()}</strong>
+                  </span>
+                </div>
+                {actor !== "ROLE_INVESTOR" && (
+                  <div className="text-xs text-green-700 flex gap-3">
+                    {formData.paidUpCapital && <span>Founder: ₱{Number(formData.paidUpCapital).toLocaleString()}</span>}
+                    {formData.totalStartupFundingReceived && <span>External: ₱{Number(formData.totalStartupFundingReceived).toLocaleString()}</span>}
+                  </div>
+                )}
               </div>
             )}
 
