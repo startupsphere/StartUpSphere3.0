@@ -38,6 +38,9 @@ public interface StartupRepository extends JpaRepository<Startup, Long> {
     Page<Startup> findByUser_Id(Integer userId, Pageable pageable);
     List<Startup> findByUser_Id(Integer userId);
 
+    @Query("SELECT DISTINCT s FROM Startup s LEFT JOIN s.user u WHERE u.id = :userId OR (s.contactEmail IS NOT NULL AND LOWER(TRIM(s.contactEmail)) = LOWER(TRIM(:email)))")
+    List<Startup> findByUserIdOrContactEmail(@Param("userId") Integer userId, @Param("email") String email);
+
     Page<Startup> findByUser_IdAndIsDraftFalse(Integer userId, Pageable pageable);
     List<Startup> findByUser_IdAndIsDraftFalse(Integer userId);
 
