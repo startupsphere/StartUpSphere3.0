@@ -1,6 +1,7 @@
 import { getBackendUrl, getAuthHeaders } from "../config/apiConfig";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaBell,
   FaCheckCircle,
@@ -162,6 +163,7 @@ const parseInvestmentDetails = (comments, remarks = "") => {
 };
 
 function NotificationComponent() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [filteredNotifications, setFilteredNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1171,11 +1173,23 @@ function NotificationComponent() {
     }
   };
 
-  // Navigate to startup profile (for "View" actions)
-  const navigateToStartupProfile = (startupId) => {
-    // This would typically be done with React Router
-    // But for now we'll just redirect with window.location
-    window.location.href = `/startups/${startupId}`;
+  // Navigate to Deal Flow page
+  const navigateToDealFlow = (startupId) => {
+    closeActionModal();
+    try {
+      const userStr = localStorage.getItem("user");
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      const role = userObj?.role || "";
+      const remarks = (selectedNotification?.content || selectedNotification?.rawData?.remarks || "").toLowerCase();
+      const isInvestor = role === "ROLE_INVESTOR" || remarks.includes("you expressed investment interest");
+      if (isInvestor) {
+        navigate("/investor-portfolio");
+      } else {
+        navigate("/investments");
+      }
+    } catch {
+      navigate("/investments");
+    }
   };
 
   // Update the submitReview function to handle view-only access
@@ -1208,6 +1222,59 @@ function NotificationComponent() {
   const renderActionButton = (notification) => {
     const actionType = getActionType(notification);
     if (!actionType) return null;
+
+    const rawComments = notification.rawData?.comments || "";
+    const rawRemarks = notification.content || notification.rawData?.remarks || "";
+    const isInvestment = Boolean(
+      rawRemarks.toLowerCase().includes("investment") ||
+      rawComments.includes("Investor / Proposer:")
+    );
+    const isOutgoingInterest = rawRemarks.toLowerCase().includes("you expressed investment interest");
+    const isPending = !rawComments.includes("--- Status: ACCEPTED ---") && 
+                      !rawComments.includes("--- Status: REJECTED ---") &&
+                      !rawRemarks.toLowerCase().includes("accepted your investment") &&
+                      !rawRemarks.toLowerCase().includes("you accepted the investment proposal") &&
+                      !rawRemarks.toLowerCase().includes("declined your investment") &&
+                      !rawRemarks.toLowerCase().includes("you declined the investment proposal");
+
+    // Inbound investment interest awaiting founder action: provide Accept & Decline buttons directly
+    if (actionType === "Review Proposal" && isInvestment && !isOutgoingInterest && isPending) {
+      return (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            className="inline-flex items-center px-3 py-1.5 border border-emerald-600 text-xs font-semibold rounded-md shadow-xs text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer transition-colors gap-1 disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleInvestmentDecision(notification.id, "ACCEPT");
+            }}
+            disabled={isProcessingDecision}
+            title="Accept this investment proposal"
+          >
+            Accept
+          </button>
+          <button
+            className="inline-flex items-center px-3 py-1.5 border border-rose-300 text-xs font-semibold rounded-md shadow-xs text-rose-700 bg-rose-50 hover:bg-rose-100 cursor-pointer transition-colors gap-1 disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleInvestmentDecision(notification.id, "REJECT");
+            }}
+            disabled={isProcessingDecision}
+            title="Decline this investment proposal"
+          >
+            Decline
+          </button>
+          <button
+            className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs font-semibold rounded-md text-gray-700 bg-white hover:bg-gray-100 cursor-pointer transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNotificationAction(notification, "review proposal");
+            }}
+          >
+            Review Proposal
+          </button>
+        </div>
+      );
+    }
 
     return (
       <button
@@ -1672,6 +1739,7 @@ function NotificationComponent() {
           selectedNotification?.content?.toLowerCase().includes("investment") ||
           selectedNotification?.type === "investment"
         );
+        const isOutgoingInterest = rawRemarks.toLowerCase().includes("you expressed investment interest");
 
         return (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -1877,8 +1945,8 @@ function NotificationComponent() {
                       </div>
                     )}
 
-                    {/* Optional Note to Investor (Only when pending) */}
-                    {investmentDetails.status === "PENDING" && (
+                    {/* Optional Note to Investor (Only when pending and recipient founder) */}
+                    {!isOutgoingInterest && investmentDetails.status === "PENDING" && (
                       <div className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm">
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           Add an Optional Note to the Investor
@@ -1890,6 +1958,14 @@ function NotificationComponent() {
                           placeholder="e.g., We'd love to connect! Please email our CEO directly or join our office call on..."
                           className="w-full px-3 py-2 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all placeholder:text-gray-400"
                         />
+                      </div>
+                    )}
+                    {isOutgoingInterest && investmentDetails.status === "PENDING" && (
+                      <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-800 flex items-center gap-2">
+                        <FaCheckCircle className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>
+                          Your proposal has been submitted to the business founders. You can track this deal in real-time in your <strong>Interested Ventures</strong> pipeline.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -2056,8 +2132,8 @@ function NotificationComponent() {
                   Close
                 </button>
 
-                {/* Investment Decisions: Accept & Decline */}
-                {isInvestment && investmentDetails && investmentDetails.status === "PENDING" ? (
+                {/* Investment Decisions: Accept & Decline (Only for recipient founder) */}
+                {!isOutgoingInterest && isInvestment && investmentDetails && investmentDetails.status === "PENDING" ? (
                   <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-2">
                     <button
                       onClick={() =>
@@ -2094,13 +2170,12 @@ function NotificationComponent() {
                   </div>
                 ) : (
                   !loadingDetails &&
-                  startupDetails &&
-                  actionType === "view" && (
+                  startupDetails && (
                     <button
-                      onClick={() => navigateToStartupProfile(startupDetails.id)}
-                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center"
+                      onClick={() => navigateToDealFlow(startupDetails.id)}
+                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      View Full Profile
+                      View Investment Details
                     </button>
                   )
                 )}
