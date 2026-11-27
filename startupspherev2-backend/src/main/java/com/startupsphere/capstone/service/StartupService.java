@@ -18,6 +18,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,9 @@ public class StartupService {
     private final EntityManager entityManager;
     private final EmailService emailService;
 
+    @Autowired
+    private com.startupsphere.capstone.repository.InvestmentInterestRepository investmentInterestRepository;
+
     public StartupService(
             StartupRepository startupRepository,
             ViewsRepository viewsRepository,
@@ -69,6 +73,9 @@ public class StartupService {
 
         startup.setStatus("In Review");
         startup.setIsDraft(false);
+        startup.setTotalStartupFundingReceived(0.0);
+        startup.setNumberOfFundingRounds(0);
+        startup.setAverageFundingPerStartup(0.0);
         return startupRepository.save(startup);
     }
 
@@ -114,9 +121,36 @@ public class StartupService {
         return startupRepository.findAll();
     }
 
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    @Transactional
+    public void syncAllStartupsExternalFundingOnStartup() {
+        try {
+            List<Startup> all = startupRepository.findAll();
+            for (Startup s : all) {
+                double actual = calculateActualExternalFunding(s.getId());
+                int rounds = countClosedDeals(s.getId());
+                Double current = s.getTotalStartupFundingReceived();
+                Integer curRounds = s.getNumberOfFundingRounds();
+                if (current == null || Math.abs(current - actual) > 0.001 || curRounds == null || curRounds != rounds) {
+                    s.setTotalStartupFundingReceived(actual);
+                    s.setNumberOfFundingRounds(rounds);
+                    s.setAverageFundingPerStartup(rounds > 0 ? actual / rounds : 0.0);
+                    startupRepository.save(s);
+                }
+            }
+            logger.info("Universal startup funding sync completed: all businesses aligned to verified deal flow.");
+        } catch (Exception e) {
+            logger.warn("Non-fatal startup funding sync error on boot: {}", e.getMessage());
+        }
+    }
+
     @Cacheable(value = "startupById", key = "#id")
     public Optional<Startup> getStartupById(Long id) {
-        return startupRepository.findById(id);
+        return startupRepository.findById(id).map(s -> {
+            s.setTotalStartupFundingReceived(calculateActualExternalFunding(s.getId()));
+            s.setNumberOfFundingRounds(countClosedDeals(s.getId()));
+            return s;
+        });
     }
 
     @Transactional
@@ -124,6 +158,9 @@ public class StartupService {
     public Startup updateStartup(Long id, Startup updatedStartup) {
         return startupRepository.findById(id)
                 .map(startup -> {
+                    if ("Rejected".equalsIgnoreCase(startup.getStatus())) {
+                        throw new IllegalStateException("Rejected businesses cannot be edited. They can only be deleted.");
+                    }
                     updatedStartup.setId(startup.getId());
                     updatedStartup.setUser(startup.getUser());
                     updatedStartup.setLikes(startup.getLikes());
@@ -156,7 +193,11 @@ public class StartupService {
                     startup.setStartupCode(updatedStartup.getStartupCode());
                     startup.setRevenue(updatedStartup.getRevenue());
                     startup.setAnnualRevenue(updatedStartup.getAnnualRevenue());
-                    startup.setPaidUpCapital(updatedStartup.getPaidUpCapital());
+                    if (startup.getPaidUpCapital() == null || startup.getPaidUpCapital() <= 0) {
+                        if (updatedStartup.getPaidUpCapital() != null && updatedStartup.getPaidUpCapital() > 0) {
+                            startup.setPaidUpCapital(updatedStartup.getPaidUpCapital());
+                        }
+                    }
                     startup.setFundingStage(updatedStartup.getFundingStage());
                     startup.setBusinessActivity(updatedStartup.getBusinessActivity());
                     startup.setOperatingHours(updatedStartup.getOperatingHours());
@@ -164,9 +205,11 @@ public class StartupService {
                     startup.setNumberOfNewStartupsThisYear(updatedStartup.getNumberOfNewStartupsThisYear());
                     startup.setAverageStartupGrowthRate(updatedStartup.getAverageStartupGrowthRate());
                     startup.setStartupSurvivalRate(updatedStartup.getStartupSurvivalRate());
-                    startup.setTotalStartupFundingReceived(updatedStartup.getTotalStartupFundingReceived());
-                    startup.setAverageFundingPerStartup(updatedStartup.getAverageFundingPerStartup());
-                    startup.setNumberOfFundingRounds(updatedStartup.getNumberOfFundingRounds());
+                    double verifiedFunding = calculateActualExternalFunding(startup.getId());
+                    startup.setTotalStartupFundingReceived(verifiedFunding);
+                    int verifiedRounds = countClosedDeals(startup.getId());
+                    startup.setNumberOfFundingRounds(verifiedRounds);
+                    startup.setAverageFundingPerStartup(verifiedRounds > 0 ? verifiedFunding / verifiedRounds : 0.0);
                     startup.setRegion(updatedStartup.getRegion());
                     startup.setBarangay(updatedStartup.getBarangay());
                     startup.setNumberOfStartupsWithForeignInvestment(
@@ -322,15 +365,8 @@ public class StartupService {
     }
 
     public List<Long> getStartupIdsByLoggedInUser(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getPrincipal().equals("anonymousUser")) {
-            throw new RuntimeException("User not authenticated");
-        }
-        User loggedInUser = (User) authentication.getPrincipal();
-        return startupRepository.findByUser_Id(loggedInUser.getId())
-                .stream()
-                .map(Startup::getId)
-                .toList();
+        List<Startup> startups = getStartupsByLoggedInUser(authentication);
+        return startups.stream().map(Startup::getId).toList();
     }
 
     public Page<Startup> getAllSubmittedStartups(Pageable pageable) {
@@ -349,7 +385,24 @@ public class StartupService {
             throw new RuntimeException("User not authenticated");
         }
         User loggedInUser = (User) authentication.getPrincipal();
-        return startupRepository.findByUser_Id(loggedInUser.getId());
+        Integer userId = loggedInUser.getId();
+        String email = loggedInUser.getEmail();
+
+        List<Startup> list;
+        boolean isAdmin = loggedInUser.getRole() != null && 
+                ("ROLE_ADMIN".equalsIgnoreCase(loggedInUser.getRole()) || "ADMIN".equalsIgnoreCase(loggedInUser.getRole()));
+        
+        if (isAdmin) {
+            list = startupRepository.findAll();
+        } else {
+            list = startupRepository.findByUserIdOrContactEmail(userId, email != null ? email.trim() : "");
+        }
+
+        for (Startup s : list) {
+            s.setTotalStartupFundingReceived(calculateActualExternalFunding(s.getId()));
+            s.setNumberOfFundingRounds(countClosedDeals(s.getId()));
+        }
+        return list;
     }
 
     public List<Startup> getDraftsByLoggedInUser(Authentication authentication) {
@@ -1123,5 +1176,46 @@ public class StartupService {
             startupRepository.save(startup);
         }
         return sent;
+    }
+
+    public double calculateActualExternalFunding(Long startupId) {
+        if (startupId == null || investmentInterestRepository == null) return 0.0;
+        List<com.startupsphere.capstone.entity.InvestmentInterest> deals = investmentInterestRepository.findByStartup_IdOrderByCreatedAtDesc(startupId);
+        double total = 0.0;
+        for (com.startupsphere.capstone.entity.InvestmentInterest deal : deals) {
+            if ("CLOSED_DEAL".equalsIgnoreCase(deal.getStage())) {
+                Double amount = parseFundingAmount(deal.getAmountRange());
+                if (amount == null || amount <= 0) {
+                    amount = parseFundingAmount(deal.getMessage());
+                }
+                if (amount != null && amount > 0) {
+                    total += amount;
+                }
+            }
+        }
+        return total;
+    }
+
+    public int countClosedDeals(Long startupId) {
+        if (startupId == null || investmentInterestRepository == null) return 0;
+        List<com.startupsphere.capstone.entity.InvestmentInterest> deals = investmentInterestRepository.findByStartup_IdOrderByCreatedAtDesc(startupId);
+        int count = 0;
+        for (com.startupsphere.capstone.entity.InvestmentInterest deal : deals) {
+            if ("CLOSED_DEAL".equalsIgnoreCase(deal.getStage())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private Double parseFundingAmount(String str) {
+        if (str == null || str.isBlank()) return null;
+        try {
+            String cleaned = str.replaceAll("[^0-9.]", "").trim();
+            if (!cleaned.isEmpty()) {
+                return Double.parseDouble(cleaned);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }
