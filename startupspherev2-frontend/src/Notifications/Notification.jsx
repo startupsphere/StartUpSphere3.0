@@ -65,6 +65,17 @@ const parseInvestmentDetails = (comments, remarks = "") => {
 
   if (!safeComments && !safeRemarks) return null;
 
+  const combinedLower = (safeComments + " " + safeRemarks).toLowerCase();
+  const isInvestmentRelated =
+    combinedLower.includes("investment") ||
+    combinedLower.includes("investor") ||
+    safeComments.includes("Investor / Proposer:") ||
+    safeComments.includes("Proposed Investment Amount:");
+
+  if (!isInvestmentRelated) {
+    return null;
+  }
+
   const extract = (label) => {
     const regex = new RegExp(`(?:^|\\n)\\s*${label}\\s*:\\s*(.+)`, "i");
     const match = combined.match(regex);
@@ -139,13 +150,6 @@ const parseInvestmentDetails = (comments, remarks = "") => {
     if (congratsMatch) {
       message = congratsMatch[0].trim();
     }
-  }
-
-  const isInvestmentRelated =
-    Boolean(investorLine || amount || process || safeRemarks.toLowerCase().includes("investment") || safeComments.toLowerCase().includes("investment"));
-
-  if (!isInvestmentRelated) {
-    return null;
   }
 
   return {
@@ -362,12 +366,7 @@ function NotificationComponent() {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
       setError("Failed to load notifications. Please try again later.");
-
-      // Fallback to mock data for development/demo
-      console.log("Using mock data as fallback");
-      const mockData = generateMockNotifications();
-      setNotifications(mockData);
-
+      setNotifications([]);
       setLoading(false);
     }
   };
@@ -626,6 +625,7 @@ function NotificationComponent() {
           "Content-Type": "application/json",
         }),
       });
+      window.dispatchEvent(new CustomEvent("notifications-updated"));
       return response.ok;
     } catch (err) {
       console.warn("Failed to mark notification as read:", err);
@@ -678,6 +678,7 @@ function NotificationComponent() {
         (notif) => notif.id !== id
       );
       setNotifications(updatedNotifications);
+      window.dispatchEvent(new CustomEvent("notifications-updated"));
       toast.success("Notification deleted successfully");
     } catch (error) {
       console.error("Failed to delete notification:", error);
@@ -712,6 +713,7 @@ function NotificationComponent() {
         isRead: true,
       }));
       setNotifications(updatedNotifications);
+      window.dispatchEvent(new CustomEvent("notifications-updated"));
       toast.success("All notifications marked as read");
     } catch (error) {
       console.error("Failed to mark all as read:", error);
@@ -1035,21 +1037,14 @@ function NotificationComponent() {
       }
 
       const result = await response.json();
+      const startupData = result.data || (result.id ? result : null);
 
-      if (result.success && result.data) {
-        console.log("Successfully loaded startup details:", result.data.id);
+      if (startupData) {
+        console.log("Successfully loaded startup details:", startupData.id);
         setStartupDetails({
-          ...result.data,
-          // Make sure comments are included if they exist
+          ...startupData,
           comments:
-            result.data.comments || selectedNotification?.rawData?.comments,
-        });
-      } else if (result.data) {
-        console.log("Loaded startup details from direct data:", result.data.id);
-        setStartupDetails({
-          ...result.data,
-          comments:
-            result.data.comments || selectedNotification?.rawData?.comments,
+            startupData.comments || selectedNotification?.rawData?.comments,
         });
       } else {
         console.warn("API returned success but no data");
@@ -1170,6 +1165,14 @@ function NotificationComponent() {
       );
     } finally {
       setIsProcessingDecision(false);
+    }
+  };
+
+  // Navigate to startup profile (for "View" actions)
+  const navigateToStartupProfile = (startupId) => {
+    closeActionModal();
+    if (startupId) {
+      navigate(`/startup/${startupId}`);
     }
   };
 
@@ -1536,6 +1539,20 @@ function NotificationComponent() {
             <div className="p-12 flex flex-col items-center justify-center">
               <CgSpinner className="h-10 w-10 text-blue-500 animate-spin" />
               <p className="mt-4 text-gray-500">Loading notifications...</p>
+            </div>
+          ) : error ? (
+            <div className="p-12 flex flex-col items-center justify-center text-center">
+              <div className="bg-rose-50 rounded-full p-4 text-rose-500 mb-3">
+                <FaBell className="h-8 w-8 text-rose-500" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">{error}</h3>
+              <p className="text-sm text-gray-500 mb-4">Could not retrieve your notifications from the server.</p>
+              <button
+                onClick={fetchNotifications}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Try Again
+              </button>
             </div>
           ) : filteredNotifications && filteredNotifications.length > 0 ? (
             <ul className="divide-y divide-gray-200">
@@ -2172,10 +2189,14 @@ function NotificationComponent() {
                   !loadingDetails &&
                   startupDetails && (
                     <button
-                      onClick={() => navigateToDealFlow(startupDetails.id)}
+                      onClick={() =>
+                        isInvestment
+                          ? navigateToDealFlow(startupDetails.id)
+                          : navigateToStartupProfile(startupDetails.id)
+                      }
                       className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      View Investment Details
+                      {isInvestment ? "View Investment Details" : "View Full Profile"}
                     </button>
                   )
                 )}

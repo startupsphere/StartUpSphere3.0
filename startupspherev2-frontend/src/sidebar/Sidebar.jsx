@@ -718,6 +718,19 @@ export default function Sidebar({
     }
   }, [isAuthenticated, currentUser?.role]);
 
+  // Sync notification badges when notifications change anywhere in the app
+  useEffect(() => {
+    const handleNotificationsUpdated = () => {
+      fetchNotificationsCount();
+      fetchNewNotifications();
+      fetchNotifications();
+    };
+    window.addEventListener("notifications-updated", handleNotificationsUpdated);
+    return () => {
+      window.removeEventListener("notifications-updated", handleNotificationsUpdated);
+    };
+  }, []);
+
   // Register startup click handler from map
   useEffect(() => {
     if (handleStartupClickRef) {
