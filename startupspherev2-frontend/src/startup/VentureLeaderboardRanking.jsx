@@ -158,19 +158,19 @@ export default function VentureLeaderboardRanking() {
       const rankNum = isRanked ? (rankedItem.rank || matchIdx + 1) : null;
       const overallScore = rankedItem
         ? Number(rankedItem.overallScore ?? rankedItem.score ?? 0)
-        : null;
-      const growthScore = rankedItem
-        ? Number(rankedItem.growthScore ?? rankedItem.growthRate ?? 0)
-        : 0;
-      const investmentScore = rankedItem
-        ? Number(rankedItem.investmentScore ?? 0)
-        : 0;
-      const ecosystemScore = rankedItem
-        ? Number(rankedItem.ecosystemScore ?? 0)
-        : 0;
-      const engagementScore = rankedItem
-        ? Number(rankedItem.engagementScore ?? 0)
-        : 0;
+        : (st.overallScore != null ? Number(st.overallScore) : null);
+      const growthScore = rankedItem && rankedItem.growthScore != null
+        ? Number(rankedItem.growthScore)
+        : (st.growthScore != null ? Number(st.growthScore) : null);
+      const investmentScore = rankedItem && rankedItem.investmentScore != null
+        ? Number(rankedItem.investmentScore)
+        : (st.investmentScore != null ? Number(st.investmentScore) : null);
+      const ecosystemScore = rankedItem && rankedItem.ecosystemScore != null
+        ? Number(rankedItem.ecosystemScore)
+        : (st.ecosystemScore != null ? Number(st.ecosystemScore) : null);
+      const engagementScore = rankedItem && rankedItem.engagementScore != null
+        ? Number(rankedItem.engagementScore)
+        : (st.engagementScore != null ? Number(st.engagementScore) : null);
 
       const rawTrl = String(st.trlLevel || "");
       const trlNum = parseInt(rawTrl.match(/\d/)?.[0] || "4", 10);
@@ -992,24 +992,40 @@ export default function VentureLeaderboardRanking() {
         const vScore = v.overallScore !== null && v.overallScore !== undefined ? Number(v.overallScore) : null;
 
         // Pillar Scores (0-100)
-        const vGrowth = Math.min(100, Math.max(0, Math.round(Number(v.growthScore || (v.averageStartupGrowthRate || 0) * 1.5 || 30))));
-        const vInvestment = Math.min(100, Math.max(0, Math.round(Number(v.investmentScore || ((v.totalStartupFundingReceived || 0) > 0 ? 65 : 20)))));
-        const vEcosystem = Math.min(100, Math.max(0, Math.round(Number(v.ecosystemScore || ((v.trlNum || 1) * 8 + (v.isGovernmentRegistered ? 20 : 5))))));
-        const vEngagement = Math.min(100, Math.max(0, Math.round(Number(v.engagementScore || Math.min(95, (v.viewsCount || 0) * 2 + 15)))));
+        const vGrowth = Math.min(100, Math.max(0, Math.round(Number(
+          v.growthScore !== undefined && v.growthScore !== null
+            ? v.growthScore
+            : ((v.averageStartupGrowthRate || 0) * 1.5 || 25)
+        ))));
+        const vInvestment = Math.min(100, Math.max(0, Math.round(Number(
+          v.investmentScore !== undefined && v.investmentScore !== null
+            ? v.investmentScore
+            : ((v.totalStartupFundingReceived || 0) > 0 ? 60 : 20)
+        ))));
+        const vEcosystem = Math.min(100, Math.max(0, Math.round(Number(
+          v.ecosystemScore !== undefined && v.ecosystemScore !== null
+            ? v.ecosystemScore
+            : ((v.trlNum || 1) * 8 + (v.isGovernmentRegistered ? 20 : 5))
+        ))));
+        const vEngagement = Math.min(100, Math.max(0, Math.round(Number(
+          v.engagementScore !== undefined && v.engagementScore !== null
+            ? v.engagementScore
+            : Math.min(95, (v.viewsCount || 0) * 2 + 15)
+        ))));
 
-        // Weighted Points (Growth 30%, Capital 30%, Readiness 25%, Engagement 15%)
-        const growthPts = (vGrowth * 0.30).toFixed(1);
-        const investPts = (vInvestment * 0.30).toFixed(1);
+        // Weighted Points (Balanced official backend formula: 25% each pillar)
+        const growthPts = (vGrowth * 0.25).toFixed(1);
+        const investPts = (vInvestment * 0.25).toFixed(1);
         const ecoPts = (vEcosystem * 0.25).toFixed(1);
-        const engagePts = (vEngagement * 0.15).toFixed(1);
+        const engagePts = (vEngagement * 0.25).toFixed(1);
         const calculatedComposite = (Number(growthPts) + Number(investPts) + Number(ecoPts) + Number(engagePts)).toFixed(1);
 
         // Radar Data
         const radarData = [
-          { subject: "Growth (30%)", Venture: vGrowth, EcosystemAvg: ecosystemAverages.growth, fullMark: 100 },
-          { subject: "Capital (30%)", Venture: vInvestment, EcosystemAvg: ecosystemAverages.investment, fullMark: 100 },
+          { subject: "Growth (25%)", Venture: vGrowth, EcosystemAvg: ecosystemAverages.growth, fullMark: 100 },
+          { subject: "Capital (25%)", Venture: vInvestment, EcosystemAvg: ecosystemAverages.investment, fullMark: 100 },
           { subject: "Readiness (25%)", Venture: vEcosystem, EcosystemAvg: ecosystemAverages.ecosystem, fullMark: 100 },
-          { subject: "Engagement (15%)", Venture: vEngagement, EcosystemAvg: ecosystemAverages.engagement, fullMark: 100 },
+          { subject: "Engagement (25%)", Venture: vEngagement, EcosystemAvg: ecosystemAverages.engagement, fullMark: 100 },
         ];
 
         // Benchmark Bar Data
@@ -1042,10 +1058,10 @@ export default function VentureLeaderboardRanking() {
 
         // Weight Pie Data
         const pieData = [
-          { name: "Growth (30%)", value: 30, color: "#3b82f6", score: vGrowth, earned: growthPts },
-          { name: "Capital (30%)", value: 30, color: "#8b5cf6", score: vInvestment, earned: investPts },
+          { name: "Growth (25%)", value: 25, color: "#3b82f6", score: vGrowth, earned: growthPts },
+          { name: "Capital (25%)", value: 25, color: "#8b5cf6", score: vInvestment, earned: investPts },
           { name: "Readiness (25%)", value: 25, color: "#ec4899", score: vEcosystem, earned: ecoPts },
-          { name: "Engagement (15%)", value: 15, color: "#f59e0b", score: vEngagement, earned: engagePts },
+          { name: "Engagement (25%)", value: 25, color: "#f59e0b", score: vEngagement, earned: engagePts },
         ];
 
         const totalEcosystemCount = Math.max(topStartups.length, myStartups.length, 1);
@@ -1221,7 +1237,7 @@ export default function VentureLeaderboardRanking() {
                           <TrendingUp className="w-3.5 h-3.5" />
                         </div>
                         <div className="text-xl font-black text-gray-900">{vGrowth}<span className="text-xs font-normal text-gray-500">/100</span></div>
-                        <div className="text-[11px] text-blue-600 font-semibold mt-0.5">Weighted: {growthPts} pts (30%)</div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-0.5">Weighted: {growthPts} pts (25%)</div>
                       </div>
 
                       <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100">
@@ -1230,7 +1246,7 @@ export default function VentureLeaderboardRanking() {
                           <DollarSign className="w-3.5 h-3.5" />
                         </div>
                         <div className="text-xl font-black text-gray-900">{vInvestment}<span className="text-xs font-normal text-gray-500">/100</span></div>
-                        <div className="text-[11px] text-purple-600 font-semibold mt-0.5">Weighted: {investPts} pts (30%)</div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-0.5">Weighted: {investPts} pts (25%)</div>
                       </div>
 
                       <div className="p-3.5 rounded-xl bg-pink-50/70 border border-pink-100">
@@ -1248,7 +1264,7 @@ export default function VentureLeaderboardRanking() {
                           <Users className="w-3.5 h-3.5" />
                         </div>
                         <div className="text-xl font-black text-gray-900">{vEngagement}<span className="text-xs font-normal text-gray-500">/100</span></div>
-                        <div className="text-[11px] text-amber-600 font-semibold mt-0.5">Weighted: {engagePts} pts (15%)</div>
+                        <div className="text-[11px] text-amber-600 font-semibold mt-0.5">Weighted: {engagePts} pts (25%)</div>
                       </div>
                     </div>
 
@@ -1398,7 +1414,7 @@ export default function VentureLeaderboardRanking() {
                                 <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                                 <span>Growth Velocity</span>
                               </td>
-                              <td className="px-4 py-3 font-semibold text-blue-600">30%</td>
+                              <td className="px-4 py-3 font-semibold text-blue-600">25%</td>
                               <td className="px-4 py-3 text-gray-600">
                                 Growth rate: {v.averageStartupGrowthRate || 0}% • Annual Revenue: ₱{Number(v.annualRevenue || v.revenue || 0).toLocaleString()} • Team: {v.numberOfEmployees || "Early"}
                               </td>
@@ -1410,7 +1426,7 @@ export default function VentureLeaderboardRanking() {
                                 <DollarSign className="w-3.5 h-3.5 text-purple-600" />
                                 <span>Capital & Funding</span>
                               </td>
-                              <td className="px-4 py-3 font-semibold text-purple-600">30%</td>
+                              <td className="px-4 py-3 font-semibold text-purple-600">25%</td>
                               <td className="px-4 py-3 text-gray-600">
                                 Total funding: ₱{Number(v.totalStartupFundingReceived || 0).toLocaleString()} • Closed rounds: {v.numberOfFundingRounds || 0} • Paid-up: ₱{Number(v.paidUpCapital || 0).toLocaleString()}
                               </td>
@@ -1434,7 +1450,7 @@ export default function VentureLeaderboardRanking() {
                                 <Users className="w-3.5 h-3.5 text-amber-600" />
                                 <span>Community & Public Engagement</span>
                               </td>
-                              <td className="px-4 py-3 font-semibold text-amber-600">15%</td>
+                              <td className="px-4 py-3 font-semibold text-amber-600">25%</td>
                               <td className="px-4 py-3 text-gray-600">
                                 Platform views: {v.viewsCount || 0} • Social followers: {v.facebookFollowers || 0} • Inquiries active
                               </td>
