@@ -1315,7 +1315,7 @@ function NotificationComponent() {
   return (
     <div className="min-h-screen w-full bg-gray-50 pb-20 md:pb-10 overflow-x-hidden">
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1920px] mx-auto px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <FaBell className="h-8 w-8 mr-3 text-white" />
@@ -1455,7 +1455,7 @@ function NotificationComponent() {
       </div>
 
       {/* Active filters display */}
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1920px] mx-auto px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {/* Status filters */}
           <div className="flex flex-wrap gap-2 mr-4">
@@ -1533,7 +1533,7 @@ function NotificationComponent() {
       </div>
 
       {/* Notifications list */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center">

@@ -393,7 +393,7 @@ export default function InvestmentInquiriesPage() {
     <div className="min-h-screen bg-slate-50/60 pb-20">
       {/* Top Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button
@@ -466,7 +466,7 @@ export default function InvestmentInquiriesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 space-y-6">
         {/* Metric Cards Banner */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs flex flex-col justify-between">
@@ -566,7 +566,7 @@ export default function InvestmentInquiriesPage() {
                 return (
                   <div
                     key={stage.id}
-                    className="flex-1 bg-slate-100/70 border border-slate-200/90 rounded-2xl p-3 flex flex-col min-w-[210px] max-h-[750px] shadow-2xs"
+                    className="flex-1 bg-slate-100/70 border border-slate-200/90 rounded-2xl p-3 flex flex-col min-w-[220px] lg:min-w-[250px] max-h-[750px] shadow-2xs"
                   >
                     {/* Column Header */}
                     <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">

@@ -298,7 +298,7 @@ export default function VentureLeaderboardRanking() {
     <div className="min-h-screen bg-slate-50/60 pb-20">
       {/* Top Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16 sm:h-20 gap-3">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button
@@ -351,7 +351,7 @@ export default function VentureLeaderboardRanking() {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-8 space-y-6">
         {/* KPI / Summary Highlights */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {/* Card 1: Total Startups Owned */}
@@ -587,7 +587,7 @@ export default function VentureLeaderboardRanking() {
                             )}
                           </div>
 
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-1 max-w-xl">
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-4xl">
                             {venture.companyDescription || "No detailed description provided."}
                           </p>
 
@@ -1087,7 +1087,7 @@ export default function VentureLeaderboardRanking() {
             onClick={() => setSelectedVentureForDetails(null)}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200"
+              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
